@@ -167,8 +167,13 @@ function getDifficultyMeta(difficulty) {
   return CONFIG.difficultyLabel[difficulty] || CONFIG.difficultyLabel[3];
 }
 
+function getValidQuestionPool(pool) {
+  return pool.filter(q => q && typeof q.difficulty === "number" && Array.isArray(q.options));
+}
+
 function selectQuizQuestions(pool, totalQuestions, shuffleArray) {
-  const shuffledPool = shuffleArray(pool);
+  const validPool = getValidQuestionPool(pool);
+  const shuffledPool = shuffleArray(validPool);
   const superHardPool = shuffledPool.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY);
 
   if (!superHardPool.length) {
@@ -273,7 +278,7 @@ class ExamApp {
     }
 
     // Build question pool (all topics)
-    const pool = QUESTIONS;
+    const pool = getValidQuestionPool(QUESTIONS);
     console.log("Total questions available:", pool.length);
 
     if (pool.length < this.numQuestions) {
