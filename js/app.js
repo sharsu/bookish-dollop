@@ -522,12 +522,24 @@ class ExamApp {
 
   resetToSetup() {
     clearInterval(this.timerInterval);
-    this.studentInput.value = "";
-    this.numQInput.value = CONFIG.defaultQuestions;
-    this.timeLimitInput.value = CONFIG.defaultTimeLimit;
+    this.studentName = "";
+    this.numQuestions = CONFIG.defaultQuestions;
+    this.timeLimit = CONFIG.defaultTimeLimit;
+    this.quizQuestions = [];
+    this.currentIndex = 0;
+    this.answers = {};
+    this.timeRemaining = 0;
+    this.startTime = 0;
+    this.timeExpired = false;
+
+    if (this.studentInput) this.studentInput.value = "";
+    this.drawingPad?.clearCanvas();
+
     document.querySelectorAll("#topic-checkboxes input").forEach(cb => cb.checked = false);
     document.getElementById("confirm-overlay").setAttribute("hidden", "");
     document.getElementById("timeup-overlay").setAttribute("hidden", "");
+    this.setupError?.setAttribute("hidden", "");
+    if (this.setupError) this.setupError.textContent = "";
     this.showScreen("setup");
   }
 
