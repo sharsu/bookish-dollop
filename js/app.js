@@ -15,13 +15,33 @@ class DrawingPad {
   }
 
   setupCanvas() {
-    const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = rect.width * window.devicePixelRatio;
-    this.canvas.height = rect.height * window.devicePixelRatio;
+    // Use computed style for initial setup, then adjust on first draw
+    if (!this.canvas.width || !this.canvas.height) {
+      // Set initial reasonable size for tablets
+      this.canvas.width = 400 * window.devicePixelRatio;
+      this.canvas.height = 400 * window.devicePixelRatio;
+    }
+
     this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
+    this.ctx.lineWidth = this.penSize;
+    this.ctx.strokeStyle = '#2c3e50';
     this.saveState();
+  }
+
+  resizeCanvas() {
+    // Properly resize canvas when quiz starts
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      this.canvas.width = rect.width * window.devicePixelRatio;
+      this.canvas.height = rect.height * window.devicePixelRatio;
+      this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      this.ctx.lineWidth = this.penSize;
+      this.ctx.strokeStyle = '#2c3e50';
+    }
   }
 
   attachEventListeners() {
@@ -67,13 +87,13 @@ class DrawingPad {
 
     if (e.touches) {
       return {
-        x: (e.touches[0].clientX - rect.left) * (rect.width / this.canvas.offsetWidth),
-        y: (e.touches[0].clientY - rect.top) * (rect.height / this.canvas.offsetHeight)
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY
       };
     } else {
       return {
-        x: e.offsetX,
-        y: e.offsetY
+        x: e.offsetX * window.devicePixelRatio,
+        y: e.offsetY * window.devicePixelRatio
       };
     }
   }
@@ -278,6 +298,9 @@ class ExamApp {
   }
 
   updateQuestionDisplay() {
+    // Resize canvas when displaying questions
+    this.drawingPad.resizeCanvas();
+
     const q = this.quizQuestions[this.currentIndex];
     const progress = this.currentIndex + 1;
 
