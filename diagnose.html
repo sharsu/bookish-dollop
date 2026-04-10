@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Prep - Diagnostics</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; background: #f0f4ff; }
+    .check { padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .pass { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+    .fail { background: #fee2e2; color: #7f1d1d; border-left: 4px solid #ef4444; }
+    .warn { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+    h1 { color: #4f46e5; }
+    pre { background: #1e1b4b; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Exam Prep App - Diagnostics</h1>
+  
+  <div id="checks"></div>
+
+  <script>
+    const checks = document.getElementById('checks');
+    
+    function addCheck(name, passed, details = '') {
+      const div = document.createElement('div');
+      div.className = `check ${passed ? 'pass' : 'fail'}`;
+      div.innerHTML = `<strong>${passed ? '✓' : '✗'} ${name}</strong>`;
+      if (details) div.innerHTML += `<br><small>${details}</small>`;
+      checks.appendChild(div);
+    }
+
+    // Test 1: Check if scripts load
+    try {
+      if (typeof QUESTIONS === 'undefined') {
+        addCheck('questions.js', false, 'QUESTIONS not defined');
+      } else {
+        addCheck('questions.js', true, `Loaded ${QUESTIONS.length} questions`);
+        
+        // Check some questions
+        const topics = new Set(QUESTIONS.map(q => q.topic));
+        addCheck('Question structure', QUESTIONS.every(q => q.id && q.topic && q.question && q.options && q.answer !== undefined), 
+          `Topics found: ${Array.from(topics).join(', ')}`);
+      }
+    } catch (e) {
+      addCheck('questions.js', false, `Error: ${e.message}`);
+    }
+
+    try {
+      if (typeof CONFIG === 'undefined') {
+        addCheck('config.js', false, 'CONFIG not defined');
+      } else {
+        addCheck('config.js', true, `Default: ${CONFIG.defaultQuestions} questions, ${CONFIG.defaultTimeLimit} min`);
+      }
+    } catch (e) {
+      addCheck('config.js', false, `Error: ${e.message}`);
+    }
+
+    // Test 2: Check DOM elements
+    window.addEventListener('load', () => {
+      const requiredElements = [
+        'setup-screen', 'quiz-screen', 'results-screen',
+        'student-name', 'num-questions', 'time-limit',
+        'start-btn', 'topic-checkboxes', 'question-text',
+        'timer-display', 'options-container'
+      ];
+      
+      let allPresent = true;
+      requiredElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) {
+          addCheck(`DOM: #${id}`, false);
+          allPresent = false;
+        }
+      });
+      
+      if (allPresent) {
+        addCheck('DOM elements', true, `All ${requiredElements.length} elements found`);
+      }
+
+      // Test 3: Check if app initializes
+      try {
+        if (typeof ExamApp === 'undefined') {
+          addCheck('ExamApp class', false, 'Not defined');
+        } else {
+          addCheck('ExamApp class', true, 'Defined and ready');
+        }
+      } catch (e) {
+        addCheck('ExamApp class', false, e.message);
+      }
+
+      // Test 4: Test button click
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        const originalClick = startBtn.onclick;
+        addCheck('Start button', true, 'Click handler: ' + (originalClick ? 'attached' : 'pending'));
+      }
+
+      // Final summary
+      const allChecks = document.querySelectorAll('.check');
+      const passed = document.querySelectorAll('.pass').length;
+      const failed = document.querySelectorAll('.fail').length;
+      
+      const summary = document.createElement('div');
+      summary.style.marginTop = '20px';
+      summary.style.padding = '15px';
+      summary.style.borderRadius = '5px';
+      summary.style.background = failed === 0 ? '#d1fae5' : '#fee2e2';
+      summary.style.color = failed === 0 ? '#065f46' : '#7f1d1d';
+      summary.innerHTML = `<strong>Summary: ${passed} passed, ${failed} failed</strong>`;
+      checks.appendChild(summary);
+
+      if (failed === 0) {
+        const testBtn = document.createElement('button');
+        testBtn.textContent = 'Try Starting Exam';
+        testBtn.style.marginTop = '20px';
+        testBtn.style.padding = '10px 20px';
+        testBtn.style.background = '#4f46e5';
+        testBtn.style.color = 'white';
+        testBtn.style.border = 'none';
+        testBtn.style.borderRadius = '5px';
+        testBtn.style.cursor = 'pointer';
+        testBtn.onclick = () => {
+          window.location.href = 'index.html';
+        };
+        checks.appendChild(testBtn);
+      }
+    });
+  </script>
+</body>
+</html>

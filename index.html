@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maths Exam Prep</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ══════════════ CHILD SETUP SCREEN (Simple - Name Only) ══════════════ -->
+  <div id="setup-screen" class="screen active">
+    <div class="card setup-card">
+      <div class="logo"></div>
+      <h1>Ready to Test?</h1>
+      <p class="subtitle">Good luck! Do your best! 🌟</p>
+
+      <div class="form-group">
+        <label for="student-name">Your Name</label>
+        <input type="text" id="student-name" placeholder="Enter your name" maxlength="40" autocomplete="off">
+      </div>
+
+      <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
+      <p id="setup-error" class="error-msg" hidden></p>
+
+
+    </div>
+  </div>
+
+  <!-- ══════════════ QUIZ SCREEN ══════════════ -->
+  <div id="quiz-screen" class="screen" hidden>
+
+    <header class="quiz-header">
+      <div class="header-left">
+        <span id="student-label" class="student-name"></span>
+      </div>
+      <div class="timer-wrap" id="timer-wrap">
+        <span class="timer-icon">⏱</span>
+        <span id="timer-display" class="timer-display">60:00</span>
+      </div>
+      <div class="header-right">
+        <span id="progress-label" class="progress-label">Q 1 / 60</span>
+      </div>
+    </header>
+
+    <div class="progress-bar-wrap">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+
+    <main class="quiz-main">
+      <!-- LEFT SIDE: QUESTIONS -->
+      <div class="quiz-left-side">
+        <div class="question-card">
+          <div class="question-meta">
+            <span id="q-topic" class="q-topic-badge"></span>
+            <span id="q-difficulty" class="q-difficulty-badge"></span>
+          </div>
+          <p id="question-text" class="question-text"></p>
+          <div id="options-container" class="options-container"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: DRAWING PAD -->
+      <div class="quiz-right-side">
+        <div class="drawing-pad-header">
+          <h3 style="margin: 0; font-size: 1rem;">📝 Rough Work</h3>
+          <button id="clear-pad-btn" class="btn-icon-small">🗑️</button>
+        </div>
+        <canvas id="drawing-canvas" class="drawing-canvas"></canvas>
+        <div class="drawing-tools">
+          <button id="undo-btn" class="btn-icon-small" title="Undo (Ctrl+Z)">↶</button>
+          <button id="pen-size-small" class="btn-icon-small btn-size-active" title="Small pen">S</button>
+          <button id="pen-size-medium" class="btn-icon-small" title="Medium pen">M</button>
+          <button id="pen-size-large" class="btn-icon-small" title="Large pen">L</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="quiz-footer">
+      <button id="prev-btn" class="btn btn-secondary">← Previous</button>
+      <div class="answered-count">
+        <span id="answered-label">0 answered</span>
+      </div>
+      <button id="next-btn" class="btn btn-secondary">Next →</button>
+    </footer>
+
+    <div class="submit-row">
+      <button id="submit-btn" class="btn btn-success btn-large">✅ Submit Paper</button>
+    </div>
+
+    <!-- Time-up overlay -->
+    <div id="timeup-overlay" class="overlay" hidden>
+      <div class="overlay-card">
+        <div class="overlay-icon">⏰</div>
+        <h2>Time's Up!</h2>
+        <p>Your time has expired. Your answers have been submitted automatically.</p>
+        <button id="timeup-results-btn" class="btn btn-primary">View Results →</button>
+      </div>
+    </div>
+
+    <!-- Submit confirm overlay -->
+    <div id="confirm-overlay" class="overlay" hidden>
+      <div class="overlay-card">
+        <h2>Submit Paper?</h2>
+        <p id="confirm-message"></p>
+        <div class="confirm-buttons">
+          <button id="confirm-cancel-btn" class="btn btn-secondary">← Keep Going</button>
+          <button id="confirm-submit-btn" class="btn btn-success">✅ Yes, Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ RESULTS SCREEN ══════════════ -->
+  <div id="results-screen" class="screen" hidden>
+    <div class="results-card">
+      <div class="results-header">
+        <div class="trophy" id="results-trophy">🏆</div>
+        <h1 id="results-title">Well Done!</h1>
+        <p id="results-student-name" class="results-name"></p>
+      </div>
+
+      <div class="score-circle-wrap">
+        <div class="score-circle" id="score-circle">
+          <span id="score-pct" class="score-pct">0%</span>
+          <span class="score-label">Score</span>
+        </div>
+        <div class="score-stats">
+          <div class="stat-box correct-box">✅ <span id="correct-count">0</span><small>Correct</small></div>
+          <div class="stat-box wrong-box">❌ <span id="wrong-count">0</span><small>Wrong</small></div>
+          <div class="stat-box skip-box">⬜ <span id="skip-count">0</span><small>Skipped</small></div>
+          <div class="stat-box time-box">⏱ <span id="time-taken">0:00</span><small>Time Taken</small></div>
+        </div>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>Topic Breakdown</h2>
+        <div id="topic-breakdown-table"></div>
+      </div>
+
+      <div class="review-section">
+        <h2>Review Your Answers</h2>
+        <div id="review-list"></div>
+      </div>
+
+      <div class="results-actions">
+        <button id="retry-btn" class="btn btn-primary btn-large">🔄 Try Again</button>
+        <button id="new-exam-btn" class="btn btn-secondary btn-large">🏠 New Exam</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/questions.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Button Click Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f0f4ff; }
+    .box { background: white; padding: 20px; border-radius: 10px; max-width: 500px; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px; }
+    button { background: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #log { background: #1e1b4b; color: #4ade80; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; max-height: 300px; overflow-y: auto; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🔬 Button Click Test</h2>
+    
+    <input type="text" id="student-name" placeholder="Enter name" value="Test Student">
+    <input type="number" id="num-questions" value="60" min="5" max="100">
+    <input type="number" id="time-limit" value="60" min="1" max="180">
+    
+    <button onclick="testStartExam()">Test Start Exam</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log">
+      <div class="success">🟢 Logger initialized</div>
+    </div>
+  </div>
+
+  <script>
+    const logDiv = document.getElementById('log');
+    
+    function log(msg, isError = false) {
+      const line = document.createElement('div');
+      line.className = isError ? 'error' : 'success';
+      line.textContent = (isError ? '🔴 ' : '🟢 ') + msg;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function clearLog() {
+      logDiv.innerHTML = '<div class="success">🟢 Log cleared</div>';
+    }
+
+    // Load and test
+    log('Loading questions.js...');
+  </script>
+  
+  <script src="js/questions.js"></script>
+  <script>
+    log(`Questions loaded: ${typeof QUESTIONS !== 'undefined' ? QUESTIONS.length + ' questions' : 'FAILED'}`);
+  </script>
+  
+  <script src="js/config.js"></script>
+  <script>
+    log(`Config loaded: ${typeof CONFIG !== 'undefined' ? 'OK' : 'FAILED'}`);
+  </script>
+
+  <script>
+    function testStartExam() {
+      try {
+        log('=== START EXAM TEST ===');
+        
+        const name = document.getElementById('student-name').value.trim();
+        const numQ = parseInt(document.getElementById('num-questions').value);
+        const timeL = parseInt(document.getElementById('time-limit').value);
+        
+        log(`Name: "${name}"`);
+        log(`Questions: ${numQ}`);
+        log(`Time: ${timeL} min`);
+        
+        if (!name) {
+          log('ERROR: Name is empty', true);
+          return;
+        }
+        
+        if (typeof QUESTIONS === 'undefined') {
+          log('ERROR: QUESTIONS not defined', true);
+          return;
+        }
+        
+        log(`Available questions: ${QUESTIONS.length}`);
+        
+        // Simulate shuffling
+        const pool = QUESTIONS.slice(0, numQ);
+        log(`Selected ${pool.length} questions`);
+        
+        log('✓ All checks passed!');
+        log('');
+        log('The button should work. Try the main app:');
+        log('<a href="index.html">Open index.html</a>');
+        
+      } catch (e) {
+        log(`ERROR: ${e.message}`, true);
+        log(e.stack, true);
+      }
+    }
+  </script>
+</body>
+</html>

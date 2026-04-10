@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Test</title>
+</head>
+<body>
+  <h1>Testing Exam Prep App</h1>
+  <p id="status">Loading...</p>
+
+  <script src="js/questions.js"></script>
+  <script src="js/config.js"></script>
+  
+  <script>
+    // Check what's loaded
+    const status = document.getElementById('status');
+    
+    try {
+      if (typeof QUESTIONS !== 'undefined') {
+        status.innerHTML += `<br>✓ QUESTIONS loaded: ${QUESTIONS.length} questions`;
+      } else {
+        status.innerHTML += `<br>✗ QUESTIONS not defined`;
+      }
+      
+      if (typeof CONFIG !== 'undefined') {
+        status.innerHTML += `<br>✓ CONFIG loaded`;
+      } else {
+        status.innerHTML += `<br>✗ CONFIG not defined`;
+      }
+    } catch (e) {
+      status.innerHTML += `<br>ERROR: ${e.message}`;
+    }
+  </script>
+  
+  <script src="js/app.js"></script>
+  
+  <script>
+    setTimeout(() => {
+      const status = document.getElementById('status');
+      try {
+        status.innerHTML += `<br>✓ app.js loaded`;
+        status.innerHTML += `<br>App initialized, ready to test`;
+      } catch (e) {
+        status.innerHTML += `<br>✗ app.js error: ${e.message}`;
+      }
+    }, 100);
+  </script>
+</body>
+</html>

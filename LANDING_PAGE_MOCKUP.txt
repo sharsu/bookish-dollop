@@ -1,0 +1,205 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                     MATHS EXAM PREP — LANDING PAGE MOCKUP                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+VISUAL LAYOUT (What child sees when app opens)
+═══════════════════════════════════════════════════════════════════════════════
+
+                           Light Purple Background (#f0f4ff)
+                                         ↓
+                                   
+        ┌─────────────────────────────────────────────────────────────┐
+        │                                                             │
+        │                      🎓 (Large Emoji)                      │
+        │                                                             │
+        │                  Maths Exam Prep                           │
+        │              (Bold, Indigo Blue, Large Text)              │
+        │                                                             │
+        │                  Practice makes perfect!                   │
+        │               (Gray, Smaller, Italicized)                 │
+        │                                                             │
+        │  ─────────────────────────────────────────────────────────│
+        │                                                             │
+        │  Your Name                                                 │
+        │  ┌─────────────────────────────────────────────────────┐  │
+        │  │ Enter your name                                     │  │
+        │  └─────────────────────────────────────────────────────┘  │
+        │                                                             │
+        │  ┌──────────────────────┐  ┌──────────────────────────┐  │
+        │  │ Number of Questions  │  │  Time Limit (minutes)    │  │
+        │  │ ┌────────────────────┤  │ ┌──────────────────────┤  │
+        │  │ │ 60                 │  │ │ 60                   │  │
+        │  │ └────────────────────┤  │ └──────────────────────┤  │
+        │  └──────────────────────┘  └──────────────────────────┘  │
+        │                                                             │
+        │  Topics (leave all unchecked to include everything)        │
+        │  ┌──────────────────────────────────────────────────────┐  │
+        │  │ ☐ Numbers         ☐ Decimals      ☐ Fractions      │  │
+        │  │ ☐ Percentages     ☐ BIDMAS        ☐ Algebra        │  │
+        │  │ ☐ Sequences       ☐ Ratio         ☐ Speed          │  │
+        │  │ ☐ Measurement     ☐ Geometry      ☐ Statistics     │  │
+        │  │ ☐ Probability     ☐ Logic                          │  │
+        │  │                                                      │  │
+        │  │ (Scrollable grid)                                   │  │
+        │  └──────────────────────────────────────────────────────┘  │
+        │                                                             │
+        │              ┌─────────────────────────────────┐           │
+        │              │   🚀 Start Exam                │           │
+        │              │   (Big, Green Button)          │           │
+        │              └─────────────────────────────────┘           │
+        │                                                             │
+        └─────────────────────────────────────────────────────────────┘
+
+
+COLOR SCHEME
+═══════════════════════════════════════════════════════════════════════════════
+
+Background:         Light Indigo (#f0f4ff) — Calm, kid-friendly
+Card:              White (#ffffff) — Clean, readable
+Primary Color:     Indigo Blue (#4f46e5) — Buttons, headings
+Success Color:     Green (#16a34a) — Positive feedback
+Text:              Dark Navy (#1e1b4b) — High contrast
+Muted:             Gray (#6b7280) — Secondary text
+Borders:           Light Blue (#c7d2fe) — Input fields
+Shadow:            Soft purple shadow — Depth effect
+
+
+TYPOGRAPHY
+═══════════════════════════════════════════════════════════════════════════════
+
+Logo Emoji:        3rem (huge 🎓)
+Heading (h1):      1.9rem, Bold, Indigo Blue
+Subtitle:          Medium, Gray
+Labels:            0.92rem, Semi-bold, Dark
+Input Text:        1rem, Regular, Dark
+Button Text:       1rem, Semi-bold, White
+Error Message:     0.9rem, Red
+
+
+INTERACTIVE ELEMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Name Input Field:
+  - Placeholder: "Enter your name"
+  - Max length: 40 characters
+  - Border changes to blue on focus
+  - Background: light gray → white on focus
+
+✓ Number Inputs:
+  - Questions: Min 5, Max 100, Default 60
+  - Time: Min 1 min, Max 180 min, Default 60
+  - Side by side in responsive row
+  - Same styling as text input
+
+✓ Topic Checkboxes:
+  - 14 checkboxes in scrollable grid
+  - Auto-fill responsive columns
+  - Max height 200px (scroll if needed)
+  - Check/uncheck to filter topics
+  - Leave all unchecked to use all topics
+
+✓ Start Button:
+  - Large (14px padding, 32px sides)
+  - Indigo blue background
+  - White text
+  - Rocket emoji 🚀
+  - Hover: Darker blue
+  - Click: Scale down slightly
+  - Disabled if name is empty
+
+
+RESPONSIVE BEHAVIOR
+═══════════════════════════════════════════════════════════════════════════════
+
+Desktop (1024px+):
+  - Card max-width: 560px
+  - Centered on page
+  - Two-column input row
+  - Topics grid: 4 columns
+  
+Tablet (600-1024px):
+  - Card full width with padding
+  - Two-column input row (may wrap)
+  - Topics grid: 2-3 columns
+
+Mobile (< 600px):
+  - Card full width, edge-to-edge
+  - Input row stacks vertically
+  - Topics grid: 1 column
+  - Smaller padding/margins
+  - Larger touch targets
+
+
+VALIDATION & ERROR HANDLING
+═══════════════════════════════════════════════════════════════════════════════
+
+If "Start Exam" clicked without name:
+  - Red error message appears below button
+  - "Please enter your name"
+
+If question count invalid:
+  - Error: "Questions must be between 5 and 100"
+
+If topic selection has insufficient questions:
+  - Error: "Not enough questions available. Found: X"
+
+Errors display in red (#dc2626) above the Start button
+
+
+USER FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+1. App loads → Landing page shown
+2. Child sees:
+   - Welcoming title "Maths Exam Prep"
+   - Subtitle "Practice makes perfect!"
+   - Form asking for their name
+   - Option to customize quiz
+   - Big green button "🚀 Start Exam"
+
+3. Child fills form:
+   - Enters name (e.g., "Alex")
+   - Can adjust question count if desired
+   - Can adjust time if desired
+   - Can select specific topics (optional)
+
+4. Clicks "🚀 Start Exam":
+   - App validates input
+   - Loads quiz with random questions
+   - Starts 60-minute timer
+   - Shows first question
+
+5. If error:
+   - Red message appears
+   - Child can correct and retry
+
+
+STYLING HIGHLIGHTS
+═══════════════════════════════════════════════════════════════════════════════
+
+✨ Card Shadow:      Soft purple shadow for depth
+✨ Border Radius:    Rounded corners (14px) for friendly feel
+✨ Transitions:      Smooth 0.18s transitions on hover/focus
+✨ Spacing:          Generous padding (40px card, 18px sections)
+✨ Font:            System fonts (Segoe UI, Tahoma, Geneva)
+✨ Focus States:    Clear blue border on inputs when focused
+✨ Button Feedback: Scale animation on click for tactile feel
+✨ Emojis:          Large emoji (🎓, 🚀) for visual appeal
+
+
+ACCESSIBILITY
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Semantic HTML       - Proper labels for inputs
+✓ Color Contrast      - High contrast text on backgrounds
+✓ Focus Indicators    - Clear focus states on all inputs
+✓ Input Validation    - Client-side validation with user feedback
+✓ Responsive Design   - Works on all screen sizes
+✓ Touch Friendly      - Large buttons and inputs for mobile
+
+
+═══════════════════════════════════════════════════════════════════════════════
+When the child clicks "🚀 Start Exam", they are taken to the QUIZ SCREEN
+where they see one question at a time with the timer running at the top.
+═══════════════════════════════════════════════════════════════════════════════
