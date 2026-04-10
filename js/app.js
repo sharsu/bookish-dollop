@@ -15,32 +15,32 @@ class DrawingPad {
   }
 
   setupCanvas() {
-    // Use computed style for initial setup, then adjust on first draw
-    if (!this.canvas.width || !this.canvas.height) {
-      // Set initial reasonable size for tablets
-      this.canvas.width = 400 * window.devicePixelRatio;
-      this.canvas.height = 400 * window.devicePixelRatio;
-    }
-
-    this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    // Initial setup — canvas may not be visible yet, so just set defaults
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
     this.ctx.lineWidth = this.penSize;
-    this.ctx.strokeStyle = '#2c3e50';
-    this.saveState();
+    this.ctx.strokeStyle = '#1e1b4b';
+    this._lastWidth = 0;
+    this._lastHeight = 0;
   }
 
   resizeCanvas() {
-    // Properly resize canvas when quiz starts
+    // Match internal pixel buffer to the CSS-rendered size (1:1, no scaling)
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      this.canvas.width = rect.width * window.devicePixelRatio;
-      this.canvas.height = rect.height * window.devicePixelRatio;
-      this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+    if (w > 0 && h > 0 && (w !== this._lastWidth || h !== this._lastHeight)) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+      // Reset context properties (setting width/height clears them)
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
       this.ctx.lineWidth = this.penSize;
-      this.ctx.strokeStyle = '#2c3e50';
+      this.ctx.strokeStyle = '#1e1b4b';
+      this._lastWidth = w;
+      this._lastHeight = h;
+      this.history = [];
+      this.saveState();
     }
   }
 
@@ -82,18 +82,15 @@ class DrawingPad {
 
   getCoordinates(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
-
     if (e.touches) {
       return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
       };
     } else {
       return {
-        x: e.offsetX * window.devicePixelRatio,
-        y: e.offsetY * window.devicePixelRatio
+        x: e.offsetX,
+        y: e.offsetY
       };
     }
   }

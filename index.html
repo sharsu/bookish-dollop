@@ -64,15 +64,15 @@
       <div class="quiz-right-side">
         <div class="drawing-pad-header">
           <h3 style="margin: 0; font-size: 1rem;">📝 Rough Work</h3>
-          <button id="clear-pad-btn" class="btn-icon-small">🗑️</button>
+          <div class="drawing-header-tools">
+            <button id="pen-size-small" class="btn-icon-small btn-size-active" title="Small pen">S</button>
+            <button id="pen-size-medium" class="btn-icon-small" title="Medium pen">M</button>
+            <button id="pen-size-large" class="btn-icon-small" title="Large pen">L</button>
+            <button id="undo-btn" class="btn-icon-small" title="Undo (Ctrl+Z)">↶</button>
+            <button id="clear-pad-btn" class="btn-icon-small" title="Clear all">🗑️</button>
+          </div>
         </div>
         <canvas id="drawing-canvas" class="drawing-canvas"></canvas>
-        <div class="drawing-tools">
-          <button id="undo-btn" class="btn-icon-small" title="Undo (Ctrl+Z)">↶</button>
-          <button id="pen-size-small" class="btn-icon-small btn-size-active" title="Small pen">S</button>
-          <button id="pen-size-medium" class="btn-icon-small" title="Medium pen">M</button>
-          <button id="pen-size-large" class="btn-icon-small" title="Large pen">L</button>
-        </div>
       </div>
     </main>
 
