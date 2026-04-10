@@ -161,6 +161,38 @@ class DrawingPad {
   }
 }
 
+const SUPER_HARD_DIFFICULTY = 4;
+
+function getDifficultyMeta(difficulty) {
+  return CONFIG.difficultyLabel[difficulty] || CONFIG.difficultyLabel[3];
+}
+
+function selectQuizQuestions(pool, totalQuestions, shuffleArray) {
+  const shuffledPool = shuffleArray(pool);
+  const superHardPool = shuffledPool.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY);
+
+  if (!superHardPool.length) {
+    return shuffledPool.slice(0, totalQuestions);
+  }
+
+  const targetSuperHard = Math.min(
+    totalQuestions,
+    superHardPool.length,
+    Math.max(1, Math.round(totalQuestions / 15))
+  );
+  const regularPool = shuffledPool.filter(q => q.difficulty < SUPER_HARD_DIFFICULTY);
+  const selected = [
+    ...superHardPool.slice(0, targetSuperHard),
+    ...regularPool.slice(0, totalQuestions - targetSuperHard)
+  ];
+
+  if (selected.length < totalQuestions) {
+    selected.push(...superHardPool.slice(targetSuperHard, targetSuperHard + (totalQuestions - selected.length)));
+  }
+
+  return shuffleArray(selected);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    EXAM PREP APP — Core Quiz Engine
 ═══════════════════════════════════════════════════════════════════ */
@@ -249,9 +281,10 @@ class ExamApp {
       return;
     }
 
-    // Shuffle and select random questions
-    this.quizQuestions = this.shuffleArray(pool).slice(0, this.numQuestions);
-    console.log("Quiz questions selected:", this.quizQuestions.length);
+    // Shuffle and select random questions, making sure a few super-hard ones are included
+    this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr));
+    const superHardCount = this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length;
+    console.log("Quiz questions selected:", this.quizQuestions.length, "| Super hard included:", superHardCount);
     this.answers = {};
     this.currentIndex = 0;
     this.timeRemaining = this.timeLimit * 60;
@@ -310,9 +343,10 @@ class ExamApp {
     document.getElementById("progress-bar").style.width = percent + "%";
 
     // Question
+    const difficultyMeta = getDifficultyMeta(q.difficulty);
     document.getElementById("q-topic").textContent = q.topic;
-    document.getElementById("q-difficulty").textContent = CONFIG.difficultyLabel[q.difficulty].label;
-    document.getElementById("q-difficulty").className = `q-difficulty-badge ${CONFIG.difficultyLabel[q.difficulty].css}`;
+    document.getElementById("q-difficulty").textContent = difficultyMeta.label;
+    document.getElementById("q-difficulty").className = `q-difficulty-badge ${difficultyMeta.css}`;
     document.getElementById("question-text").textContent = q.question;
 
     // Options
@@ -463,12 +497,13 @@ class ExamApp {
       const answered = idx in this.answers;
       const isCorrect = answered && this.answers[idx] === q.answer;
       const className = isCorrect ? "review-correct" : answered ? "review-wrong" : "review-skip";
+      const difficultyMeta = getDifficultyMeta(q.difficulty);
       
       const html = `
         <div class="review-item ${className}">
           <div class="review-q">${idx + 1}. ${q.question}</div>
           <div class="review-meta">
-            <span>${CONFIG.difficultyLabel[q.difficulty].label}</span>
+            <span>${difficultyMeta.label}</span>
             <span>${q.topic}</span>
           </div>
       `;

@@ -31,7 +31,8 @@ const CONFIG = {
   difficultyLabel: {
     1: { label: "Easy",   css: "diff-easy"   },
     2: { label: "Medium", css: "diff-medium" },
-    3: { label: "Hard",   css: "diff-hard"   }
+    3: { label: "Hard",   css: "diff-hard"   },
+    4: { label: "Super Hard", css: "diff-superhard" }
   },
 
   /* Grade boundaries (%) */
