@@ -85,7 +85,7 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .topic-checkbox input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 .error-msg { color: var(--danger); font-size: .9rem; text-align: center; margin-top: 10px; }
 .success-msg { color: var(--success); font-size: .95rem; text-align: center; margin-top: 10px; font-weight: 500; }
-#start-btn { width: 100%; margin-top: 10px; }
+#start-btn, #parent-progress-btn { width: 100%; margin-top: 10px; }
 
 /* ══════════════════════════════════════
    QUIZ SCREEN
@@ -184,6 +184,7 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 ══════════════════════════════════════ */
 #results-screen { padding: 24px 16px 48px; }
 .results-card { max-width: 780px; margin: 0 auto; }
+.progress-card { max-width: 980px; }
 .results-header { text-align: center; margin-bottom: 28px; }
 .trophy { font-size: 4rem; }
 .results-header h1 { font-size: 2rem; color: var(--primary); margin: 8px 0 4px; }
@@ -230,6 +231,40 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .review-meta span { margin-right: 14px; }
 
 .results-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+#progress-screen { padding: 24px 16px 48px; }
+.parent-summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px; margin-bottom: 24px;
+}
+.summary-card {
+  background: var(--card-bg); border-radius: 14px; box-shadow: var(--shadow);
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 6px; text-align: center;
+}
+.summary-value { font-size: 1.65rem; font-weight: 800; color: var(--primary); }
+.summary-label { font-size: .82rem; color: var(--muted); font-weight: 600; }
+.parent-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.overview-pill {
+  background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+}
+.overview-pill strong { color: var(--primary); font-size: .92rem; }
+.overview-pill span { color: var(--text); font-weight: 600; }
+.parent-empty { text-align: center; }
+.parent-empty p { color: var(--muted); margin: 0; }
+.history-list { display: flex; flex-direction: column; gap: 12px; }
+.history-item {
+  border: 2px solid #e0e7ff; border-radius: 12px; background: #f8f9ff;
+  padding: 16px 18px; display: grid; grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(90px, auto));
+  gap: 10px; align-items: center;
+}
+.history-main { display: flex; flex-direction: column; gap: 4px; }
+.history-title { font-weight: 700; color: var(--text); }
+.history-subtitle { font-size: .84rem; color: var(--muted); }
+.history-score, .history-time, .history-meta {
+  font-weight: 700; color: var(--primary); text-align: right;
+}
+.history-time, .history-meta { color: var(--muted); font-size: .9rem; }
 
 /* ══════════════════════════════════════
    DRAWING PAD (Rough Work)
@@ -363,4 +398,6 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
   .drawing-canvas {
     min-height: 200px;
   }
+  .history-item { grid-template-columns: 1fr; text-align: left; }
+  .history-score, .history-time, .history-meta { text-align: left; }
 }

@@ -21,6 +21,7 @@
       </div>
 
       <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
+      <button id="parent-progress-btn" class="btn btn-secondary btn-large">📊 Parent Progress</button>
       <p id="setup-error" class="error-msg" hidden></p>
 
 
@@ -144,8 +145,83 @@
       </div>
 
       <div class="results-actions">
+        <button id="progress-btn" class="btn btn-secondary btn-large">📊 Parent Progress</button>
         <button id="retry-btn" class="btn btn-primary btn-large">🔄 Try Again</button>
         <button id="new-exam-btn" class="btn btn-secondary btn-large">🏠 New Exam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PARENT PROGRESS SCREEN ══════════════ -->
+  <div id="progress-screen" class="screen" hidden>
+    <div class="results-card progress-card">
+      <div class="results-header">
+        <div class="trophy">📊</div>
+        <h1>Parent Progress Dashboard</h1>
+        <p class="results-name">Saved on this device and browser only.</p>
+      </div>
+
+      <div id="parent-progress-empty" class="topic-breakdown parent-empty" hidden>
+        <h2>No saved tests yet</h2>
+        <p>Once your child completes a test, the result will be stored here automatically.</p>
+      </div>
+
+      <div id="parent-progress-content" hidden>
+        <div class="parent-summary-grid">
+          <div class="summary-card">
+            <span class="summary-value" id="progress-tests-count">0</span>
+            <span class="summary-label">Tests Saved</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="progress-average-score">0%</span>
+            <span class="summary-label">Average Score</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="progress-best-score">0%</span>
+            <span class="summary-label">Best Score</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="progress-latest-score">0%</span>
+            <span class="summary-label">Latest Score</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="progress-average-time">0:00</span>
+            <span class="summary-label">Average Time</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-value" id="progress-trend">—</span>
+            <span class="summary-label">Recent Trend</span>
+          </div>
+        </div>
+
+        <div class="topic-breakdown">
+          <h2>Parent Overview</h2>
+          <div class="parent-overview-grid">
+            <div class="overview-pill">
+              <strong>Strongest topic:</strong>
+              <span id="progress-strongest-topic">—</span>
+            </div>
+            <div class="overview-pill">
+              <strong>Needs practice:</strong>
+              <span id="progress-focus-topic">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="topic-breakdown">
+          <h2>Topic Performance</h2>
+          <div id="parent-topic-breakdown"></div>
+        </div>
+
+        <div class="review-section">
+          <h2>Recent Tests</h2>
+          <div id="parent-history-list" class="history-list"></div>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button id="progress-back-btn" class="btn btn-secondary btn-large">← Back</button>
+        <button id="progress-home-btn" class="btn btn-primary btn-large">🏠 Home</button>
       </div>
     </div>
   </div>

@@ -162,9 +162,131 @@ class DrawingPad {
 }
 
 const SUPER_HARD_DIFFICULTY = 4;
+const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
+const MAX_STORED_RESULTS = 100;
 
 function getDifficultyMeta(difficulty) {
   return CONFIG.difficultyLabel[difficulty] || CONFIG.difficultyLabel[3];
+}
+
+function getStorage() {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage : null;
+  } catch (error) {
+    console.warn("Local storage is unavailable:", error);
+    return null;
+  }
+}
+
+function formatDuration(totalSeconds) {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function formatCompletedAt(isoString) {
+  const date = isoString ? new Date(isoString) : new Date();
+  if (Number.isNaN(date.getTime())) return "Unknown date";
+  return date.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function loadStoredResults() {
+  const storage = getStorage();
+  if (!storage) return [];
+
+  try {
+    const raw = storage.getItem(RESULTS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(result => result && typeof result.percentage === "number" && Array.isArray(result.topicBreakdown))
+      : [];
+  } catch (error) {
+    console.warn("Could not load saved results:", error);
+    return [];
+  }
+}
+
+function persistStoredResults(results) {
+  const storage = getStorage();
+  if (!storage) return false;
+
+  try {
+    storage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(results.slice(0, MAX_STORED_RESULTS)));
+    return true;
+  } catch (error) {
+    console.warn("Could not save results:", error);
+    return false;
+  }
+}
+
+function averageOf(values) {
+  if (!values.length) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function buildProgressSummary(results) {
+  if (!results.length) {
+    return {
+      testsTaken: 0,
+      averageScore: 0,
+      bestScore: 0,
+      latestScore: 0,
+      averageTime: 0,
+      trendText: "Need more tests",
+      strongestTopic: null,
+      focusTopic: null,
+      topicSummary: [],
+      recentResults: []
+    };
+  }
+
+  const percentages = results.map(result => result.percentage);
+  const times = results.map(result => result.timeTakenSeconds || 0);
+  const recentWindow = results.slice(0, Math.min(3, results.length)).map(result => result.percentage);
+  const previousWindow = results.slice(3, 6).map(result => result.percentage);
+  const trendDelta = previousWindow.length
+    ? averageOf(recentWindow) - averageOf(previousWindow)
+    : results.length > 1
+      ? results[0].percentage - results[1].percentage
+      : 0;
+
+  const topicMap = {};
+  results.forEach(result => {
+    result.topicBreakdown.forEach(topic => {
+      if (!topicMap[topic.topic]) {
+        topicMap[topic.topic] = { topic: topic.topic, correct: 0, total: 0 };
+      }
+      topicMap[topic.topic].correct += topic.correct || 0;
+      topicMap[topic.topic].total += topic.total || 0;
+    });
+  });
+
+  const topicSummary = Object.values(topicMap)
+    .map(topic => ({
+      ...topic,
+      percentage: topic.total ? Math.round((topic.correct / topic.total) * 100) : 0
+    }))
+    .sort((a, b) => b.percentage - a.percentage || b.total - a.total || a.topic.localeCompare(b.topic));
+
+  return {
+    testsTaken: results.length,
+    averageScore: averageOf(percentages),
+    bestScore: Math.max(...percentages),
+    latestScore: results[0].percentage,
+    averageTime: averageOf(times),
+    trendText: results.length < 2 ? "Need more tests" : trendDelta === 0 ? "Steady" : `${trendDelta > 0 ? "+" : ""}${trendDelta} pts`,
+    strongestTopic: topicSummary[0] || null,
+    focusTopic: topicSummary[topicSummary.length - 1] || null,
+    topicSummary,
+    recentResults: results.slice(0, 10)
+  };
 }
 
 function getValidQuestionPool(pool) {
@@ -223,14 +345,17 @@ class ExamApp {
     this.setupScreen = document.getElementById("setup-screen");
     this.quizScreen = document.getElementById("quiz-screen");
     this.resultsScreen = document.getElementById("results-screen");
+    this.progressScreen = document.getElementById("progress-screen");
     this.studentInput = document.getElementById("student-name");
     this.startBtn = document.getElementById("start-btn");
     this.setupError = document.getElementById("setup-error");
+    this.parentDashboardReturnScreen = "setup";
 
     console.log("DOM elements loaded:", {
       setupScreen: !!this.setupScreen,
       quizScreen: !!this.quizScreen,
       resultsScreen: !!this.resultsScreen,
+      progressScreen: !!this.progressScreen,
       studentInput: !!this.studentInput,
       startBtn: !!this.startBtn
     });
@@ -263,6 +388,10 @@ class ExamApp {
     document.getElementById("timeup-results-btn")?.addEventListener("click", () => this.submitExam());
     document.getElementById("retry-btn")?.addEventListener("click", () => this.retryQuiz());
     document.getElementById("new-exam-btn")?.addEventListener("click", () => this.resetToSetup());
+    document.getElementById("parent-progress-btn")?.addEventListener("click", () => this.openParentDashboard("setup"));
+    document.getElementById("progress-btn")?.addEventListener("click", () => this.openParentDashboard("results"));
+    document.getElementById("progress-back-btn")?.addEventListener("click", () => this.returnFromParentDashboard());
+    document.getElementById("progress-home-btn")?.addEventListener("click", () => this.resetToSetup());
     console.log("Event listeners ready");
   }
 
@@ -455,12 +584,47 @@ class ExamApp {
     const percentage = Math.round((correct / this.quizQuestions.length) * 100);
     const timeTaken = Math.floor((Date.now() - this.startTime) / 1000);
 
-    this.displayResults(correct, wrong, skipped, percentage, timeTaken, topicScores);
+    const resultRecord = this.buildResultRecord(correct, wrong, skipped, percentage, timeTaken, topicScores);
+    this.saveResultRecord(resultRecord);
+    this.displayResults(resultRecord);
   }
 
-  displayResults(correct, wrong, skipped, percentage, timeTaken, topicScores) {
+  buildResultRecord(correct, wrong, skipped, percentage, timeTaken, topicScores) {
+    const topicBreakdown = Object.keys(topicScores)
+      .sort((a, b) => a.localeCompare(b))
+      .map(topic => ({
+        topic,
+        correct: topicScores[topic].correct,
+        total: topicScores[topic].total,
+        percentage: Math.round((topicScores[topic].correct / topicScores[topic].total) * 100)
+      }));
+
+    return {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      studentName: this.studentName,
+      completedAt: new Date().toISOString(),
+      questionCount: this.quizQuestions.length,
+      correct,
+      wrong,
+      skipped,
+      percentage,
+      timeTakenSeconds: timeTaken,
+      superHardCount: this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length,
+      topicBreakdown
+    };
+  }
+
+  saveResultRecord(resultRecord) {
+    const existingResults = loadStoredResults();
+    existingResults.unshift(resultRecord);
+    persistStoredResults(existingResults);
+  }
+
+  displayResults(resultRecord) {
+    const { correct, wrong, skipped, percentage, timeTakenSeconds, topicBreakdown } = resultRecord;
+
     // Header
-    const grade = CONFIG.grades.find(g => percentage >= g.min);
+    const grade = CONFIG.grades.find(g => percentage >= g.min) || CONFIG.grades[CONFIG.grades.length - 1];
     document.getElementById("results-trophy").textContent = grade.trophy;
     document.getElementById("results-title").textContent = grade.label;
     document.getElementById("results-student-name").textContent = `${this.studentName} — ${percentage}%`;
@@ -474,23 +638,19 @@ class ExamApp {
     document.getElementById("correct-count").textContent = correct;
     document.getElementById("wrong-count").textContent = wrong;
     document.getElementById("skip-count").textContent = skipped;
-    const mins = Math.floor(timeTaken / 60);
-    const secs = timeTaken % 60;
-    document.getElementById("time-taken").textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+    document.getElementById("time-taken").textContent = formatDuration(timeTakenSeconds);
 
     // Topic breakdown
     const breakdown = document.getElementById("topic-breakdown-table");
     breakdown.innerHTML = "";
-    Object.keys(topicScores).forEach(topic => {
-      const score = topicScores[topic];
-      const pct = Math.round((score.correct / score.total) * 100);
+    topicBreakdown.forEach(topic => {
       breakdown.innerHTML += `
         <div class="topic-row">
-          <div class="topic-name">${topic}</div>
+          <div class="topic-name">${topic.topic}</div>
           <div class="topic-bar-wrap">
-            <div class="topic-bar" style="width: ${pct}%"></div>
+            <div class="topic-bar" style="width: ${topic.percentage}%"></div>
           </div>
-          <div class="topic-score-text">${score.correct}/${score.total}</div>
+          <div class="topic-score-text">${topic.correct}/${topic.total}</div>
         </div>
       `;
     });
@@ -514,6 +674,79 @@ class ExamApp {
       `;
       review.innerHTML += html;
     });
+  }
+
+  renderParentDashboard() {
+    const emptyState = document.getElementById("parent-progress-empty");
+    const content = document.getElementById("parent-progress-content");
+    const summary = buildProgressSummary(loadStoredResults());
+
+    const backBtn = document.getElementById("progress-back-btn");
+    if (backBtn) {
+      backBtn.textContent = this.parentDashboardReturnScreen === "results" ? "← Back to Results" : "← Back";
+    }
+
+    if (!summary.testsTaken) {
+      emptyState?.removeAttribute("hidden");
+      content?.setAttribute("hidden", "");
+      return;
+    }
+
+    emptyState?.setAttribute("hidden", "");
+    content?.removeAttribute("hidden");
+
+    document.getElementById("progress-tests-count").textContent = summary.testsTaken;
+    document.getElementById("progress-average-score").textContent = `${summary.averageScore}%`;
+    document.getElementById("progress-best-score").textContent = `${summary.bestScore}%`;
+    document.getElementById("progress-latest-score").textContent = `${summary.latestScore}%`;
+    document.getElementById("progress-average-time").textContent = formatDuration(summary.averageTime);
+    document.getElementById("progress-trend").textContent = summary.trendText;
+    document.getElementById("progress-strongest-topic").textContent = summary.strongestTopic
+      ? `${summary.strongestTopic.topic} (${summary.strongestTopic.percentage}%)`
+      : "—";
+    document.getElementById("progress-focus-topic").textContent = summary.focusTopic
+      ? `${summary.focusTopic.topic} (${summary.focusTopic.percentage}%)`
+      : "—";
+
+    const topicBreakdown = document.getElementById("parent-topic-breakdown");
+    topicBreakdown.innerHTML = "";
+    summary.topicSummary.forEach(topic => {
+      topicBreakdown.innerHTML += `
+        <div class="topic-row">
+          <div class="topic-name">${topic.topic}</div>
+          <div class="topic-bar-wrap">
+            <div class="topic-bar" style="width: ${topic.percentage}%"></div>
+          </div>
+          <div class="topic-score-text">${topic.correct}/${topic.total}</div>
+        </div>
+      `;
+    });
+
+    const historyList = document.getElementById("parent-history-list");
+    historyList.innerHTML = "";
+    summary.recentResults.forEach(result => {
+      historyList.innerHTML += `
+        <div class="history-item">
+          <div class="history-main">
+            <div class="history-title">${result.studentName || "Student"} — ${formatCompletedAt(result.completedAt)}</div>
+            <div class="history-subtitle">${result.correct}/${result.questionCount} correct • ${result.superHardCount || 0} super hard question(s)</div>
+          </div>
+          <div class="history-score">${result.percentage}%</div>
+          <div class="history-time">${formatDuration(result.timeTakenSeconds)}</div>
+          <div class="history-meta">${result.skipped} skipped</div>
+        </div>
+      `;
+    });
+  }
+
+  openParentDashboard(fromScreen = "setup") {
+    this.parentDashboardReturnScreen = fromScreen;
+    this.renderParentDashboard();
+    this.showScreen("progress");
+  }
+
+  returnFromParentDashboard() {
+    this.showScreen(this.parentDashboardReturnScreen === "results" ? "results" : "setup");
   }
 
   retryQuiz() {
@@ -571,6 +804,13 @@ class ExamApp {
       console.log("✓ Results screen shown");
     } else {
       this.resultsScreen.setAttribute("hidden", "");
+    }
+
+    if (name === "progress") {
+      this.progressScreen?.removeAttribute("hidden");
+      console.log("✓ Progress screen shown");
+    } else {
+      this.progressScreen?.setAttribute("hidden", "");
     }
 
     console.log(`Screen switched to: ${name}`);
