@@ -1,9 +1,9 @@
-/* Extra harder question bank: adds 1000 generated questions (hard + super hard, Q711–Q1710) */
+/* Extra harder question bank: adds 1000 generated questions (hard + super hard) */
 (() => {
   if (typeof QUESTIONS === "undefined") return;
   const topics = ["Numbers","Decimals","Fractions","Percentages","BIDMAS","Algebra","Sequences","Ratio","Speed","Measurement","Geometry","Statistics","Probability","Logic"];
   const counts = [72,72,72,72,72,72,71,71,71,71,71,71,71,71];
-  let id = 711;
+  let id = QUESTIONS.reduce((max, q) => q && typeof q.id === "number" && q.id > max ? q.id : max, 0) + 1;
   const gcd = (a,b) => b ? gcd(b, a % b) : Math.abs(a);
   const lcm = (a,b) => Math.abs(a * b) / gcd(a,b);
   const simp = (n,d) => { const g = gcd(n,d); return `${n/g}/${d/g}`; };
