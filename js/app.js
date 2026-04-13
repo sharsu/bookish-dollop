@@ -162,6 +162,8 @@ class DrawingPad {
 }
 
 const SUPER_HARD_DIFFICULTY = 4;
+const ACTIVE_EXAM_STORAGE_KEY = "mathsExamPrepActiveExam";
+const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
 const MAX_STORED_RESULTS = 100;
 
@@ -289,6 +291,55 @@ function buildProgressSummary(results) {
   };
 }
 
+function loadActiveExamState() {
+  const storage = getStorage();
+  if (!storage) return null;
+
+  try {
+    const raw = storage.getItem(ACTIVE_EXAM_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== ACTIVE_EXAM_SAVE_VERSION) return null;
+    if (!Array.isArray(parsed.quizQuestions) || !parsed.quizQuestions.length) return null;
+
+    return {
+      ...parsed,
+      answers: parsed.answers && typeof parsed.answers === "object" ? parsed.answers : {}
+    };
+  } catch (error) {
+    console.warn("Could not load active exam:", error);
+    return null;
+  }
+}
+
+function persistActiveExamState(snapshot) {
+  const storage = getStorage();
+  if (!storage || !snapshot) return false;
+
+  try {
+    storage.setItem(ACTIVE_EXAM_STORAGE_KEY, JSON.stringify({
+      ...snapshot,
+      version: ACTIVE_EXAM_SAVE_VERSION
+    }));
+    return true;
+  } catch (error) {
+    console.warn("Could not save active exam:", error);
+    return false;
+  }
+}
+
+function clearActiveExamState() {
+  const storage = getStorage();
+  if (!storage) return;
+
+  try {
+    storage.removeItem(ACTIVE_EXAM_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Could not clear active exam:", error);
+  }
+}
+
 function getValidQuestionPool(pool) {
   return pool.filter(q => q && typeof q.difficulty === "number" && Array.isArray(q.options));
 }
@@ -340,6 +391,7 @@ class ExamApp {
     this.timerInterval = null;
     this.startTime = 0;
     this.timeExpired = false;
+    this.examInProgress = false;
 
     // DOM
     this.setupScreen = document.getElementById("setup-screen");
@@ -369,6 +421,8 @@ class ExamApp {
     this.drawingPad = new DrawingPad();
     console.log("DrawingPad initialized");
     this.attachEventListeners();
+    this.attachRecoveryListeners();
+    this.checkForRecoverableExam();
     console.log("Event listeners attached");
   }
 
@@ -392,7 +446,149 @@ class ExamApp {
     document.getElementById("progress-btn")?.addEventListener("click", () => this.openParentDashboard("results"));
     document.getElementById("progress-back-btn")?.addEventListener("click", () => this.returnFromParentDashboard());
     document.getElementById("progress-home-btn")?.addEventListener("click", () => this.resetToSetup());
+    document.getElementById("resume-test-btn")?.addEventListener("click", () => this.resumeSavedExam());
+    document.getElementById("discard-resume-btn")?.addEventListener("click", () => this.showDiscardRecoveryConfirm());
+    document.getElementById("discard-recovery-cancel-btn")?.addEventListener("click", () => this.hideDiscardRecoveryConfirm());
+    document.getElementById("discard-recovery-confirm-btn")?.addEventListener("click", () => this.discardSavedExam());
     console.log("Event listeners ready");
+  }
+
+  attachRecoveryListeners() {
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", event => {
+        this.persistExamProgress();
+        if (!this.examInProgress) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+
+      window.addEventListener("pagehide", () => this.persistExamProgress());
+    }
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          this.persistExamProgress();
+        }
+      });
+    }
+  }
+
+  buildActiveExamSnapshot() {
+    if (!this.examInProgress || !this.quizQuestions.length) return null;
+
+    return {
+      studentName: this.studentName,
+      numQuestions: this.numQuestions,
+      timeLimit: this.timeLimit,
+      quizQuestions: this.quizQuestions,
+      currentIndex: this.currentIndex,
+      answers: this.answers,
+      timeRemaining: this.timeRemaining,
+      startTime: this.startTime,
+      timeExpired: this.timeExpired,
+      savedAt: Date.now()
+    };
+  }
+
+  persistExamProgress() {
+    const snapshot = this.buildActiveExamSnapshot();
+    if (!snapshot) return false;
+    return persistActiveExamState(snapshot);
+  }
+
+  getResumeSummary(savedState) {
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - (savedState.savedAt || Date.now())) / 1000));
+    const adjustedTimeRemaining = Math.max(0, (savedState.timeRemaining || 0) - elapsedSeconds);
+    const answeredCount = Object.keys(savedState.answers || {}).length;
+    const questionCount = Array.isArray(savedState.quizQuestions) ? savedState.quizQuestions.length : 0;
+
+    if (adjustedTimeRemaining <= 0 || savedState.timeExpired) {
+      return `${savedState.studentName || "Student"} has an unfinished test saved. Time has run out, but the answers can still be recovered and submitted.`;
+    }
+
+    return `${savedState.studentName || "Student"} has an unfinished test with ${answeredCount} of ${questionCount} questions answered and ${formatDuration(adjustedTimeRemaining)} left.`;
+  }
+
+  showResumeOverlay(savedState) {
+    document.getElementById("resume-message").textContent = this.getResumeSummary(savedState);
+    document.getElementById("resume-overlay")?.removeAttribute("hidden");
+  }
+
+  hideResumeOverlay() {
+    document.getElementById("resume-overlay")?.setAttribute("hidden", "");
+  }
+
+  showDiscardRecoveryConfirm() {
+    this.hideResumeOverlay();
+    document.getElementById("discard-recovery-overlay")?.removeAttribute("hidden");
+  }
+
+  hideDiscardRecoveryConfirm(reshowResume = true) {
+    document.getElementById("discard-recovery-overlay")?.setAttribute("hidden", "");
+    if (reshowResume) {
+      const savedState = loadActiveExamState();
+      if (savedState) this.showResumeOverlay(savedState);
+    }
+  }
+
+  checkForRecoverableExam() {
+    const savedState = loadActiveExamState();
+    if (!savedState) return;
+    this.showResumeOverlay(savedState);
+  }
+
+  resumeSavedExam() {
+    const savedState = loadActiveExamState();
+    if (!savedState) {
+      this.hideResumeOverlay();
+      return;
+    }
+
+    const quizQuestions = getValidQuestionPool(savedState.quizQuestions || []);
+    if (!quizQuestions.length) {
+      this.discardSavedExam();
+      return;
+    }
+
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - (savedState.savedAt || Date.now())) / 1000));
+    const adjustedTimeRemaining = Math.max(0, (savedState.timeRemaining || 0) - elapsedSeconds);
+
+    this.studentName = savedState.studentName || "";
+    this.numQuestions = savedState.numQuestions || quizQuestions.length || CONFIG.defaultQuestions;
+    this.timeLimit = savedState.timeLimit || CONFIG.defaultTimeLimit;
+    this.quizQuestions = quizQuestions;
+    this.currentIndex = Math.min(Math.max(0, savedState.currentIndex || 0), quizQuestions.length - 1);
+    this.answers = savedState.answers || {};
+    this.timeRemaining = adjustedTimeRemaining;
+    this.startTime = savedState.startTime || Date.now();
+    this.timeExpired = !!savedState.timeExpired || adjustedTimeRemaining <= 0;
+    this.examInProgress = true;
+
+    if (this.studentInput) this.studentInput.value = this.studentName;
+
+    this.hideDiscardRecoveryConfirm(false);
+    this.hideResumeOverlay();
+    this.showScreen("quiz");
+    this.displayTime();
+    this.updateQuestionDisplay();
+
+    if (this.timeExpired) {
+      clearInterval(this.timerInterval);
+      this.showTimeUpOverlay();
+      this.persistExamProgress();
+    } else {
+      this.startTimer();
+      this.persistExamProgress();
+    }
+  }
+
+  discardSavedExam() {
+    this.hideDiscardRecoveryConfirm(false);
+    this.hideResumeOverlay();
+    this.examInProgress = false;
+    clearActiveExamState();
+    this.resetToSetup();
   }
 
   startExam() {
@@ -424,11 +620,16 @@ class ExamApp {
     this.timeRemaining = this.timeLimit * 60;
     this.startTime = Date.now();
     this.timeExpired = false;
+    this.examInProgress = true;
 
     console.log("Starting quiz with", this.quizQuestions.length, "questions");
+    this.hideResumeOverlay();
+    this.hideDiscardRecoveryConfirm(false);
     this.showScreen("quiz");
+    this.displayTime();
     this.updateQuestionDisplay();
     this.startTimer();
+    this.persistExamProgress();
   }
 
   startTimer() {
@@ -439,6 +640,10 @@ class ExamApp {
   updateTimer() {
     this.timeRemaining--;
     this.displayTime();
+
+    if (this.examInProgress && (this.timeRemaining % 5 === 0 || this.timeRemaining <= 10)) {
+      this.persistExamProgress();
+    }
 
     const timerWrap = document.getElementById("timer-wrap");
     if (this.timeRemaining <= 60 && this.timeRemaining > 0) {
@@ -519,6 +724,7 @@ class ExamApp {
     document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     document.getElementById("answered-label").textContent = `${Object.keys(this.answers).length} answered`;
+    this.persistExamProgress();
   }
 
   nextQuestion() {
@@ -527,6 +733,7 @@ class ExamApp {
       this.drawingPad.clearCanvas();
       console.log("Drawing pad cleared");
       this.updateQuestionDisplay();
+      this.persistExamProgress();
     }
   }
 
@@ -536,6 +743,7 @@ class ExamApp {
       this.drawingPad.clearCanvas();
       console.log("Drawing pad cleared");
       this.updateQuestionDisplay();
+      this.persistExamProgress();
     }
   }
 
@@ -553,11 +761,16 @@ class ExamApp {
 
   showTimeUpOverlay() {
     document.getElementById("timeup-overlay").removeAttribute("hidden");
+    this.persistExamProgress();
   }
 
   submitExam() {
     clearInterval(this.timerInterval);
     this.calculateResults();
+    this.examInProgress = false;
+    clearActiveExamState();
+    this.hideResumeOverlay();
+    this.hideDiscardRecoveryConfirm(false);
     this.showScreen("results");
   }
 
@@ -755,6 +968,7 @@ class ExamApp {
 
   resetToSetup() {
     clearInterval(this.timerInterval);
+    this.examInProgress = false;
     this.studentName = "";
     this.numQuestions = CONFIG.defaultQuestions;
     this.timeLimit = CONFIG.defaultTimeLimit;
@@ -767,10 +981,13 @@ class ExamApp {
 
     if (this.studentInput) this.studentInput.value = "";
     this.drawingPad?.clearCanvas();
+    clearActiveExamState();
 
     document.querySelectorAll("#topic-checkboxes input").forEach(cb => cb.checked = false);
     document.getElementById("confirm-overlay").setAttribute("hidden", "");
     document.getElementById("timeup-overlay").setAttribute("hidden", "");
+    this.hideResumeOverlay();
+    this.hideDiscardRecoveryConfirm(false);
     this.setupError?.setAttribute("hidden", "");
     if (this.setupError) this.setupError.textContent = "";
     this.showScreen("setup");

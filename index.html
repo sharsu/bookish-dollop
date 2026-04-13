@@ -226,6 +226,30 @@
     </div>
   </div>
 
+  <!-- Recovery overlays -->
+  <div id="resume-overlay" class="overlay" hidden>
+    <div class="overlay-card">
+      <div class="overlay-icon">🛟</div>
+      <h2>Resume unfinished test?</h2>
+      <p id="resume-message">We found a saved test on this device.</p>
+      <div class="confirm-buttons">
+        <button id="discard-resume-btn" class="btn btn-secondary">Discard</button>
+        <button id="resume-test-btn" class="btn btn-primary">Resume Test</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="discard-recovery-overlay" class="overlay" hidden>
+    <div class="overlay-card">
+      <h2>Discard unfinished test?</h2>
+      <p>If you discard it now, your child will not be able to return to that test.</p>
+      <div class="confirm-buttons">
+        <button id="discard-recovery-cancel-btn" class="btn btn-secondary">← Keep Saved Test</button>
+        <button id="discard-recovery-confirm-btn" class="btn btn-success">Yes, Discard</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/questions.js"></script>
   <script src="js/questions-extra.js"></script>
   <script src="js/config.js"></script>
