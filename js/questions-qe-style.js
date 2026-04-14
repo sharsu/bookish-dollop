@@ -127,7 +127,7 @@
   function genGeometry(i) {
     switch (i % 5) {
       case 0: { const x=2+i%4,y=-(1+i%3), ans=`(${y}, ${-x})`; return mk("Geometry",`The point (${x}, ${y}) is reflected in the line y = x and then reflected in the y-axis. What are the new coordinates?`,ans,[`(${y}, ${x})`,`(${x}, ${-y})`,`(${-y}, ${-x})`],diff(i),i); }
-      case 1: { const m=2+i%3,c=1+i%4; return mk("Geometry",`Which pair of lines is perpendicular?`,`y = ${m}x + ${c} and y = ${fmt(-1/m)}x`,[`y = ${m}x and y = ${m}x - 1`,`y = ${m} and x = ${c}`,`y = ${m}x and y = ${m+1}x`],diff(i),i); }
+      case 1: { const m=2+i%3,c=1+i%4; return mk("Geometry",`Which pair of lines is perpendicular?`,`y = ${m}x + ${c} and y = ${fmt(-1/m)}x`,[`y = ${m}x and y = ${m}x - 1`,`y = ${m} and y = x`,`y = ${m}x and y = ${m+1}x`],diff(i),i); }
       case 2: { const h=3+i%4, area=2*h*h; return mk("Geometry",`A triangle is formed by the lines y = x, y = -x and y = ${2*h}. What is its area?`,`${area} cm²`,[`${area/2} cm²`,`${area+4} cm²`,`${4*h} cm²`],diff(i),i); }
       case 3: { const x=40+5*(i%4); const y=180-2*x; return mk("Geometry",`An isosceles trapezium has one angle of ${x}°. What is the angle adjacent to it on the same leg?`,`${180-x}°`,[`${x}°`,`${y}°`,`${90-x/2}°`],diff(i),i); }
       default:{ const line=10+i%4,width=4+i%4,height=2*width; return mk("Geometry",`A kite has line of symmetry x = ${line} and width ${width}. If its height is twice the width and the lowest point is ${height/2} units below the centre, what could be the coordinates of the top vertex?`,`(${line}, ${height})`,[`(${line+width/2}, ${height})`,`(${line}, ${width})`,`(${line}, ${height-width})`],diff(i),i); }
