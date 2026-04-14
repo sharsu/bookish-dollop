@@ -58,8 +58,14 @@ body {
 }
 .setup-card {
   background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow);
-  padding: 40px 36px; max-width: 560px; width: 100%;
+  padding: 40px 36px; max-width: 560px; width: 100%; position: relative;
 }
+.setup-history-link {
+  position: absolute; top: 14px; right: 18px;
+  font-size: .72rem; color: var(--muted); text-decoration: none;
+  opacity: .85;
+}
+.setup-history-link:hover { text-decoration: underline; opacity: 1; }
 .logo { font-size: 3rem; text-align: center; margin-bottom: 8px; }
 h1 { text-align: center; font-size: 1.9rem; color: var(--primary); margin-bottom: 4px; }
 .subtitle { text-align: center; color: var(--muted); margin-bottom: 28px; }
@@ -85,7 +91,7 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .topic-checkbox input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 .error-msg { color: var(--danger); font-size: .9rem; text-align: center; margin-top: 10px; }
 .success-msg { color: var(--success); font-size: .95rem; text-align: center; margin-top: 10px; font-weight: 500; }
-#start-btn, #parent-progress-btn { width: 100%; margin-top: 10px; }
+#start-btn { width: 100%; margin-top: 10px; }
 
 /* ══════════════════════════════════════
    QUIZ SCREEN

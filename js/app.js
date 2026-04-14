@@ -165,6 +165,7 @@ const SUPER_HARD_DIFFICULTY = 4;
 const ACTIVE_EXAM_STORAGE_KEY = "mathsExamPrepActiveExam";
 const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
+const ADAPTIVE_RESULTS_WINDOW = 5;
 const MAX_STORED_RESULTS = 100;
 
 function getDifficultyMeta(difficulty) {
@@ -341,34 +342,193 @@ function clearActiveExamState() {
 }
 
 function getValidQuestionPool(pool) {
+  if (!Array.isArray(pool)) return [];
   return pool.filter(q => q && typeof q.difficulty === "number" && Array.isArray(q.options));
 }
 
-function selectQuizQuestions(pool, totalQuestions, shuffleArray) {
-  const validPool = getValidQuestionPool(pool);
-  const shuffledPool = shuffleArray(validPool);
-  const superHardPool = shuffledPool.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY);
+function buildDifficultyTargets(totalQuestions) {
+  const difficulties = [1, 2, 3, 4];
+  return buildTargets(difficulties, totalQuestions);
+}
 
-  if (!superHardPool.length) {
-    return shuffledPool.slice(0, totalQuestions);
+function buildWeightedTargets(items, weightMap, totalQuestions) {
+  const rawTargets = items.map(item => {
+    const raw = (weightMap[item] || 0) * totalQuestions;
+    return { item, count: Math.floor(raw), fraction: raw - Math.floor(raw) };
+  });
+
+  let assigned = rawTargets.reduce((sum, entry) => sum + entry.count, 0);
+  rawTargets.sort((a, b) => b.fraction - a.fraction || b.item - a.item);
+
+  for (let i = 0; assigned < totalQuestions && i < rawTargets.length; i += 1, assigned += 1) {
+    rawTargets[i].count += 1;
   }
 
-  const targetSuperHard = Math.min(
-    totalQuestions,
-    superHardPool.length,
-    Math.max(1, Math.round(totalQuestions / 15))
+  return Object.fromEntries(rawTargets.map(entry => [entry.item, entry.count]));
+}
+
+function buildTargets(items, totalQuestions) {
+  const base = Math.floor(totalQuestions / items.length);
+  let remainder = totalQuestions % items.length;
+  const targets = Object.fromEntries(items.map(item => [item, base]));
+
+  items.forEach(item => {
+    if (remainder > 0) {
+      targets[item] += 1;
+      remainder -= 1;
+    }
+  });
+
+  return targets;
+}
+
+function getBucketCount(buckets, difficulty, topic) {
+  return buckets[difficulty]?.[topic]?.length || 0;
+}
+
+function hasAvailableQuestionsForDifficulty(buckets, difficulty, topics) {
+  return topics.some(topic => getBucketCount(buckets, difficulty, topic) > 0);
+}
+
+function hasAvailableQuestionsForTopic(buckets, topic, difficulties) {
+  return difficulties.some(level => getBucketCount(buckets, level, topic) > 0);
+}
+
+function buildAdaptiveDifficultyTargets(totalQuestions, recentResults) {
+  const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
+  if (recent.length < 2) return buildDifficultyTargets(totalQuestions);
+
+  const averageScore = averageOf(recent.map(result => result.percentage));
+  if (averageScore < 45) {
+    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.4, 2: 0.35, 3: 0.2, 4: 0.05 }, totalQuestions);
+  }
+  if (averageScore < 60) {
+    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.3, 2: 0.3, 3: 0.25, 4: 0.15 }, totalQuestions);
+  }
+  if (averageScore < 75) {
+    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.2, 2: 0.3, 3: 0.3, 4: 0.2 }, totalQuestions);
+  }
+  if (averageScore < 85) {
+    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.15, 2: 0.25, 3: 0.3, 4: 0.3 }, totalQuestions);
+  }
+
+  return buildWeightedTargets([1, 2, 3, 4], { 1: 0.1, 2: 0.2, 3: 0.3, 4: 0.4 }, totalQuestions);
+}
+
+function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
+  const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
+
+  return Object.fromEntries(topics.map(topic => {
+    const percentages = [];
+    recent.forEach(result => {
+      const match = result.topicBreakdown?.find(entry => entry.topic === topic);
+      if (match && typeof match.percentage === "number") {
+        percentages.push(match.percentage);
+      }
+    });
+
+    if (!percentages.length) return [topic, fallbackOrder.slice()];
+
+    const averageTopicScore = averageOf(percentages);
+    if (averageTopicScore < 50) return [topic, [1, 2, 3, 4]];
+    if (averageTopicScore < 65) return [topic, [2, 1, 3, 4]];
+    if (averageTopicScore < 80) return [topic, [3, 2, 4, 1]];
+    return [topic, [4, 3, 2, 1]];
+  }));
+}
+
+function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
+  const validPool = getValidQuestionPool(pool);
+  const difficultyOrder = shuffleArray([1, 2, 3, 4]);
+  const topics = shuffleArray([...new Set(validPool.map(q => q.topic))]);
+  const storedResults = loadStoredResults();
+  const studentResults = options.studentName
+    ? storedResults.filter(result => result.studentName === options.studentName)
+    : storedResults;
+  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults);
+  const topicTargets = buildTargets(topics, totalQuestions);
+  const topicDifficultyPreferences = buildTopicDifficultyPreferences(topics, studentResults, difficultyOrder);
+  const selected = [];
+  const difficultyCounts = Object.fromEntries(difficultyOrder.map(level => [level, 0]));
+  const topicCounts = Object.fromEntries(topics.map(topic => [topic, 0]));
+  const topicDifficultyCounts = Object.fromEntries(
+    topics.map(topic => [topic, Object.fromEntries(difficultyOrder.map(level => [level, 0]))])
   );
-  const regularPool = shuffledPool.filter(q => q.difficulty < SUPER_HARD_DIFFICULTY);
-  const selected = [
-    ...superHardPool.slice(0, targetSuperHard),
-    ...regularPool.slice(0, totalQuestions - targetSuperHard)
-  ];
+  const buckets = Object.fromEntries(
+    difficultyOrder.map(level => [level, Object.fromEntries(topics.map(topic => [topic, []]))])
+  );
+
+  shuffleArray(validPool).forEach(question => {
+    if (buckets[question.difficulty]?.[question.topic]) {
+      buckets[question.difficulty][question.topic].push(question);
+    }
+  });
+
+  while (selected.length < totalQuestions) {
+    const candidateTopics = topics
+      .filter(topic => topicCounts[topic] < topicTargets[topic] && hasAvailableQuestionsForTopic(buckets, topic, difficultyOrder));
+    const fallbackTopics = topics.filter(topic => hasAvailableQuestionsForTopic(buckets, topic, difficultyOrder));
+    const topicPool = candidateTopics.length ? candidateTopics : fallbackTopics;
+
+    if (!topicPool.length) break;
+
+    topicPool.sort((a, b) => {
+      const topicNeedA = topicTargets[a] - topicCounts[a];
+      const topicNeedB = topicTargets[b] - topicCounts[b];
+      if (topicNeedA !== topicNeedB) return topicNeedB - topicNeedA;
+
+      const totalAvailableA = difficultyOrder.reduce((sum, level) => sum + getBucketCount(buckets, level, a), 0);
+      const totalAvailableB = difficultyOrder.reduce((sum, level) => sum + getBucketCount(buckets, level, b), 0);
+      if (totalAvailableA !== totalAvailableB) return totalAvailableB - totalAvailableA;
+
+      return topicCounts[a] - topicCounts[b];
+    });
+
+    const chosenTopic = topicPool[0];
+
+    const candidateDifficulties = difficultyOrder
+      .filter(level => difficultyCounts[level] < difficultyTargets[level] && getBucketCount(buckets, level, chosenTopic) > 0);
+    const fallbackDifficulties = difficultyOrder.filter(level => getBucketCount(buckets, level, chosenTopic) > 0);
+    const difficultyPool = candidateDifficulties.length ? candidateDifficulties : fallbackDifficulties;
+
+    if (!difficultyPool.length) break;
+
+    difficultyPool.sort((a, b) => {
+      const preferredOrder = topicDifficultyPreferences[chosenTopic] || difficultyOrder;
+      const preferenceA = preferredOrder.indexOf(a);
+      const preferenceB = preferredOrder.indexOf(b);
+      if (preferenceA !== preferenceB) return preferenceA - preferenceB;
+
+      const needA = difficultyTargets[a] - difficultyCounts[a];
+      const needB = difficultyTargets[b] - difficultyCounts[b];
+      if (needA !== needB) return needB - needA;
+
+      const pairCountA = topicDifficultyCounts[chosenTopic][a];
+      const pairCountB = topicDifficultyCounts[chosenTopic][b];
+      if (pairCountA !== pairCountB) return pairCountA - pairCountB;
+
+      return getBucketCount(buckets, b, chosenTopic) - getBucketCount(buckets, a, chosenTopic);
+    });
+
+    const chosenDifficulty = difficultyPool[0];
+    const nextQuestion = buckets[chosenDifficulty][chosenTopic].pop();
+    if (!nextQuestion) break;
+
+    selected.push(nextQuestion);
+    difficultyCounts[chosenDifficulty] += 1;
+    topicCounts[chosenTopic] += 1;
+    topicDifficultyCounts[chosenTopic][chosenDifficulty] += 1;
+  }
 
   if (selected.length < totalQuestions) {
-    selected.push(...superHardPool.slice(targetSuperHard, targetSuperHard + (totalQuestions - selected.length)));
+    const leftovers = [];
+    difficultyOrder.forEach(level => {
+      topics.forEach(topic => leftovers.push(...buckets[level][topic]));
+    });
+    selected.push(...shuffleArray(leftovers).slice(0, totalQuestions - selected.length));
   }
 
-  return shuffleArray(selected);
+  return shuffleArray(selected.slice(0, totalQuestions));
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -416,6 +576,33 @@ class ExamApp {
     this.init();
   }
 
+  getCurrentHash() {
+    return typeof window !== "undefined" && window.location?.hash ? window.location.hash.toLowerCase() : "";
+  }
+
+  setHistorySlug(enabled) {
+    if (typeof window === "undefined" || !window.location) return;
+    const targetHash = enabled ? "#history" : "";
+    if (this.getCurrentHash() === targetHash) return;
+
+    if (enabled) {
+      window.location.hash = "history";
+      return;
+    }
+
+    if (window.history?.replaceState) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    } else {
+      window.location.hash = "";
+    }
+  }
+
+  handleHashRoute() {
+    if (this.getCurrentHash() === "#history") {
+      this.openParentDashboard("setup", false);
+    }
+  }
+
   init() {
     console.log("ExamApp.init() called");
     this.drawingPad = new DrawingPad();
@@ -423,6 +610,7 @@ class ExamApp {
     this.attachEventListeners();
     this.attachRecoveryListeners();
     this.checkForRecoverableExam();
+    this.handleHashRoute();
     console.log("Event listeners attached");
   }
 
@@ -442,7 +630,6 @@ class ExamApp {
     document.getElementById("timeup-results-btn")?.addEventListener("click", () => this.submitExam());
     document.getElementById("retry-btn")?.addEventListener("click", () => this.retryQuiz());
     document.getElementById("new-exam-btn")?.addEventListener("click", () => this.resetToSetup());
-    document.getElementById("parent-progress-btn")?.addEventListener("click", () => this.openParentDashboard("setup"));
     document.getElementById("progress-btn")?.addEventListener("click", () => this.openParentDashboard("results"));
     document.getElementById("progress-back-btn")?.addEventListener("click", () => this.returnFromParentDashboard());
     document.getElementById("progress-home-btn")?.addEventListener("click", () => this.resetToSetup());
@@ -455,6 +642,7 @@ class ExamApp {
 
   attachRecoveryListeners() {
     if (typeof window !== "undefined") {
+      window.addEventListener("hashchange", () => this.handleHashRoute());
       window.addEventListener("beforeunload", event => {
         this.persistExamProgress();
         if (!this.examInProgress) return;
@@ -612,7 +800,7 @@ class ExamApp {
     }
 
     // Shuffle and select random questions, making sure a few super-hard ones are included
-    this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr));
+    this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr), { studentName: this.studentName });
     const superHardCount = this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length;
     console.log("Quiz questions selected:", this.quizQuestions.length, "| Super hard included:", superHardCount);
     this.answers = {};
@@ -952,13 +1140,15 @@ class ExamApp {
     });
   }
 
-  openParentDashboard(fromScreen = "setup") {
+  openParentDashboard(fromScreen = "setup", syncHash = true) {
     this.parentDashboardReturnScreen = fromScreen;
     this.renderParentDashboard();
+    if (syncHash) this.setHistorySlug(true);
     this.showScreen("progress");
   }
 
   returnFromParentDashboard() {
+    this.setHistorySlug(false);
     this.showScreen(this.parentDashboardReturnScreen === "results" ? "results" : "setup");
   }
 
@@ -968,6 +1158,7 @@ class ExamApp {
 
   resetToSetup() {
     clearInterval(this.timerInterval);
+    this.setHistorySlug(false);
     this.examInProgress = false;
     this.studentName = "";
     this.numQuestions = CONFIG.defaultQuestions;
