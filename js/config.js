@@ -24,6 +24,7 @@ const CONFIG = {
     "Geometry",
     "Statistics",
     "Probability",
+    "Counting Principle",
     "Logic"
   ],
 
