@@ -21,10 +21,85 @@
         <input type="text" id="student-name" placeholder="Enter your name" maxlength="40" autocomplete="off">
       </div>
 
-      <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
+      <div class="setup-actions">
+        <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
+        <button id="learn-topics-btn" class="btn btn-learn btn-large">📚 Learn Topics</button>
+      </div>
       <p id="setup-error" class="error-msg" hidden></p>
 
 
+    </div>
+  </div>
+
+  <!-- ══════════════ STUDY LIBRARY SCREEN ══════════════ -->
+  <div id="study-library-screen" class="screen" hidden>
+    <div class="results-card study-card">
+      <div class="results-header">
+        <div class="trophy">📚</div>
+        <h1>Learn Topics</h1>
+        <p class="results-name">Pick a topic to refresh your memory before you start a test.</p>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>Your Topic Library</h2>
+        <div id="study-library-grid" class="study-library-grid"></div>
+      </div>
+
+      <div class="results-actions">
+        <button id="study-library-back-btn" class="btn btn-secondary btn-large">← Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ STUDY TOPIC SCREEN ══════════════ -->
+  <div id="study-topic-screen" class="screen" hidden>
+    <div class="results-card study-card study-topic-card">
+      <div class="study-topic-nav">
+        <button id="study-topic-back-btn" class="btn btn-secondary">← Back to Topics</button>
+        <button id="study-topic-home-btn" class="btn btn-secondary">🏠 Back to Menu</button>
+      </div>
+
+      <div class="results-header">
+        <div class="trophy" id="study-topic-icon">📘</div>
+        <h1 id="study-topic-title">Topic</h1>
+        <p id="study-topic-summary" class="results-name"></p>
+      </div>
+
+      <div class="study-hero-grid">
+        <div class="study-visual-panel">
+          <div id="study-topic-visual" class="study-topic-visual"></div>
+        </div>
+
+        <div class="topic-breakdown study-intro-panel">
+          <h2>What this means</h2>
+          <p id="study-topic-intro" class="study-copy"></p>
+          <div class="study-key-idea">
+            <strong>Key idea:</strong>
+            <span id="study-topic-key-idea"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="study-guide-grid">
+        <div class="topic-breakdown">
+          <h2>How to think about it</h2>
+          <ul id="study-topic-steps" class="study-list"></ul>
+        </div>
+
+        <div class="topic-breakdown">
+          <h2>Helpful reminders</h2>
+          <ul id="study-topic-tips" class="study-list"></ul>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <h2>Quick memory boost</h2>
+        <p id="study-topic-try-it" class="study-copy"></p>
+      </div>
+
+      <div class="results-actions">
+        <button id="study-topic-menu-btn" class="btn btn-learn btn-large">📚 Back to Menu</button>
+      </div>
     </div>
   </div>
 
@@ -255,6 +330,22 @@
   <script src="js/questions-qe-style.js"></script>
   <script src="js/questions-counting-principle.js"></script>
   <script src="js/config.js"></script>
+  <script src="maths/study-guides.js"></script>
+  <script src="maths/Numbers/guide.js"></script>
+  <script src="maths/Decimals/guide.js"></script>
+  <script src="maths/Fractions/guide.js"></script>
+  <script src="maths/Percentages/guide.js"></script>
+  <script src="maths/BIDMAS/guide.js"></script>
+  <script src="maths/Algebra/guide.js"></script>
+  <script src="maths/Sequences/guide.js"></script>
+  <script src="maths/Ratio/guide.js"></script>
+  <script src="maths/Speed/guide.js"></script>
+  <script src="maths/Measurement/guide.js"></script>
+  <script src="maths/Geometry/guide.js"></script>
+  <script src="maths/Statistics/guide.js"></script>
+  <script src="maths/Probability/guide.js"></script>
+  <script src="maths/Counting%20Principle/guide.js"></script>
+  <script src="maths/Logic/guide.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

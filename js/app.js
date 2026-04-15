@@ -531,6 +531,47 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   return shuffleArray(selected.slice(0, totalQuestions));
 }
 
+function getStudyGuideRegistry() {
+  if (typeof window !== "undefined" && window.STUDY_GUIDES && typeof window.STUDY_GUIDES === "object") {
+    return window.STUDY_GUIDES;
+  }
+  return {};
+}
+
+function buildFallbackStudyGuide(topic) {
+  const title = topic || "Maths";
+  const visual = typeof createStudyVisualCard === "function"
+    ? createStudyVisualCard({
+        emoji: "📘",
+        title,
+        subtitle: "Small steps build big confidence",
+        chips: ["Read", "Think", "Work it out", "Check"],
+        accent: "#4f46e5"
+      })
+    : "";
+
+  return {
+    topic: title,
+    icon: "📘",
+    summary: `A quick, child-friendly guide to help you warm up for ${title}.`,
+    intro: `${title} becomes easier when you take it one step at a time and check what the question is really asking.`,
+    keyIdea: "Slow, careful maths is stronger than rushed maths.",
+    steps: [
+      "Read the question slowly.",
+      "Choose the maths idea you need.",
+      "Check that your answer makes sense."
+    ],
+    tips: [
+      "Circle important words or numbers.",
+      "Estimate first if you can.",
+      "Go back and check your final answer."
+    ],
+    tryIt: `Before you start, say one thing you already know about ${title}.`,
+    visualLabel: `A simple study card for ${title}.`,
+    visual
+  };
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    EXAM PREP APP — Core Quiz Engine
 ═══════════════════════════════════════════════════════════════════ */
@@ -552,14 +593,19 @@ class ExamApp {
     this.startTime = 0;
     this.timeExpired = false;
     this.examInProgress = false;
+    this.currentStudyTopic = "";
 
     // DOM
     this.setupScreen = document.getElementById("setup-screen");
+    this.studyLibraryScreen = document.getElementById("study-library-screen");
+    this.studyTopicScreen = document.getElementById("study-topic-screen");
     this.quizScreen = document.getElementById("quiz-screen");
     this.resultsScreen = document.getElementById("results-screen");
     this.progressScreen = document.getElementById("progress-screen");
     this.studentInput = document.getElementById("student-name");
     this.startBtn = document.getElementById("start-btn");
+    this.learnTopicsBtn = document.getElementById("learn-topics-btn");
+    this.studyLibraryGrid = document.getElementById("study-library-grid");
     this.setupError = document.getElementById("setup-error");
     this.parentDashboardReturnScreen = "setup";
 
@@ -622,6 +668,16 @@ class ExamApp {
     } else {
       console.error("✗ Start button not found!");
     }
+    this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
+    document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("study-topic-back-btn")?.addEventListener("click", () => this.openStudyLibrary());
+    document.getElementById("study-topic-home-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    this.studyLibraryGrid?.addEventListener("click", event => {
+      const topicButton = event.target.closest("[data-study-topic]");
+      if (!topicButton) return;
+      this.openStudyTopic(topicButton.dataset.studyTopic);
+    });
     document.getElementById("prev-btn")?.addEventListener("click", () => this.previousQuestion());
     document.getElementById("next-btn")?.addEventListener("click", () => this.nextQuestion());
     document.getElementById("submit-btn")?.addEventListener("click", () => this.showSubmitConfirm());
@@ -1140,6 +1196,103 @@ class ExamApp {
     });
   }
 
+  getStudyGuide(topic) {
+    const registry = getStudyGuideRegistry();
+    return registry[topic] || buildFallbackStudyGuide(topic);
+  }
+
+  renderStudyList(elementId, items) {
+    const list = document.getElementById(elementId);
+    if (!list) return;
+
+    list.innerHTML = "";
+    (items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+  }
+
+  renderStudyLibrary() {
+    if (!this.studyLibraryGrid) return;
+
+    this.studyLibraryGrid.innerHTML = "";
+    CONFIG.topics.forEach(topic => {
+      const guide = this.getStudyGuide(topic);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "study-topic-button";
+      button.dataset.studyTopic = topic;
+
+      const icon = document.createElement("span");
+      icon.className = "study-topic-button-icon";
+      icon.textContent = guide.icon || "📘";
+
+      const title = document.createElement("span");
+      title.className = "study-topic-button-title";
+      title.textContent = topic;
+
+      const text = document.createElement("span");
+      text.className = "study-topic-button-text";
+      text.textContent = guide.summary || `Open the ${topic} guide.`;
+
+      const link = document.createElement("span");
+      link.className = "study-topic-button-link";
+      link.textContent = "Open guide →";
+
+      button.append(icon, title, text, link);
+      this.studyLibraryGrid.appendChild(button);
+    });
+  }
+
+  openStudyLibrary() {
+    this.setHistorySlug(false);
+    this.currentStudyTopic = "";
+    this.setupError?.setAttribute("hidden", "");
+    this.renderStudyLibrary();
+    this.showScreen("study-library");
+  }
+
+  renderStudyTopic(topic) {
+    const guide = this.getStudyGuide(topic);
+
+    document.getElementById("study-topic-icon").textContent = guide.icon || "📘";
+    document.getElementById("study-topic-title").textContent = guide.topic || topic;
+    document.getElementById("study-topic-summary").textContent = guide.summary || "A quick topic guide.";
+    document.getElementById("study-topic-intro").textContent = guide.intro || "Take this topic one step at a time.";
+    document.getElementById("study-topic-key-idea").textContent = guide.keyIdea || "Think carefully and check your answer.";
+    document.getElementById("study-topic-try-it").textContent = guide.tryIt || "Say the rule aloud before you start.";
+
+    this.renderStudyList("study-topic-steps", guide.steps);
+    this.renderStudyList("study-topic-tips", guide.tips);
+
+    const visual = document.getElementById("study-topic-visual");
+    if (visual) {
+      visual.innerHTML = guide.visual || "";
+      if (guide.visualLabel) {
+        visual.setAttribute("role", "img");
+        visual.setAttribute("aria-label", guide.visualLabel);
+      } else {
+        visual.removeAttribute("role");
+        visual.removeAttribute("aria-label");
+      }
+    }
+  }
+
+  openStudyTopic(topic) {
+    this.setHistorySlug(false);
+    this.currentStudyTopic = topic;
+    this.renderStudyTopic(topic);
+    this.showScreen("study-topic");
+  }
+
+  returnToSetupMenu() {
+    this.setHistorySlug(false);
+    this.currentStudyTopic = "";
+    this.setupError?.setAttribute("hidden", "");
+    this.showScreen("setup");
+  }
+
   openParentDashboard(fromScreen = "setup", syncHash = true) {
     this.parentDashboardReturnScreen = fromScreen;
     this.renderParentDashboard();
@@ -1169,6 +1322,7 @@ class ExamApp {
     this.timeRemaining = 0;
     this.startTime = 0;
     this.timeExpired = false;
+    this.currentStudyTopic = "";
 
     if (this.studentInput) this.studentInput.value = "";
     this.drawingPad?.clearCanvas();
@@ -1219,6 +1373,18 @@ class ExamApp {
       console.log("✓ Progress screen shown");
     } else {
       this.progressScreen?.setAttribute("hidden", "");
+    }
+
+    if (name === "study-library") {
+      this.studyLibraryScreen?.removeAttribute("hidden");
+    } else {
+      this.studyLibraryScreen?.setAttribute("hidden", "");
+    }
+
+    if (name === "study-topic") {
+      this.studyTopicScreen?.removeAttribute("hidden");
+    } else {
+      this.studyTopicScreen?.setAttribute("hidden", "");
     }
 
     console.log(`Screen switched to: ${name}`);
