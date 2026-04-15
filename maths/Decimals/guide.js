@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Decimals help you work with tenths, hundredths and small parts of a whole in a clear way.",
   intro: "This topic is easier when you keep each digit in the correct place and work neatly.",
   keyIdea: "Decimal points are like anchors that keep every place in line.",
-  visualLabel: "A decimal place value card showing ones, tenths, hundredths and thousandths.",
+  visualLabel: "A full-width decimals overview visual mapping the key decimal skills in this topic.",
   visual: createStudyVisualCard({
     emoji: "🔟",
     title: "Decimal places",

@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Fractions help you work with equal parts, compare them and calculate with them.",
   intro: "Fractions make much more sense when you picture the whole clearly and keep the parts equal.",
   keyIdea: "The denominator names the size of the parts and the numerator counts them.",
-  visualLabel: "A fractions study card with equal parts and common fraction ideas.",
+  visualLabel: "A full-width fractions overview visual mapping the key fraction ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🍕",
     title: "Equal parts",

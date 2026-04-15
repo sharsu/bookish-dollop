@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Ratio helps you compare amounts and keep them in the same proportion.",
   intro: "The big idea is that when one part changes, the other parts must change in step.",
   keyIdea: "Keep the order and scale every part in the same way.",
-  visualLabel: "A ratio card showing parts and scaling.",
+  visualLabel: "A full-width ratio overview visual mapping the main ratio methods in this topic.",
   visual: createStudyVisualCard({
     emoji: "⚖️",
     title: "Keep the same proportion",

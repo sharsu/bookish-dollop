@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Probability helps you describe how likely events are and count possible outcomes clearly.",
   intro: "This topic works best when you count carefully and keep favourable outcomes separate from all outcomes.",
   keyIdea: "Probability compares what you want with everything that could happen.",
-  visualLabel: "A probability card showing chance from impossible to certain.",
+  visualLabel: "A full-width probability overview visual mapping the main chance ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🎲",
     title: "How likely?",

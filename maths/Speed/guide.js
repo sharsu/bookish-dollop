@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Speed questions join distance, time and unit conversion in one clear set of rules.",
   intro: "These questions get much easier when you write down what you know and match the units before you calculate.",
   keyIdea: "Distance, speed and time are linked, so if you know two of them you can find the third.",
-  visualLabel: "A speed card showing the speed triangle ideas.",
+  visualLabel: "A full-width speed overview visual mapping the main distance-speed-time ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🚗",
     title: "Distance, speed, time",

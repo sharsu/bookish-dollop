@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Sequences are patterns in numbers, and each pattern follows a rule.",
   intro: "The key is to notice what changes, what stays the same and whether the rule works every time.",
   keyIdea: "Find the rule before finding the answer.",
-  visualLabel: "A sequences card showing a repeating increase pattern.",
+  visualLabel: "A full-width sequences overview visual mapping the key sequence ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🔁",
     title: "Find the rule",

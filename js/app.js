@@ -567,7 +567,7 @@ function buildFallbackStudyGuide(topic) {
       "Go back and check your final answer."
     ],
     tryIt: `Before you start, say one thing you already know about ${title}.`,
-    visualLabel: `A simple study card for ${title}.`,
+    visualLabel: `A simple overview visual for ${title}.`,
     visual
   };
 }
@@ -673,11 +673,8 @@ class ExamApp {
     }
     this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("study-topic-back-btn")?.addEventListener("click", () => this.openStudyLibrary());
-    document.getElementById("study-topic-home-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("study-concept-back-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
-    document.getElementById("study-concept-home-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     document.getElementById("study-concept-topic-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
     document.getElementById("study-concept-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     this.studyLibraryGrid?.addEventListener("click", event => {

@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Statistics helps you read data, organise it and describe what it shows.",
   intro: "These questions reward calm reading because the chart often tells you the answer if you read the labels and scale properly.",
   keyIdea: "Read first, calculate second.",
-  visualLabel: "A statistics card showing common data skills.",
+  visualLabel: "A full-width statistics overview visual mapping the main data-handling ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "📊",
     title: "Read the data",

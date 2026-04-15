@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "BIDMAS helps you solve mixed calculations in a fair and sensible order.",
   intro: "This topic is all about knowing what to do first, what can wait, and how to avoid left-to-right mistakes.",
   keyIdea: "Order matters.",
-  visualLabel: "A BIDMAS card listing the order of operations.",
+  visualLabel: "A full-width BIDMAS overview visual mapping the key operation-order ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🧮",
     title: "Order matters",

@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Geometry covers shapes, angles, lines, symmetry and careful diagram reading.",
   intro: "Geometry questions become easier when you spot the rule hidden in the shape or angle diagram.",
   keyIdea: "Use facts you already know to unlock what you do not know yet.",
-  visualLabel: "A geometry card showing shape and angle facts.",
+  visualLabel: "A full-width geometry overview visual mapping the main shape and angle ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "📐",
     title: "Shapes and angles",

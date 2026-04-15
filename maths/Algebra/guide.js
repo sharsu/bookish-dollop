@@ -11,7 +11,7 @@ registerStudyGuide({
     chips: ["Expressions", "Equations", "Substitution", "Function machines"],
     accent: "#ec4899"
   }),
-  visualLabel: "An algebra overview card showing the main sub-topics.",
+  visualLabel: "A full-width algebra overview visual mapping the main sub-topics in this topic.",
   concepts: [
     {
       title: "Expressions",

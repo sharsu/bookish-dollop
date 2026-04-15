@@ -29,47 +29,69 @@
     })
     .filter(example => example.text);
 
-  const createStudyVisualCard = ({ emoji = "📘", title = "Maths idea", subtitle = "Take it one step at a time", chips = [], accent = "#4f46e5" } = {}) => `
-    <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="cardGrad" x1="0" x2="1">
-          <stop offset="0%" stop-color="#ffffff" />
-          <stop offset="100%" stop-color="#eef2ff" />
-        </linearGradient>
-      </defs>
-      <rect x="10" y="10" width="340" height="200" rx="24" fill="url(#cardGrad)" stroke="${escapeHtml(accent)}" stroke-width="4"/>
-      <circle cx="58" cy="56" r="28" fill="${escapeHtml(accent)}" opacity="0.18"/>
-      <text x="58" y="66" text-anchor="middle" font-size="28">${escapeHtml(emoji)}</text>
-      <text x="100" y="56" font-size="24" font-weight="700" fill="#1e1b4b">${escapeHtml(title)}</text>
-      <text x="100" y="84" font-size="14" fill="#475569">${escapeHtml(subtitle)}</text>
-      ${chips.slice(0, 4).map((chip, index) => {
-        const x = 30 + (index % 2) * 150;
-        const y = 118 + Math.floor(index / 2) * 44;
-        return `<rect x="${x}" y="${y}" width="132" height="28" rx="14" fill="#ffffff" stroke="${escapeHtml(accent)}" opacity="0.85" />
-          <text x="${x + 66}" y="${y + 19}" text-anchor="middle" font-size="13" font-weight="600" fill="#1e1b4b">${escapeHtml(chip)}</text>`;
-      }).join("")}
-    </svg>`;
+  const createStudyVisualCard = ({ emoji = "📘", title = "Maths idea", subtitle = "Take it one step at a time", chips = [], accent = "#4f46e5" } = {}) => {
+    const keyPoints = chips.slice(0, 4).filter(Boolean);
+    const points = [
+      { x: 74, y: 170, labelX: 42, labelY: 196, anchor: "start" },
+      { x: 166, y: 124, labelX: 166, labelY: 98, anchor: "middle" },
+      { x: 266, y: 178, labelX: 266, labelY: 206, anchor: "middle" },
+      { x: 342, y: 132, labelX: 376, labelY: 110, anchor: "end" }
+    ].slice(0, keyPoints.length);
+
+    return `
+      <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="10" y="10" width="400" height="220" rx="22" fill="#fbfdff" stroke="${escapeHtml(accent)}" stroke-width="4"/>
+        <circle cx="352" cy="58" r="26" fill="${escapeHtml(accent)}" opacity="0.14"/>
+        <text x="352" y="67" text-anchor="middle" font-size="26">${escapeHtml(emoji)}</text>
+        <text x="32" y="42" font-size="19" font-weight="800" fill="#1e1b4b">${escapeHtml(title)}</text>
+        <text x="32" y="64" font-size="12.5" fill="#475569">${escapeHtml(subtitle)}</text>
+        <text x="32" y="92" font-size="11.5" font-weight="700" fill="${escapeHtml(accent)}">Topic overview</text>
+        <line x1="32" y1="100" x2="122" y2="100" stroke="${escapeHtml(accent)}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+        ${points.slice(1).map((point, index) => {
+          const prev = points[index];
+          const controlX = (prev.x + point.x) / 2;
+          const controlY = Math.min(prev.y, point.y) - 20;
+          return `<path d="M${prev.x} ${prev.y} Q${controlX} ${controlY} ${point.x} ${point.y}" fill="none" stroke="${escapeHtml(accent)}" stroke-width="3" stroke-linecap="round" opacity="0.45"/>`;
+        }).join("")}
+        ${points.map((point, index) => `
+          <circle cx="${point.x}" cy="${point.y}" r="11" fill="${escapeHtml(accent)}" opacity="0.16"/>
+          <circle cx="${point.x}" cy="${point.y}" r="5" fill="${escapeHtml(accent)}"/>
+          <text x="${point.labelX}" y="${point.labelY}" text-anchor="${point.anchor}" font-size="11.25" font-weight="700" fill="#334155">${escapeHtml(keyPoints[index])}</text>
+        `).join("")}
+        <text x="32" y="218" font-size="11.25" fill="#475569">The sub-topics below unpack these ideas step by step.</text>
+      </svg>`;
+  };
 
   const createCountingVisual = ({ first = "3 ways", second = "5 ways", total = "3 × 5 = 15" } = {}) => `
-    <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="10" y="10" width="340" height="200" rx="24" fill="#f8faff" stroke="#06b6d4" stroke-width="4"/>
-      <circle cx="56" cy="110" r="12" fill="#4f46e5"/>
-      <circle cx="170" cy="70" r="12" fill="#10b981"/>
-      <circle cx="170" cy="110" r="12" fill="#10b981"/>
-      <circle cx="170" cy="150" r="12" fill="#10b981"/>
-      <circle cx="300" cy="70" r="12" fill="#f97316"/>
-      <circle cx="300" cy="110" r="12" fill="#f97316"/>
-      <circle cx="300" cy="150" r="12" fill="#f97316"/>
-      <line x1="68" y1="110" x2="158" y2="70" stroke="#4f46e5" stroke-width="4"/>
-      <line x1="68" y1="110" x2="158" y2="110" stroke="#4f46e5" stroke-width="4"/>
-      <line x1="68" y1="110" x2="158" y2="150" stroke="#4f46e5" stroke-width="4"/>
-      <line x1="182" y1="70" x2="288" y2="70" stroke="#10b981" stroke-width="4"/>
-      <line x1="182" y1="110" x2="288" y2="110" stroke="#10b981" stroke-width="4"/>
-      <line x1="182" y1="150" x2="288" y2="150" stroke="#10b981" stroke-width="4"/>
-      <text x="34" y="85" font-size="14" font-weight="700" fill="#1e1b4b">Start</text>
-      <text x="122" y="28" font-size="14" font-weight="700" fill="#1e1b4b">${escapeHtml(first)}</text>
-      <text x="252" y="28" font-size="14" font-weight="700" fill="#1e1b4b">${escapeHtml(second)}</text>
-      <text x="180" y="194" text-anchor="middle" font-size="20" font-weight="800" fill="#0f766e">${escapeHtml(total)}</text>
+    <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="10" y="10" width="400" height="220" rx="22" fill="#fbfdff" stroke="#06b6d4" stroke-width="4"/>
+      <circle cx="352" cy="58" r="26" fill="#06b6d4" opacity="0.14"/>
+      <text x="352" y="67" text-anchor="middle" font-size="26">🌳</text>
+      <text x="32" y="42" font-size="19" font-weight="800" fill="#0f766e">Counting stages overview</text>
+      <text x="32" y="64" font-size="12.5" fill="#475569">Multiply stages only after checking the rules for each choice.</text>
+      <text x="32" y="92" font-size="11.5" font-weight="700" fill="#06b6d4">Topic overview</text>
+      <line x1="32" y1="100" x2="122" y2="100" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      <text x="34" y="118" font-size="11.5" font-weight="700" fill="#0f766e">Stage 1</text>
+      <text x="34" y="136" font-size="11.25" fill="#334155">${escapeHtml(first)}</text>
+      <text x="34" y="164" font-size="11.5" font-weight="700" fill="#0f766e">Stage 2</text>
+      <text x="34" y="182" font-size="11.25" fill="#334155">${escapeHtml(second)}</text>
+      <text x="34" y="206" font-size="11.5" font-weight="700" fill="#0f766e">Total outcomes</text>
+      <text x="34" y="224" font-size="11.25" fill="#334155">${escapeHtml(total)}</text>
+      <circle cx="182" cy="134" r="10" fill="#0ea5e9"/>
+      <circle cx="270" cy="102" r="9" fill="#14b8a6"/>
+      <circle cx="270" cy="134" r="9" fill="#14b8a6"/>
+      <circle cx="270" cy="166" r="9" fill="#14b8a6"/>
+      ${[72,105,138,171,204].map(y => `<circle cx="344" cy="${y}" r="7" fill="#f59e0b"/>`).join("")}
+      <line x1="192" y1="134" x2="261" y2="102" stroke="#0ea5e9" stroke-width="3"/>
+      <line x1="192" y1="134" x2="261" y2="134" stroke="#0ea5e9" stroke-width="3"/>
+      <line x1="192" y1="134" x2="261" y2="166" stroke="#0ea5e9" stroke-width="3"/>
+      <line x1="279" y1="102" x2="337" y2="72" stroke="#14b8a6" stroke-width="2.5"/>
+      <line x1="279" y1="102" x2="337" y2="105" stroke="#14b8a6" stroke-width="2.5"/>
+      <line x1="279" y1="134" x2="337" y2="138" stroke="#14b8a6" stroke-width="2.5"/>
+      <line x1="279" y1="134" x2="337" y2="171" stroke="#14b8a6" stroke-width="2.5"/>
+      <line x1="279" y1="166" x2="337" y2="204" stroke="#14b8a6" stroke-width="2.5"/>
+      <text x="206" y="96" font-size="10.5" fill="#334155">start</text>
+      <text x="286" y="86" font-size="10.5" fill="#334155">choices branch out</text>
     </svg>`;
 
   const createStatisticsChartVisual = ({

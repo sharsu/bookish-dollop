@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Percentages help you compare amounts fairly because they all use the same whole of 100.",
   intro: "This topic becomes much easier when you connect percentages to fractions and decimals you already know.",
   keyIdea: "Percent means 'out of 100'.",
-  visualLabel: "A percentages card showing common percentage facts and links to fractions.",
+  visualLabel: "A full-width percentages overview visual mapping the key percentage ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "💯",
     title: "Out of 100",

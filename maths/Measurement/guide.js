@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Measurement includes units, conversions, scales and shape measures such as perimeter and area.",
   intro: "These questions reward neat reading and sensible checking, especially when the numbers look easy but the units are different.",
   keyIdea: "Choose the right unit first, then calculate carefully.",
-  visualLabel: "A measurement card showing common unit links.",
+  visualLabel: "A full-width measurement overview visual mapping the key unit and scale ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "📏",
     title: "Choose the right unit",

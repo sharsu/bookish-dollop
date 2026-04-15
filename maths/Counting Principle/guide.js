@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Counting Principle questions are about working through stages and multiplying choices carefully.",
   intro: "This topic looks simple at first, but the important skill is noticing when choices are independent and when rules or restrictions change the count.",
   keyIdea: "Multiply the number of choices at each stage, but only after checking the rules carefully.",
-  visualLabel: "A branching counting principle diagram showing choices multiplying together.",
+  visualLabel: "A full-width counting principle overview visual showing how stages branch and multiply into total outcomes.",
   visual: createCountingVisual({
     first: "3 first choices",
     second: "5 next choices",

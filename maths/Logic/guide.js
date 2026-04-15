@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Logic is about using clues, spotting what must be true and ruling out what cannot work.",
   intro: "These questions are less about calculation and more about organised thinking.",
   keyIdea: "Go step by step and let the clues do the work.",
-  visualLabel: "A logic card showing clue, rule out and check.",
+  visualLabel: "A full-width logic overview visual mapping the main reasoning ideas in this topic.",
   visual: createStudyVisualCard({
     emoji: "🧩",
     title: "Use the clues",

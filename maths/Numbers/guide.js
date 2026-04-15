@@ -4,7 +4,7 @@ registerStudyGuide({
   summary: "Numbers includes place value, ordering, factors and other building blocks you use all the time.",
   intro: "This topic is about understanding what numbers mean, how they compare and how they fit into patterns.",
   keyIdea: "The more clearly you read a number, the easier every other step becomes.",
-  visualLabel: "A place value card showing ones, tens, hundreds and thousands.",
+  visualLabel: "A full-width numbers overview visual mapping the key number skills in this topic.",
   visual: createStudyVisualCard({
     emoji: "🔢",
     title: "Place value",
