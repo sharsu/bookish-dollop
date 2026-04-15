@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Simple fraction", text: "If a bar is split into 5 equal parts and 2 are shaded, the fraction is 2/5 because 5 equal parts make the whole and 2 are chosen." },
         { title: "Improper fraction", text: "7/4 means seven quarters. Four quarters make 1 whole and three quarters remain, so 7/4 = 1 3/4." }
       ],
-      visualLabel: "A fractions card showing numerator and denominator.",
-      visual: createStudyVisualCard({ emoji: "🍕", title: "Read the fraction", subtitle: "Top counts, bottom names the parts", chips: ["Numerator", "Denominator", "Equal parts", "Whole"], accent: "#f97316" })
+      visualLabel: "A full-width fraction visual showing equal parts, numerator/denominator meaning, and an improper-fraction example.",
+      visual: createFractionsUnderstandingVisual({ accent: "#f97316" })
     },
     {
       title: "Equivalent & Simplifying Fractions",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Equivalent", text: "2/3 = 4/6 because both numerator and denominator were multiplied by 2, so the fraction keeps the same value." },
         { title: "Simplifying", text: "12/18 simplifies to 2/3 because the highest common factor of 12 and 18 is 6, and 12 ÷ 6 = 2 while 18 ÷ 6 = 3." }
       ],
-      visualLabel: "A fractions card showing different fractions with the same value.",
-      visual: createStudyVisualCard({ emoji: "🟰", title: "Same value", subtitle: "Different look, same amount", chips: ["1/2", "2/4", "3/6", "Simplify"], accent: "#0ea5e9" })
+      visualLabel: "A full-width equivalent-fractions visual showing different bars with the same shaded amount.",
+      visual: createFractionsEquivalentVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Comparing & Ordering Fractions",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Same denominator", text: "5/8 > 3/8 because both fractions are made of eighths, and 5 eighths is more than 3 eighths." },
         { title: "Different denominator", text: "To compare 1/2 and 2/3, rewrite them as 3/6 and 4/6. Since 4/6 > 3/6, 2/3 is larger." }
       ],
-      visualLabel: "A comparison card showing fractions turned into matching denominators.",
-      visual: createStudyVisualCard({ emoji: "📏", title: "Compare fractions", subtitle: "Match the part size first", chips: ["Common denominator", "Number line", "Equivalent", "Order"], accent: "#14b8a6" })
+      visualLabel: "A full-width fraction-comparison visual showing matching denominators on a number line.",
+      visual: createFractionsCompareVisual({ accent: "#14b8a6" })
     },
     {
       title: "Fractions of Amounts & Simple Calculations",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Fraction of an amount", text: "3/5 of 20 means split 20 into 5 equal groups: 20 ÷ 5 = 4. Then take 3 groups: 4 × 3 = 12." },
         { title: "Add fractions", text: "1/4 + 3/8 becomes 2/8 + 3/8 = 5/8 after changing 1/4 into an equivalent fraction with denominator 8." }
       ],
-      visualLabel: "A fractions of amounts card showing divide first, then multiply.",
-      visual: createStudyVisualCard({ emoji: "➗", title: "Fraction of an amount", subtitle: "Divide first, then multiply", chips: ["÷ denominator", "× numerator", "Match denominators", "Simplify"], accent: "#8b5cf6" })
+      visualLabel: "A full-width fraction-of-an-amount visual showing 3/5 of 20 split into equal groups, then selected.",
+      visual: createFractionsOfAmountVisual({ accent: "#8b5cf6" })
     }
   ]
 });

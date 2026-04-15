@@ -553,7 +553,7 @@ function buildFallbackStudyGuide(topic) {
   return {
     topic: title,
     icon: "📘",
-    summary: `A quick, child-friendly guide to help you warm up for ${title}.`,
+    summary: `A quick guide to help you warm up for ${title}.`,
     intro: `${title} becomes easier when you take it one step at a time and check what the question is really asking.`,
     keyIdea: "Slow, careful maths is stronger than rushed maths.",
     steps: [

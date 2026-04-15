@@ -17,7 +17,7 @@ registerStudyGuide({
       title: "Shape Properties",
       summary: "Each shape has special features such as sides, angles and symmetry.",
       explanation: [
-        "Geometry starts with shape facts. For example, an isosceles triangle has two equal sides and two equal base angles, a square has four equal sides and four right angles, and regular polygons have all sides and all interior angles equal.",
+        "Use the worked hexagon below as your model. It shows how a regular polygon links shape properties to formulas instead of guessing from memory.",
         "A key polygon formula is: sum of interior angles = (n - 2) × 180 degrees, where n is the number of sides. For a regular polygon, one interior angle = ((n - 2) × 180) ÷ n, and one exterior angle = 360 ÷ n."
       ],
       steps: [
@@ -35,14 +35,14 @@ registerStudyGuide({
         { title: "Regular polygon", text: "For a regular hexagon, n = 6, so sum of interior angles = (6 - 2) × 180 = 720 degrees. One interior angle = 720 ÷ 6 = 120 degrees." },
         { title: "Isosceles triangle", text: "If one base angle is 50 degrees in an isosceles triangle, the other base angle is also 50 degrees, so the top angle is 180 - 50 - 50 = 80 degrees." }
       ],
-      visualLabel: "A properties card showing common shape facts.",
-      visual: createStudyVisualCard({ emoji: "⬜", title: "Know the shape", subtitle: "Properties help you reason", chips: ["Square", "Rectangle", "Triangle", "Regular"], accent: "#6366f1" })
+      visualLabel: "A full-width worked hexagon example showing the polygon interior-angle formula and the regular-polygon angle method.",
+      visual: createGeometryPolygonVisual({ accent: "#6366f1" })
     },
     {
       title: "Angle Facts",
       summary: "Angle rules help you work out missing angles without guessing.",
       explanation: [
-        "Core angle facts include: angles on a straight line add to 180 degrees, angles around a point add to 360 degrees, vertically opposite angles are equal, and angles in a triangle add to 180 degrees.",
+        "The visual below shows the safest habit: write the full angle total first, then subtract the known parts.",
         "Quadrilateral interior angles add to 360 degrees, and regular polygon questions can often be linked back to the formula (n - 2) × 180 degrees. Writing the correct total before subtracting is the safest method."
       ],
       steps: [
@@ -60,14 +60,14 @@ registerStudyGuide({
         { title: "Straight line", text: "Angles on a straight line add to 180 degrees, so if one angle is 65 degrees the other is 180 - 65 = 115 degrees." },
         { title: "Quadrilateral", text: "If three angles in a quadrilateral are 90, 85 and 100 degrees, the fourth is 360 - (90 + 85 + 100) = 85 degrees." }
       ],
-      visualLabel: "An angle facts card showing the key totals used in geometry.",
-      visual: createStudyVisualCard({ emoji: "📐", title: "Use the angle facts", subtitle: "Write the total first", chips: ["180° line", "360° point", "180° triangle", "Subtract"], accent: "#0ea5e9" })
+      visualLabel: "A full-width angle-facts example showing a straight-line angle and a triangle angle worked by subtraction from the total.",
+      visual: createGeometryAngleFactsVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Parallel Lines & Special Angles",
       summary: "Parallel lines create matching angle patterns.",
       explanation: [
-        "When a transversal crosses parallel lines, several angle pairs follow fixed rules. Corresponding angles are equal, alternate angles are equal, and co-interior angles sum to 180 degrees.",
+        "The diagram below helps you see that the position of the angle matters just as much as its size.",
         "The main skill is spotting which angles are in matching positions. Once the pair is identified, the calculation is usually short."
       ],
       steps: [
@@ -85,14 +85,14 @@ registerStudyGuide({
         { title: "Corresponding", text: "If one corresponding angle is 55 degrees, the angle in the matching position on the other parallel line is also 55 degrees." },
         { title: "Co-interior", text: "Co-interior angles add to 180 degrees, so if one is 110 degrees the other is 180 - 110 = 70 degrees." }
       ],
-      visualLabel: "A parallel-lines card showing matching angle relationships.",
-      visual: createStudyVisualCard({ emoji: "∥", title: "Parallel lines", subtitle: "Look for the angle pattern", chips: ["Corresponding", "Alternate", "Co-interior", "Match positions"], accent: "#f59e0b" })
+      visualLabel: "A full-width parallel-lines diagram showing corresponding, alternate and co-interior angle patterns.",
+      visual: createGeometryParallelVisual({ accent: "#f59e0b" })
     },
     {
       title: "Symmetry, Coordinates & Movement",
       summary: "Geometry also includes reflection, turns and position on a grid.",
       explanation: [
-        "Coordinate questions use ordered pairs (x, y), where x tells you how far across and y tells you how far up. Reflection means mirroring a point or shape across a line, so corresponding points stay the same perpendicular distance from the mirror line.",
+        "The grid below shows both ideas together: how to read a coordinate and how to reflect a point across a mirror line.",
         "Transformation questions may ask for reflection, translation or rotation. The rule is to keep size and shape the same while changing position or orientation correctly."
       ],
       steps: [
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Coordinates", text: "The point (3, 5) means move 3 units along the x-axis and then 5 units up the y-axis." },
         { title: "Reflection", text: "If a point is 2 squares left of a vertical mirror line, its image must be 2 squares right of that same line." }
       ],
-      visualLabel: "A geometry movement card showing coordinates and symmetry.",
-      visual: createStudyVisualCard({ emoji: "🪞", title: "Move and reflect", subtitle: "Use the grid carefully", chips: ["(x, y)", "Symmetry", "Reflect", "Translate"], accent: "#22c55e" })
+      visualLabel: "A full-width grid showing a coordinate point and its reflection across a vertical mirror line.",
+      visual: createGeometryCoordinateVisual({ accent: "#22c55e" })
     }
   ]
 });

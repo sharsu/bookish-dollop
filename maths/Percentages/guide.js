@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Simple meaning", text: "35% means 35/100. This simplifies by dividing top and bottom by 5 to give 7/20." },
         { title: "Whole amount", text: "100% of 24 is 24 because 100% means one whole amount, and 24 × 100/100 = 24." }
       ],
-      visualLabel: "A percent card explaining that percent means out of 100.",
-      visual: createStudyVisualCard({ emoji: "💯", title: "Percent", subtitle: "Always think out of 100", chips: ["25%", "50%", "75%", "100%"], accent: "#14b8a6" })
+      visualLabel: "A full-width percent visual showing a 100-grid with 35 shaded and the matching fraction form.",
+      visual: createPercentMeaningVisual({ accent: "#14b8a6" })
     },
     {
       title: "Fractions, Decimals & Percentages",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Convert 40%", text: "40% = 40/100 = 2/5, and as a decimal it is 0.40 = 0.4." },
         { title: "Convert 0.6", text: "0.6 = 60% because 0.6 × 100 = 60, and it is also 6/10 = 3/5 as a fraction." }
       ],
-      visualLabel: "A card linking fractions, decimals and percentages.",
-      visual: createStudyVisualCard({ emoji: "🔄", title: "Same value, new form", subtitle: "Move between F, D and %", chips: ["1/2", "0.5", "50%", "Equivalent"], accent: "#0ea5e9" })
+      visualLabel: "A full-width conversion visual linking fraction, decimal and percentage forms of the same value.",
+      visual: createPercentFormsVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Finding Percentages of Amounts",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Easy percentages", text: "To find 30% of 60, first find 10%: 60 ÷ 10 = 6. Then 30% = 3 lots of 10%, so 6 × 3 = 18." },
         { title: "Multiplier method", text: "25% of 80 can be done as 80 × 0.25 = 20. It also works because 25% = 1/4, and a quarter of 80 is 20." }
       ],
-      visualLabel: "A percentage strategy card showing easy percentages built into harder ones.",
-      visual: createStudyVisualCard({ emoji: "🧩", title: "Build the answer", subtitle: "Find easy percentages first", chips: ["10%", "5%", "1%", "25%"], accent: "#f59e0b" })
+      visualLabel: "A full-width strategy visual showing 30% built from three lots of 10%.",
+      visual: createPercentAmountVisual({ accent: "#f59e0b" })
     },
     {
       title: "Percentage Change",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Percentage change", text: "A price rises from £40 to £50. The change is £10, so percentage change = 10/40 × 100% = 25% increase." },
         { title: "Compound growth", text: "£200 grows by 10% each year for 2 years. Use multiplier 1.10 twice: 200 × 1.1 × 1.1 = 200 × 1.21 = £242." }
       ],
-      visualLabel: "A percentage change card showing increase and decrease.",
-      visual: createStudyVisualCard({ emoji: "📈", title: "Percentage change", subtitle: "Know if it goes up or down", chips: ["Increase", "Decrease", "Change", "New amount"], accent: "#22c55e" })
+      visualLabel: "A full-width percentage-change visual showing original amount, new amount, change and the percentage-change calculation.",
+      visual: createPercentChangeVisual({ accent: "#22c55e" })
     }
   ]
 });

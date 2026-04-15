@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Place value", text: "In 5.27 the 2 is in the tenths place, so it is worth 0.2, and the 7 is in the hundredths place, so it is worth 0.07." },
         { title: "Fraction link", text: "0.306 means 306/1000, so it is 3 tenths, 0 hundredths and 6 thousandths." }
       ],
-      visualLabel: "A decimal place value visual with ones, tenths and hundredths.",
-      visual: createStudyVisualCard({ emoji: "🔢", title: "Decimal places", subtitle: "Each step right is smaller", chips: ["Ones", "Tenths", "Hundredths", "Thousandths"], accent: "#0ea5e9" })
+      visualLabel: "A full-width decimal place-value visual showing the value of each digit in 5.27.",
+      visual: createDecimalsPlaceValueVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Comparing & Ordering Decimals",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Ordering", text: "Write 0.48, 0.50 and 0.53. Then ascending order is 0.48, 0.50, 0.53." },
         { title: "Comparing", text: "2.16 > 2.09 because the ones digits are both 2, but in the tenths place 1 is greater than 0, so 2.16 is larger." }
       ],
-      visualLabel: "A decimal comparison card showing decimal points lined up.",
-      visual: createStudyVisualCard({ emoji: "↕️", title: "Compare decimals", subtitle: "Line up the points", chips: ["0.5", "0.50", "0.53", "0.48"], accent: "#0284c7" })
+      visualLabel: "A full-width decimal comparison visual showing decimal points aligned and decimals ordered by place value.",
+      visual: createDecimalsCompareVisual({ accent: "#0284c7" })
     },
     {
       title: "Adding & Subtracting Decimals",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Addition", text: "2.35 + 1.4 becomes 2.35 + 1.40. Add hundredths, tenths and ones to get 3.75." },
         { title: "Subtraction", text: "6.2 - 0.85 becomes 6.20 - 0.85. After exchanging, the answer is 5.35." }
       ],
-      visualLabel: "A decimal calculation card showing columns lined up by decimal point.",
-      visual: createStudyVisualCard({ emoji: "➕", title: "Line them up", subtitle: "Decimal points must match", chips: ["2.35", "+1.40", "= 3.75", "Check"], accent: "#14b8a6" })
+      visualLabel: "A full-width column example showing decimal points lined up for addition.",
+      visual: createDecimalsColumnVisual({ accent: "#14b8a6" })
     },
     {
       title: "Multiplying & Dividing Decimals",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Powers of ten", text: "3.48 × 10 = 34.8 and 6.2 ÷ 100 = 0.062 because the digits move two places to the right in value." },
         { title: "Decimal multiplication", text: "0.4 × 0.3 = 12 hundredths = 0.12 because 4 × 3 = 12 and there are two decimal places altogether." }
       ],
-      visualLabel: "A decimal movement card showing places shifting for multiplying and dividing by powers of ten.",
-      visual: createStudyVisualCard({ emoji: "↔️", title: "Move by place value", subtitle: "Digits shift when ×10 or ÷10", chips: ["×10", "÷10", "×100", "÷100"], accent: "#f59e0b" })
+      visualLabel: "A full-width decimal movement visual showing how multiplying and dividing by powers of ten changes place value.",
+      visual: createDecimalsShiftVisual({ accent: "#f59e0b" })
     }
   ]
 });

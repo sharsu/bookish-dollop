@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Simple order", text: "3 + 4 × 2 = 3 + 8 = 11 because multiplication comes before addition." },
         { title: "Longer example", text: "12 - 3 × 2 + 5 becomes 12 - 6 + 5. Then work left to right: 12 - 6 = 6 and 6 + 5 = 11." }
       ],
-      visualLabel: "A BIDMAS overview card showing the order of operations.",
-      visual: createStudyVisualCard({ emoji: "🧮", title: "BIDMAS", subtitle: "Follow the order calmly", chips: ["B", "I", "D/M", "A/S"], accent: "#8b5cf6" })
+      visualLabel: "A full-width BIDMAS visual showing multiplication highlighted before addition in a mixed calculation.",
+      visual: createBidmasOrderVisual({ accent: "#8b5cf6" })
     },
     {
       title: "Brackets First",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Single bracket", text: "2 × (3 + 5) = 2 × 8 = 16, because the bracket must be finished before multiplying." },
         { title: "Nested brackets", text: "18 - (4 + (6 - 1)) becomes 18 - (4 + 5) = 18 - 9 = 9." }
       ],
-      visualLabel: "A brackets card showing inner steps completed first.",
-      visual: createStudyVisualCard({ emoji: "( )", title: "Brackets first", subtitle: "Finish the inside before the outside", chips: ["Inner first", "Rewrite", "Check sign", "Then continue"], accent: "#ec4899" })
+      visualLabel: "A full-width brackets example showing the inside of the brackets completed before multiplying outside.",
+      visual: createBidmasBracketsVisual({ accent: "#ec4899" })
     },
     {
       title: "Multiply & Divide in the Middle",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Left to right", text: "24 ÷ 3 × 2 = 8 × 2 = 16. If you did 3 × 2 first, you would break BIDMAS." },
         { title: "Mixed middle", text: "5 + 18 ÷ 3 × 2 = 5 + 6 × 2 = 5 + 12 = 17." }
       ],
-      visualLabel: "A middle-operations card showing division and multiplication worked left to right.",
-      visual: createStudyVisualCard({ emoji: "×÷", title: "Same level", subtitle: "Work left to right", chips: ["÷ first?", "Then ×", "Rewrite", "Then add/subtract"], accent: "#0ea5e9" })
+      visualLabel: "A full-width middle-operations visual showing division and multiplication worked left to right.",
+      visual: createBidmasMiddleVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Indices, Negatives & Careful Signs",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Index", text: "3² + 4 = 9 + 4 = 13 because the square is done before the addition." },
         { title: "Negative with brackets", text: "(-3)² = (-3) × (-3) = 9, but -3² = -(3 × 3) = -9." }
       ],
-      visualLabel: "A powers and negatives card showing how brackets change the meaning.",
-      visual: createStudyVisualCard({ emoji: "⚠️", title: "Watch the signs", subtitle: "Brackets can change everything", chips: ["3²", "(-3)²", "-3²", "Check"], accent: "#ef4444" })
+      visualLabel: "A full-width powers-and-negatives visual comparing (-3)² and -3² so the bracket effect is clear.",
+      visual: createBidmasSignsVisual({ accent: "#ef4444" })
     }
   ]
 });

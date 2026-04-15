@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Add pattern", text: "4, 7, 10, 13 has differences +3, +3, +3, so the next term is 16." },
         { title: "Alternating pattern", text: "2, 5, 4, 7, 6, 9 alternates between +3 and -1, so the next term is 8." }
       ],
-      visualLabel: "A sequence card showing jumps between terms.",
-      visual: createStudyVisualCard({ emoji: "🔁", title: "Spot the jump", subtitle: "What changes each time?", chips: ["+3", "-4", "repeat", "check"], accent: "#22c55e" })
+      visualLabel: "A full-width sequence visual showing repeated jumps between terms.",
+      visual: createSequencesJumpVisual({ accent: "#22c55e" })
     },
     {
       title: "Arithmetic Sequences",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Forward", text: "9, 14, 19, 24 has common difference 5, so the next term is 29." },
         { title: "Missing term", text: "6, 10, __, 18 has difference 4, so the missing term is 14 because 10 + 4 = 14 and 14 + 4 = 18." }
       ],
-      visualLabel: "An arithmetic sequence card showing a constant difference.",
-      visual: createStudyVisualCard({ emoji: "➕", title: "Same difference", subtitle: "Arithmetic means steady change", chips: ["+4", "+4", "+4", "constant"], accent: "#0ea5e9" })
+      visualLabel: "A full-width arithmetic-sequence visual showing the same difference repeated across the terms.",
+      visual: createSequencesArithmeticVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Position Rules",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Deriving a rule", text: "For 4, 7, 10, 13 the difference is 3, so start with 3n. When n = 1 this gives 3, but the first term is 4, so add 1. The nth term is 3n + 1." },
         { title: "Using the rule", text: "For the rule 3n + 1, the 10th term is 3 × 10 + 1 = 31." }
       ],
-      visualLabel: "A position rule card showing n linked to the term value.",
-      visual: createStudyVisualCard({ emoji: "n", title: "Position rule", subtitle: "Jump straight to the term", chips: ["n", "3n", "+1", "Check"], accent: "#f59e0b" })
+      visualLabel: "A full-width nth-term visual linking term position n to the sequence values and rule.",
+      visual: createSequencesNthVisual({ accent: "#f59e0b" })
     },
     {
       title: "Missing Terms & Pattern Problems",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Gap in the middle", text: "12, 17, __, 27 has common difference 5, so the missing term is 22 because 17 + 5 = 22 and 22 + 5 = 27." },
         { title: "Worded pattern", text: "If a shape pattern starts with 4 sticks and adds 3 sticks each time, the totals are 4, 7, 10, 13, so the nth term is 3n + 1." }
       ],
-      visualLabel: "A pattern problem card showing missing terms found by using the rule.",
-      visual: createStudyVisualCard({ emoji: "🕵️", title: "Find the missing term", subtitle: "Use the rule both ways", chips: ["Gap", "Rule", "Check both sides", "Solve"], accent: "#ef4444" })
+      visualLabel: "A full-width missing-term visual showing the same difference checked on both sides of the gap.",
+      visual: createSequencesMissingVisual({ accent: "#ef4444" })
     }
   ]
 });

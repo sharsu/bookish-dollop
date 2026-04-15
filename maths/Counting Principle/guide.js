@@ -33,8 +33,8 @@ registerStudyGuide({
         { title: "Outfits", text: "If there are 3 tops and 4 skirts, total outfits = 3 × 4 = 12 because each top can go with each skirt." },
         { title: "Meals", text: "With 2 starters, 5 mains and 3 desserts, the number of meals is 2 × 5 × 3 = 30." }
       ],
-      visualLabel: "A branching card showing stages multiplying together.",
-      visual: createCountingVisual({ first: "3 first choices", second: "4 next choices", total: "3 × 4 = 12 ways" })
+      visualLabel: "A full-width counting visual showing each stage of choice and why the stages are multiplied.",
+      visual: createCountingStagesVisual({ accent: "#06b6d4" })
     },
     {
       title: "Tree Diagrams",
@@ -58,8 +58,8 @@ registerStudyGuide({
         { title: "Ice cream tree", text: "If there are 2 cone choices and 3 toppings, each cone branch splits into 3 topping branches, so there are 2 × 3 = 6 final branches." },
         { title: "Restriction in a tree", text: "If one topping is not allowed on a waffle cone, that branch is missing only from the waffle side, so you must count carefully instead of using one quick multiplication." }
       ],
-      visualLabel: "A tree diagram card showing branches for each choice stage.",
-      visual: createStudyVisualCard({ emoji: "🌳", title: "Draw the branches", subtitle: "See every path clearly", chips: ["Stage 1", "Stage 2", "End branches", "Count safely"], accent: "#14b8a6" })
+      visualLabel: "A full-width tree diagram showing each branch path as one possible outcome.",
+      visual: createCountingTreeVisual({ accent: "#14b8a6" })
     },
     {
       title: "Restrictions and Rules",
@@ -83,8 +83,8 @@ registerStudyGuide({
         { title: "Even number", text: "To make a 3-digit even number from digits 1, 2, 3, 4 with no repeats, choose the last digit from 2 even choices first, then the first digit from the remaining 3, then the middle digit from the remaining 2. Total = 2 × 3 × 2 = 12." },
         { title: "No repetition", text: "A 4-letter code made from 6 different letters with no repeats has 6 × 5 × 4 × 3 possible arrangements." }
       ],
-      visualLabel: "A counting card showing how rules change the number of choices.",
-      visual: createStudyVisualCard({ emoji: "🚦", title: "Watch the rules", subtitle: "Restrictions change the count", chips: ["No repeats", "Even only", "Fixed end", "Adjust choices"], accent: "#f59e0b" })
+      visualLabel: "A full-width restriction visual showing why the limited position should be chosen first.",
+      visual: createCountingRestrictionVisual({ accent: "#f59e0b" })
     },
     {
       title: "Worded Counting Problems",
@@ -108,8 +108,8 @@ registerStudyGuide({
         { title: "Fast-food meal", text: "If there are 3 burgers, 2 sides, 4 drinks and 2 desserts, the choices happen in four stages, so total meals = 3 × 2 × 4 × 2 = 48." },
         { title: "School options", text: "If James chooses one subject from 3 languages and one from 4 arts, total choices = 3 × 4 = 12 because each language can pair with each art subject." }
       ],
-      visualLabel: "A word-problem card showing long counting questions broken into stages.",
-      visual: createStudyVisualCard({ emoji: "📝", title: "Turn words into stages", subtitle: "Underline each decision", chips: ["Choice 1", "Choice 2", "Choice 3", "Multiply"], accent: "#22c55e" })
+      visualLabel: "A full-width staged word-problem visual showing each decision box before multiplying the total number of outcomes.",
+      visual: createCountingWordsVisual({ accent: "#22c55e" })
     }
   ]
 });

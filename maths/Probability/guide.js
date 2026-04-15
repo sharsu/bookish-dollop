@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Certain", text: "On a fair six-sided die, the probability of rolling a number less than 7 is 1 because every possible outcome works." },
         { title: "Impossible", text: "On a fair six-sided die, the probability of rolling an 8 is 0 because 8 is not one of the possible outcomes." }
       ],
-      visualLabel: "A probability scale card from impossible to certain.",
-      visual: createStudyVisualCard({ emoji: "🎯", title: "Chance scale", subtitle: "From 0 to 1", chips: ["0", "Unlikely", "1/2", "1"], accent: "#7c3aed" })
+      visualLabel: "A full-width chance scale showing impossible, even chance and certain from 0 to 1.",
+      visual: createProbabilityScaleVisual({ accent: "#7c3aed" })
     },
     {
       title: "Equally Likely Outcomes",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Coin", text: "A fair coin has outcomes H and T. One of the two outcomes is heads, so P(heads) = 1/2." },
         { title: "Die", text: "A fair die has 6 outcomes. Even numbers are 2, 4 and 6, so P(even) = 3/6 = 1/2." }
       ],
-      visualLabel: "A fair-outcomes card showing wanted outcomes over total outcomes.",
-      visual: createStudyVisualCard({ emoji: "🎲", title: "Count the outcomes", subtitle: "Wanted over total", chips: ["Favourable", "Total", "Simplify", "Fair"], accent: "#0ea5e9" })
+      visualLabel: "A full-width probability visual showing favourable die outcomes highlighted and counted over the total outcomes.",
+      visual: createProbabilityOutcomesVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Probability in Different Forms",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Quarter chance", text: "1/4 = 0.25 because 1 ÷ 4 = 0.25, and 0.25 = 25% after multiplying by 100." },
         { title: "Three in ten", text: "3/10 = 0.3 = 30%, so all three forms describe the same probability." }
       ],
-      visualLabel: "A conversion card showing probability in three forms.",
-      visual: createStudyVisualCard({ emoji: "🔄", title: "Same chance, new form", subtitle: "Fraction, decimal, percentage", chips: ["1/2", "0.5", "50%", "Equivalent"], accent: "#f59e0b" })
+      visualLabel: "A full-width probability-conversion visual linking fraction, decimal and percentage forms of the same chance.",
+      visual: createProbabilityFormsVisual({ accent: "#f59e0b" })
     },
     {
       title: "Combined Outcomes & Simple Tables",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Two coins", text: "The outcomes are HH, HT, TH and TT. Exactly one head happens in HT and TH, so P(exactly one head) = 2/4 = 1/2." },
         { title: "Independent events", text: "Probability of rolling a 6 and then flipping heads = 1/6 × 1/2 = 1/12 because the events are independent." }
       ],
-      visualLabel: "A probability table card showing all outcome pairs listed neatly.",
-      visual: createStudyVisualCard({ emoji: "🗂️", title: "Organise the outcomes", subtitle: "Tables help you count safely", chips: ["List all", "No gaps", "Count total", "Count wanted"], accent: "#22c55e" })
+      visualLabel: "A full-width outcome-table visual showing all two-coin outcomes and the highlighted favourable results.",
+      visual: createProbabilityTableVisual({ accent: "#22c55e" })
     }
   ]
 });

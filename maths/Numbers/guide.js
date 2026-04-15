@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Place value", text: "In 408,572 the 8 is in the thousands column, so its value is 8,000, not just 8." },
         { title: "Rounding", text: "8,472 to the nearest hundred looks at the tens digit 7. Because 7 is at least 5, 8,472 rounds to 8,500." }
       ],
-      visualLabel: "A place value visual showing how digits change value by position.",
-      visual: createStudyVisualCard({ emoji: "🔢", title: "Place value", subtitle: "Read the value, not just the digit", chips: ["7 ones", "7 tens", "7 hundreds", "7 thousands"], accent: "#4f46e5" })
+      visualLabel: "A full-width place-value example showing a highlighted digit value and a worked rounding reminder.",
+      visual: createNumbersPlaceValueVisual({ accent: "#4f46e5" })
     },
     {
       title: "Comparing & Ordering Numbers",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Comparing", text: "5,230 > 5,203 because the thousands and hundreds match, but the tens digit 3 is greater than 0." },
         { title: "Ordering", text: "Ascending order means smallest to largest, so 2,109, 2,190, 2,901 is the correct order." }
       ],
-      visualLabel: "A comparison card showing how to compare digits from left to right.",
-      visual: createStudyVisualCard({ emoji: "↔️", title: "Compare carefully", subtitle: "Start with the biggest place", chips: ["Digits", "Thousands", "Hundreds", "Tens"], accent: "#0891b2" })
+      visualLabel: "A full-width comparison visual showing two numbers matched by columns until the deciding place value is found.",
+      visual: createNumbersCompareVisual({ accent: "#0891b2" })
     },
     {
       title: "Factors, Multiples & Primes",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Factors", text: "To find the factors of 18, test divisions: 1 × 18, 2 × 9 and 3 × 6. So the factors are 1, 2, 3, 6, 9 and 18." },
         { title: "Prime test", text: "13 is prime because it is not divisible by 2, 3 or 5, so only 1 and 13 divide into it exactly." }
       ],
-      visualLabel: "A number facts card showing factors, multiples and prime numbers.",
-      visual: createStudyVisualCard({ emoji: "🧠", title: "Number facts", subtitle: "Factors divide, multiples grow", chips: ["Factors", "Multiples", "Prime", "Divisible"], accent: "#7c3aed" })
+      visualLabel: "A full-width number-facts visual showing factor pairs for 18 and a prime-number example.",
+      visual: createNumbersFactorsVisual({ accent: "#7c3aed" })
     },
     {
       title: "Negative Numbers & Number Lines",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Comparing negatives", text: "-3 > -7 because -3 lies further right on the number line, so it is the greater number." },
         { title: "Subtracting a negative", text: "6 - (-4) = 10 because subtracting a negative 4 is the same as adding 4." }
       ],
-      visualLabel: "A number line card showing positive and negative numbers around zero.",
-      visual: createStudyVisualCard({ emoji: "➖", title: "Negative numbers", subtitle: "Use the number line to stay calm", chips: ["Left is smaller", "Zero", "Right is bigger", "Jump carefully"], accent: "#ef4444" })
+      visualLabel: "A full-width number-line visual showing negative numbers ordered around zero and movement rules on the line.",
+      visual: createNumbersNegativeVisual({ accent: "#ef4444" })
     }
   ]
 });

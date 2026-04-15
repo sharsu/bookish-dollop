@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Order clue", text: "If Ben finishes before Ali, then Ali cannot be ahead of Ben in any valid order. This is an order rule, not a guess." },
         { title: "Negative clue", text: "If Sam is not wearing blue, mark a cross in the Sam-blue box immediately because that option is impossible." }
       ],
-      visualLabel: "A clue-reading card showing key words highlighted.",
-      visual: createStudyVisualCard({ emoji: "🔍", title: "Read the clue", subtitle: "Little words matter", chips: ["not", "before", "after", "only"], accent: "#f43f5e" })
+      visualLabel: "A full-width logic visual highlighting the clue words that control the reasoning.",
+      visual: createLogicClueVisual({ accent: "#f43f5e" })
     },
     {
       title: "Elimination Tables",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Single match rule", text: "If Ava wears red and each colour is used once, tick Ava-red and cross out red for everyone else and Ava's other colours." },
         { title: "Impossible match", text: "If Max does not own the rabbit, mark a cross in Max-rabbit straight away. This removes one possibility from the grid." }
       ],
-      visualLabel: "A logic-grid card showing ticks and crosses used to solve clues.",
-      visual: createStudyVisualCard({ emoji: "☑️", title: "Use a grid", subtitle: "Tick what fits, cross what does not", chips: ["Grid", "Tick", "Cross", "Update clues"], accent: "#0ea5e9" })
+      visualLabel: "A full-width logic-grid visual showing how ticks and crosses remove possibilities.",
+      visual: createLogicGridVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Ordering and Ranking Problems",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Race order", text: "If Mia finishes before Ben and Ben before Sam, transitive reasoning shows Mia must also finish before Sam." },
         { title: "Height order", text: "If A is taller than B and B is taller than C, then the height order is A, B, C from tallest to shortest." }
       ],
-      visualLabel: "An ordering card showing positions filled step by step.",
-      visual: createStudyVisualCard({ emoji: "🏁", title: "Build the order", subtitle: "Place the sure clues first", chips: ["1st", "2nd", "3rd", "Check all clues"], accent: "#f59e0b" })
+      visualLabel: "A full-width ordering visual showing positions filled from the surest clues first.",
+      visual: createLogicOrderVisual({ accent: "#f59e0b" })
     },
     {
       title: "Pattern and Rule Logic",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Shape pattern", text: "If a shape rotates 90 degrees clockwise each time, the next picture must be another 90-degree clockwise turn from the last one." },
         { title: "Number pattern", text: "If the differences are +2, +4, +6, the next difference is +8, so after 15 the next term is 23." }
       ],
-      visualLabel: "A pattern logic card showing a repeating rule being tested.",
-      visual: createStudyVisualCard({ emoji: "🔁", title: "Find the rule", subtitle: "What changes and what stays the same?", chips: ["Turn", "Grow", "Repeat", "Test"], accent: "#22c55e" })
+      visualLabel: "A full-width logic-pattern visual showing a rule changing step by step and asking for the next image.",
+      visual: createLogicPatternVisual({ accent: "#22c55e" })
     }
   ]
 });

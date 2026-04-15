@@ -17,7 +17,7 @@ registerStudyGuide({
       title: "Writing & Simplifying Ratios",
       summary: "A ratio compares one part with another part in a set order.",
       explanation: [
-        "A ratio compares quantities in a fixed order, so red:blue = 2:3 is different from blue:red = 3:2. Before simplifying, make sure both parts are in the same unit.",
+        "The worked example below shows the exact simplification move: divide every part by the same highest common factor and keep the order unchanged.",
         "To simplify a ratio, divide every part by the same highest common factor. This is similar to simplifying a fraction, but each part must stay in order."
       ],
       steps: [
@@ -35,14 +35,14 @@ registerStudyGuide({
         { title: "Writing", text: "If there are 6 red and 9 blue counters, the ratio red:blue is 6:9 because the order is red first, blue second." },
         { title: "Simplifying", text: "6:9 simplifies to 2:3 because the highest common factor is 3 and 6 ÷ 3 = 2 while 9 ÷ 3 = 3." }
       ],
-      visualLabel: "A ratio card showing parts written in order and simplified.",
-      visual: createStudyVisualCard({ emoji: "⚖️", title: "Write it in order", subtitle: "Then simplify", chips: ["6:9", "÷3", "2:3", "Order matters"], accent: "#f59e0b" })
+      visualLabel: "A full-width worked example showing 6:9 simplified to 2:3 by dividing both parts by 3.",
+      visual: createRatioSimplifyVisual({ accent: "#f59e0b" })
     },
     {
       title: "Sharing in a Ratio",
       summary: "To share in a ratio, split the total into equal-sized parts first.",
       explanation: [
-        "The parts method for sharing means adding the ratio numbers to find the total number of equal parts. Then divide the whole amount by that total to find the value of one part.",
+        "The bar model below shows why the parts method works: the whole amount is split into equal parts before you decide who gets how many.",
         "Once one part is known, multiply by each ratio number to find each share. This is one of the main exam methods for ratio."
       ],
       steps: [
@@ -60,14 +60,14 @@ registerStudyGuide({
         { title: "Parts method", text: "Share £30 in the ratio 2:3. Total parts = 2 + 3 = 5, so one part = 30 ÷ 5 = 6. The shares are 2 × 6 = 12 and 3 × 6 = 18." },
         { title: "Three-way share", text: "Share 48 in the ratio 1:2:3. Total parts = 6, so one part = 8. The shares are 8, 16 and 24." }
       ],
-      visualLabel: "A sharing ratio card showing total parts and equal part size.",
-      visual: createStudyVisualCard({ emoji: "🍰", title: "Share fairly", subtitle: "Find one part first", chips: ["2:3", "5 parts", "30 ÷ 5", "6 each part"], accent: "#0ea5e9" })
+      visualLabel: "A full-width bar model showing £30 shared in the ratio 2:3 using 5 equal parts.",
+      visual: createRatioPartsVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Equivalent Ratios & Scaling",
       summary: "Equivalent ratios keep the same shape, only bigger or smaller.",
       explanation: [
-        "Equivalent ratios are made by multiplying or dividing every part by the same scale factor. This keeps the proportion unchanged.",
+        "The visual below shows the scaling idea directly: if one part is multiplied by 4, the matching part must also be multiplied by 4.",
         "Scaling is useful for recipes, maps and models. If one part changes by a factor of 4, every other part must also change by a factor of 4."
       ],
       steps: [
@@ -85,15 +85,15 @@ registerStudyGuide({
         { title: "Scaling up", text: "If red:blue = 2:3 and red becomes 8, the scale factor is 4, so blue becomes 3 × 4 = 12." },
         { title: "Scaling down", text: "If 15:20 is simplified, divide both parts by 5 to get 3:4. This shows the same ratio at a smaller scale." }
       ],
-      visualLabel: "A scaling card showing equivalent ratios growing by the same factor.",
-      visual: createStudyVisualCard({ emoji: "📈", title: "Scale together", subtitle: "Every part changes the same way", chips: ["2:3", "×2", "4:6", "Same proportion"], accent: "#22c55e" })
+      visualLabel: "A full-width ratio-scaling example showing 2:3 scaled by a factor of 4 to become 8:12.",
+      visual: createRatioScaleVisual({ accent: "#22c55e" })
     },
     {
       title: "Proportion Problems",
       summary: "Some ratio questions are hidden inside real-life situations.",
       explanation: [
-        "The unitary method finds the value of one unit first, then scales up or down. It is very useful when the ratio is hidden in words, such as price per item, distance per hour or ingredients per person.",
-        "Direct proportion means one quantity changes in step with another, so the ratio stays constant. In child-friendly language, 'double one, double the other' is often the clue."
+        "The worked example below shows the unitary method in a straight line: find 1 first, then multiply up to the target amount.",
+        "Direct proportion means one quantity changes in step with another, so the ratio stays constant. In simple language, 'double one, double the other' is often the clue."
       ],
       steps: [
         "Underline the two quantities being linked.",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Unitary method", text: "If 5 books cost £20, then 1 book costs 20 ÷ 5 = £4, so 7 books cost 7 × 4 = £28." },
         { title: "Proportion", text: "If boys:girls = 3:5 in a class of 24, total parts = 8, so one part = 24 ÷ 8 = 3. Boys = 9 and girls = 15." }
       ],
-      visualLabel: "A proportion card showing ratio methods used in real-life situations.",
-      visual: createStudyVisualCard({ emoji: "🧪", title: "Ratio in real life", subtitle: "Share, scale or simplify", chips: ["Recipe", "Class", "Paint", "Map"], accent: "#ef4444" })
+      visualLabel: "A full-width unitary-method example showing 5 books for £20 reduced to 1 book, then scaled to 7 books.",
+      visual: createRatioUnitaryVisual({ accent: "#ef4444" })
     }
   ]
 });

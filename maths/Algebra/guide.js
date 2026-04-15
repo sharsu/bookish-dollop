@@ -35,8 +35,8 @@ registerStudyGuide({
         { title: "Combining like terms", text: "5x + 2x - x = 7x - x = 6x because the coefficients 5, 2 and -1 belong to the same x term." },
         { title: "Using brackets", text: "3(a + 4) expands to 3a + 12 because the 3 multiplies both a and 4." }
       ],
-      visualLabel: "An expressions card showing like terms being grouped together.",
-      visual: createStudyVisualCard({ emoji: "🧩", title: "Expressions", subtitle: "Group like terms together", chips: ["5x + 2x", "7x", "4a + 3b", "stay separate"], accent: "#ec4899" })
+      visualLabel: "A full-width algebra visual showing like terms grouped and simplified while unlike terms stay separate.",
+      visual: createAlgebraExpressionsVisual({ accent: "#ec4899" })
     },
     {
       title: "Equations",
@@ -60,8 +60,8 @@ registerStudyGuide({
         { title: "Two-step equation", text: "For 2y + 3 = 13, subtract 3 from both sides to get 2y = 10, then divide by 2 to get y = 5." },
         { title: "Inequality rule", text: "For -2x < 8, divide both sides by -2 and flip the sign: x > -4." }
       ],
-      visualLabel: "An equations card showing both sides staying balanced.",
-      visual: createStudyVisualCard({ emoji: "⚖️", title: "Equations", subtitle: "Keep both sides fair", chips: ["x + 4 = 11", "−4 both sides", "x = 7", "Check"], accent: "#8b5cf6" })
+      visualLabel: "A full-width balance visual showing the same operation applied to both sides of an equation.",
+      visual: createAlgebraEquationsVisual({ accent: "#8b5cf6" })
     },
     {
       title: "Substitution",
@@ -85,8 +85,8 @@ registerStudyGuide({
         { title: "Positive value", text: "If a = 4, then 3a + 2 = 3 × 4 + 2 = 12 + 2 = 14." },
         { title: "Negative value", text: "If b = -2, then b² + 3 = (-2)² + 3 = 4 + 3 = 7." }
       ],
-      visualLabel: "A substitution card showing letters being replaced with values.",
-      visual: createStudyVisualCard({ emoji: "🔁", title: "Substitution", subtitle: "Swap the letter for its value", chips: ["a = 4", "3a + 2", "3 × 4 + 2", "14"], accent: "#0ea5e9" })
+      visualLabel: "A full-width substitution example showing a value inserted into an expression and then calculated.",
+      visual: createAlgebraSubstitutionVisual({ accent: "#0ea5e9" })
     },
     {
       title: "Factorising & Expansion",
@@ -110,8 +110,8 @@ registerStudyGuide({
         { title: "Expansion", text: "2(x + 5) = 2 × x + 2 × 5 = 2x + 10." },
         { title: "Factorising", text: "8y + 12 = 4(2y + 3) because 4 is the highest common factor and 4 × 2y + 4 × 3 expands back to 8y + 12." }
       ],
-      visualLabel: "A brackets card showing expansion and factorising as opposite moves.",
-      visual: createStudyVisualCard({ emoji: "📦", title: "Brackets", subtitle: "Open out or factor back", chips: ["2(x + 5)", "2x + 10", "8y + 12", "4(2y + 3)"], accent: "#f97316" })
+      visualLabel: "A full-width brackets visual showing expansion and factorising as opposite moves.",
+      visual: createAlgebraBracketsVisual({ accent: "#f97316" })
     },
     {
       title: "Function Machines",
@@ -135,8 +135,8 @@ registerStudyGuide({
         { title: "Backward", text: "If the output is 17 and the rule is ×2 then +3, undo +3 first to get 14, then undo ×2 by dividing: input = 7." },
         { title: "Nth term", text: "For 5, 8, 11, 14 the difference is 3, so start with 3n. Term 1 would be 3, but the sequence starts at 5, so add 2. The nth term is 3n + 2." }
       ],
-      visualLabel: "A function machine card showing numbers going in and out.",
-      visual: createStudyVisualCard({ emoji: "⚙️", title: "Function machines", subtitle: "Follow the rule, then undo it backwards", chips: ["Input 4", "×2", "+3", "Output 11"], accent: "#14b8a6" })
+      visualLabel: "A full-width function-machine visual showing an input transformed step by step, with a backward-thinking reminder.",
+      visual: createAlgebraFunctionVisual({ accent: "#14b8a6" })
     },
     {
       title: "Magic Squares",
@@ -160,8 +160,8 @@ registerStudyGuide({
         { title: "Finding the target total", text: "If the top row is 8, 1 and 6, then the magic sum is 8 + 1 + 6 = 15, so every line must equal 15." },
         { title: "Using algebra", text: "If a row is x, 4 and 6 and the magic sum is 15, write x + 4 + 6 = 15. Then x + 10 = 15, so x = 5." }
       ],
-      visualLabel: "A magic square card showing equal totals in every direction.",
-      visual: createStudyVisualCard({ emoji: "✨", title: "Magic squares", subtitle: "Every line must match the same total", chips: ["Rows match", "Columns match", "Diagonals match", "Solve the blanks"], accent: "#6366f1" })
+      visualLabel: "A full-width magic-square visual showing the target total found first and then used to solve for the missing value.",
+      visual: createAlgebraMagicSquareVisual({ accent: "#6366f1" })
     }
   ]
 });
