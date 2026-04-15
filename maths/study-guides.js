@@ -2,6 +2,8 @@
   const root = typeof window !== "undefined" ? window : globalThis;
   const store = root.STUDY_GUIDES || {};
 
+  const toArray = value => Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
+
   const escapeHtml = value => String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -13,6 +15,19 @@
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+  const normalizeExamples = examples => toArray(examples)
+    .map((example, index) => {
+      if (typeof example === "string") {
+        return { title: `Example ${index + 1}`, text: example };
+      }
+
+      return {
+        title: example?.title || `Example ${index + 1}`,
+        text: example?.text || example?.body || ""
+      };
+    })
+    .filter(example => example.text);
 
   const createStudyVisualCard = ({ emoji = "📘", title = "Maths idea", subtitle = "Take it one step at a time", chips = [], accent = "#4f46e5" } = {}) => `
     <svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -57,12 +72,58 @@
       <text x="180" y="194" text-anchor="middle" font-size="20" font-weight="800" fill="#0f766e">${escapeHtml(total)}</text>
     </svg>`;
 
+  const normalizeConcept = (concept, index, topic) => ({
+    title: concept?.title || `Concept ${index + 1}`,
+    slug: concept?.slug || slugifyTopic(concept?.title || `${topic}-${index + 1}`),
+    summary: concept?.summary || "",
+    explanation: toArray(concept?.explanation || concept?.intro || concept?.description || ""),
+    steps: toArray(concept?.steps || []),
+    tips: toArray(concept?.tips || []),
+    examples: normalizeExamples(concept?.examples),
+    visual: concept?.visual || "",
+    visualLabel: concept?.visualLabel || ""
+  });
+
+  const buildOverviewConceptFromGuide = guide => ({
+    title: "Overview",
+    slug: "overview",
+    summary: guide?.summary || `An overview of ${guide?.topic || "this topic"}.`,
+    explanation: guide?.explanation || guide?.intro || `Learn ${guide?.topic || "this topic"} in small steps.`,
+    steps: guide?.steps || [],
+    tips: guide?.tips || [],
+    examples: guide?.examples || (guide?.tryIt ? [{ title: "Quick example", text: guide.tryIt }] : []),
+    visual: guide?.visual || "",
+    visualLabel: guide?.visualLabel || ""
+  });
+
+  const normalizeStudyGuide = guide => {
+    const safeGuide = guide || {};
+    const topic = safeGuide.topic || "Maths";
+    const conceptSource = Array.isArray(safeGuide.concepts) && safeGuide.concepts.length
+      ? safeGuide.concepts
+      : [buildOverviewConceptFromGuide(safeGuide)];
+    const concepts = conceptSource.map((concept, index) => normalizeConcept(concept, index, topic));
+
+    return {
+      ...safeGuide,
+      topic,
+      slug: safeGuide.slug || slugifyTopic(topic),
+      concepts,
+      summary: safeGuide.summary || concepts[0]?.summary || `Explore ${topic} in small steps.`,
+      intro: safeGuide.intro || concepts[0]?.explanation?.[0] || `Learn ${topic} in small steps.`,
+      keyIdea: safeGuide.keyIdea || concepts[0]?.steps?.[0] || "Take it one step at a time.",
+      visual: safeGuide.visual || concepts[0]?.visual || "",
+      visualLabel: safeGuide.visualLabel || concepts[0]?.visualLabel || ""
+    };
+  };
+
   root.STUDY_GUIDES = store;
   root.slugifyTopic = slugifyTopic;
   root.createStudyVisualCard = createStudyVisualCard;
   root.createCountingVisual = createCountingVisual;
+  root.normalizeStudyGuide = normalizeStudyGuide;
   root.registerStudyGuide = guide => {
     if (!guide || !guide.topic) return;
-    store[guide.topic] = { ...guide, slug: guide.slug || slugifyTopic(guide.topic) };
+    store[guide.topic] = normalizeStudyGuide(guide);
   };
 })();

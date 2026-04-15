@@ -80,25 +80,66 @@
         </div>
       </div>
 
-      <div class="study-guide-grid">
-        <div class="topic-breakdown">
-          <h2>How to think about it</h2>
-          <ul id="study-topic-steps" class="study-list"></ul>
+      <div class="topic-breakdown">
+        <div class="study-section-head">
+          <h2>Sub-topic Menu</h2>
+          <p id="study-topic-menu-hint" class="study-section-copy">Choose a smaller idea to revise in detail.</p>
         </div>
-
-        <div class="topic-breakdown">
-          <h2>Helpful reminders</h2>
-          <ul id="study-topic-tips" class="study-list"></ul>
-        </div>
-      </div>
-
-      <div class="review-section">
-        <h2>Quick memory boost</h2>
-        <p id="study-topic-try-it" class="study-copy"></p>
+        <div id="study-concept-grid" class="study-concept-grid"></div>
       </div>
 
       <div class="results-actions">
         <button id="study-topic-menu-btn" class="btn btn-learn btn-large">📚 Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ STUDY CONCEPT SCREEN ══════════════ -->
+  <div id="study-concept-screen" class="screen" hidden>
+    <div class="results-card study-card study-topic-card">
+      <div class="study-topic-nav">
+        <button id="study-concept-back-btn" class="btn btn-secondary">← Back to Topic Menu</button>
+        <button id="study-concept-home-btn" class="btn btn-secondary">🏠 Back to Menu</button>
+      </div>
+
+      <div class="results-header">
+        <div class="trophy" id="study-concept-icon">📘</div>
+        <p id="study-concept-topic" class="study-concept-badge">Topic</p>
+        <h1 id="study-concept-title">Concept</h1>
+        <p id="study-concept-summary" class="results-name"></p>
+      </div>
+
+      <div class="study-hero-grid">
+        <div class="study-visual-panel">
+          <div id="study-concept-visual" class="study-topic-visual"></div>
+        </div>
+
+        <div class="topic-breakdown study-intro-panel">
+          <h2>What to understand</h2>
+          <div id="study-concept-explanation" class="study-paragraphs"></div>
+        </div>
+      </div>
+
+      <div class="study-guide-grid">
+        <div class="topic-breakdown">
+          <h2>How to do it</h2>
+          <ol id="study-concept-steps" class="study-list study-list-numbered"></ol>
+        </div>
+
+        <div class="topic-breakdown">
+          <h2>Helpful reminders</h2>
+          <ul id="study-concept-tips" class="study-list"></ul>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <h2>Child-friendly examples</h2>
+        <div id="study-concept-examples" class="study-example-grid"></div>
+      </div>
+
+      <div class="results-actions">
+        <button id="study-concept-topic-btn" class="btn btn-secondary btn-large">← Back to Topic Menu</button>
+        <button id="study-concept-menu-btn" class="btn btn-learn btn-large">🏠 Back to Menu</button>
       </div>
     </div>
   </div>

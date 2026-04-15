@@ -594,11 +594,13 @@ class ExamApp {
     this.timeExpired = false;
     this.examInProgress = false;
     this.currentStudyTopic = "";
+    this.currentStudyConcept = "";
 
     // DOM
     this.setupScreen = document.getElementById("setup-screen");
     this.studyLibraryScreen = document.getElementById("study-library-screen");
     this.studyTopicScreen = document.getElementById("study-topic-screen");
+    this.studyConceptScreen = document.getElementById("study-concept-screen");
     this.quizScreen = document.getElementById("quiz-screen");
     this.resultsScreen = document.getElementById("results-screen");
     this.progressScreen = document.getElementById("progress-screen");
@@ -606,6 +608,7 @@ class ExamApp {
     this.startBtn = document.getElementById("start-btn");
     this.learnTopicsBtn = document.getElementById("learn-topics-btn");
     this.studyLibraryGrid = document.getElementById("study-library-grid");
+    this.studyConceptGrid = document.getElementById("study-concept-grid");
     this.setupError = document.getElementById("setup-error");
     this.parentDashboardReturnScreen = "setup";
 
@@ -673,10 +676,19 @@ class ExamApp {
     document.getElementById("study-topic-back-btn")?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("study-topic-home-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("study-concept-back-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
+    document.getElementById("study-concept-home-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("study-concept-topic-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
+    document.getElementById("study-concept-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     this.studyLibraryGrid?.addEventListener("click", event => {
       const topicButton = event.target.closest("[data-study-topic]");
       if (!topicButton) return;
       this.openStudyTopic(topicButton.dataset.studyTopic);
+    });
+    this.studyConceptGrid?.addEventListener("click", event => {
+      const conceptButton = event.target.closest("[data-study-concept]");
+      if (!conceptButton) return;
+      this.openStudyConcept(conceptButton.dataset.studyTopic, conceptButton.dataset.studyConcept);
     });
     document.getElementById("prev-btn")?.addEventListener("click", () => this.previousQuestion());
     document.getElementById("next-btn")?.addEventListener("click", () => this.nextQuestion());
@@ -1198,7 +1210,8 @@ class ExamApp {
 
   getStudyGuide(topic) {
     const registry = getStudyGuideRegistry();
-    return registry[topic] || buildFallbackStudyGuide(topic);
+    const guide = registry[topic] || buildFallbackStudyGuide(topic);
+    return typeof normalizeStudyGuide === "function" ? normalizeStudyGuide(guide) : guide;
   }
 
   renderStudyList(elementId, items) {
@@ -1210,6 +1223,39 @@ class ExamApp {
       const li = document.createElement("li");
       li.textContent = item;
       list.appendChild(li);
+    });
+  }
+
+  renderStudyParagraphs(elementId, paragraphs) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+
+    container.innerHTML = "";
+    const copy = Array.isArray(paragraphs) ? paragraphs : paragraphs ? [paragraphs] : [];
+    copy.forEach(text => {
+      const p = document.createElement("p");
+      p.textContent = text;
+      container.appendChild(p);
+    });
+  }
+
+  renderStudyExamples(elementId, examples) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+
+    container.innerHTML = "";
+    (examples || []).forEach(example => {
+      const card = document.createElement("article");
+      card.className = "study-example-card";
+
+      const title = document.createElement("h3");
+      title.textContent = example.title;
+
+      const text = document.createElement("p");
+      text.textContent = example.text;
+
+      card.append(title, text);
+      container.appendChild(card);
     });
   }
 
@@ -1238,16 +1284,52 @@ class ExamApp {
 
       const link = document.createElement("span");
       link.className = "study-topic-button-link";
-      link.textContent = "Open guide →";
+      link.textContent = "Open topic menu →";
 
       button.append(icon, title, text, link);
       this.studyLibraryGrid.appendChild(button);
     });
   }
 
+  renderStudyConceptMenu(topic) {
+    if (!this.studyConceptGrid) return;
+
+    const guide = this.getStudyGuide(topic);
+    this.studyConceptGrid.innerHTML = "";
+
+    guide.concepts.forEach(concept => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "study-concept-button";
+      button.dataset.studyTopic = topic;
+      button.dataset.studyConcept = concept.slug;
+
+      const title = document.createElement("span");
+      title.className = "study-concept-button-title";
+      title.textContent = concept.title;
+
+      const text = document.createElement("span");
+      text.className = "study-concept-button-text";
+      text.textContent = concept.summary || `Open ${concept.title}.`;
+
+      const link = document.createElement("span");
+      link.className = "study-concept-button-link";
+      link.textContent = "Open sub-topic →";
+
+      button.append(title, text, link);
+      this.studyConceptGrid.appendChild(button);
+    });
+  }
+
+  getStudyConcept(topic, conceptSlug) {
+    const guide = this.getStudyGuide(topic);
+    return guide.concepts.find(concept => concept.slug === conceptSlug) || guide.concepts[0];
+  }
+
   openStudyLibrary() {
     this.setHistorySlug(false);
     this.currentStudyTopic = "";
+    this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
     this.renderStudyLibrary();
     this.showScreen("study-library");
@@ -1255,16 +1337,18 @@ class ExamApp {
 
   renderStudyTopic(topic) {
     const guide = this.getStudyGuide(topic);
+    const conceptCount = guide.concepts.length;
 
     document.getElementById("study-topic-icon").textContent = guide.icon || "📘";
     document.getElementById("study-topic-title").textContent = guide.topic || topic;
     document.getElementById("study-topic-summary").textContent = guide.summary || "A quick topic guide.";
     document.getElementById("study-topic-intro").textContent = guide.intro || "Take this topic one step at a time.";
     document.getElementById("study-topic-key-idea").textContent = guide.keyIdea || "Think carefully and check your answer.";
-    document.getElementById("study-topic-try-it").textContent = guide.tryIt || "Say the rule aloud before you start.";
+    document.getElementById("study-topic-menu-hint").textContent = conceptCount === 1
+      ? "This topic currently has one detailed page. Open it below."
+      : `Choose one of the ${conceptCount} sub-topics below to revise in detail.`;
 
-    this.renderStudyList("study-topic-steps", guide.steps);
-    this.renderStudyList("study-topic-tips", guide.tips);
+    this.renderStudyConceptMenu(topic);
 
     const visual = document.getElementById("study-topic-visual");
     if (visual) {
@@ -1282,13 +1366,61 @@ class ExamApp {
   openStudyTopic(topic) {
     this.setHistorySlug(false);
     this.currentStudyTopic = topic;
+    this.currentStudyConcept = "";
     this.renderStudyTopic(topic);
     this.showScreen("study-topic");
+  }
+
+  renderStudyConcept(topic, conceptSlug) {
+    const guide = this.getStudyGuide(topic);
+    const concept = this.getStudyConcept(topic, conceptSlug);
+
+    document.getElementById("study-concept-icon").textContent = guide.icon || "📘";
+    document.getElementById("study-concept-topic").textContent = guide.topic || topic;
+    document.getElementById("study-concept-title").textContent = concept.title;
+    document.getElementById("study-concept-summary").textContent = concept.summary || guide.summary || "A detailed study guide.";
+
+    this.renderStudyParagraphs("study-concept-explanation", concept.explanation);
+    this.renderStudyList("study-concept-steps", concept.steps);
+    this.renderStudyList("study-concept-tips", concept.tips);
+    this.renderStudyExamples("study-concept-examples", concept.examples);
+
+    const visual = document.getElementById("study-concept-visual");
+    if (visual) {
+      visual.innerHTML = concept.visual || guide.visual || "";
+      const label = concept.visualLabel || guide.visualLabel;
+      if (label) {
+        visual.setAttribute("role", "img");
+        visual.setAttribute("aria-label", label);
+      } else {
+        visual.removeAttribute("role");
+        visual.removeAttribute("aria-label");
+      }
+    }
+  }
+
+  openStudyConcept(topic, conceptSlug) {
+    this.setHistorySlug(false);
+    this.currentStudyTopic = topic;
+    this.currentStudyConcept = conceptSlug;
+    this.renderStudyConcept(topic, conceptSlug);
+    this.showScreen("study-concept");
+  }
+
+  returnToStudyTopicMenu() {
+    if (!this.currentStudyTopic) {
+      this.openStudyLibrary();
+      return;
+    }
+
+    this.currentStudyConcept = "";
+    this.openStudyTopic(this.currentStudyTopic);
   }
 
   returnToSetupMenu() {
     this.setHistorySlug(false);
     this.currentStudyTopic = "";
+    this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
     this.showScreen("setup");
   }
@@ -1323,6 +1455,7 @@ class ExamApp {
     this.startTime = 0;
     this.timeExpired = false;
     this.currentStudyTopic = "";
+    this.currentStudyConcept = "";
 
     if (this.studentInput) this.studentInput.value = "";
     this.drawingPad?.clearCanvas();
@@ -1385,6 +1518,12 @@ class ExamApp {
       this.studyTopicScreen?.removeAttribute("hidden");
     } else {
       this.studyTopicScreen?.setAttribute("hidden", "");
+    }
+
+    if (name === "study-concept") {
+      this.studyConceptScreen?.removeAttribute("hidden");
+    } else {
+      this.studyConceptScreen?.setAttribute("hidden", "");
     }
 
     console.log(`Screen switched to: ${name}`);
