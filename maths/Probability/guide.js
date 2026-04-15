@@ -17,14 +17,14 @@ registerStudyGuide({
       title: "Probability Scale",
       summary: "Probability runs from impossible to certain.",
       explanation: [
-        "Probability measures chance. A probability of 0 means impossible, 1 means certain, and numbers in between show different levels of likelihood.",
-        "This scale helps you think sensibly before doing any calculations."
+        "Probability measures chance on a scale from 0 to 1. A probability of 0 means impossible, a probability of 1 means certain, and values between them describe how likely an event is.",
+        "This scale is a checking tool. If a calculated answer is negative or bigger than 1, something has gone wrong."
       ],
       steps: [
-        "Think about what the event means.",
-        "Decide if it is impossible, unlikely, even chance, likely or certain.",
-        "Place it on the 0 to 1 scale.",
-        "Check whether your answer sounds reasonable."
+        "Read the event and imagine what outcomes are possible.",
+        "Decide whether it is impossible, unlikely, even chance, likely or certain.",
+        "Place it between 0 and 1 on the probability scale.",
+        "Use the scale to judge whether a later calculation is sensible."
       ],
       tips: [
         "Probability is always between 0 and 1.",
@@ -32,8 +32,8 @@ registerStudyGuide({
         "A very likely event is close to 1 but not always equal to 1."
       ],
       examples: [
-        { title: "Certain", text: "The probability of getting a number less than 7 on a fair six-sided die is 1." },
-        { title: "Impossible", text: "The probability of rolling an 8 on a fair six-sided die is 0." }
+        { title: "Certain", text: "On a fair six-sided die, the probability of rolling a number less than 7 is 1 because every possible outcome works." },
+        { title: "Impossible", text: "On a fair six-sided die, the probability of rolling an 8 is 0 because 8 is not one of the possible outcomes." }
       ],
       visualLabel: "A probability scale card from impossible to certain.",
       visual: createStudyVisualCard({ emoji: "🎯", title: "Chance scale", subtitle: "From 0 to 1", chips: ["0", "Unlikely", "1/2", "1"], accent: "#7c3aed" })
@@ -42,14 +42,14 @@ registerStudyGuide({
       title: "Equally Likely Outcomes",
       summary: "When outcomes are fair, probability is favourable outcomes over total outcomes.",
       explanation: [
-        "If each outcome has the same chance, like a fair coin or fair die, you can use simple counting to find the probability.",
-        "The top of the fraction counts the outcomes you want, and the bottom counts all the possible outcomes."
+        "For fair events, use the formula P(event) = number of favourable outcomes ÷ total number of equally likely outcomes. The word equally likely is important because the method only works fairly when every outcome has the same chance.",
+        "After counting, simplify the fraction if possible. You can also check whether the answer feels sensible by comparing it with 0, 1/2 and 1 on the probability scale."
       ],
       steps: [
-        "List or imagine all possible outcomes.",
-        "Count the favourable ones.",
-        "Write favourable over total.",
-        "Simplify if needed."
+        "List or imagine all equally likely outcomes.",
+        "Count how many outcomes match the event you want.",
+        "Write favourable over total as a fraction.",
+        "Simplify and, if needed, convert to a decimal or percentage."
       ],
       tips: [
         "A fair coin has 2 equally likely outcomes.",
@@ -57,8 +57,8 @@ registerStudyGuide({
         "Simplify the fraction if possible."
       ],
       examples: [
-        { title: "Coin", text: "The probability of heads from a fair coin is 1/2." },
-        { title: "Die", text: "The probability of rolling an even number is 3/6, which simplifies to 1/2." }
+        { title: "Coin", text: "A fair coin has outcomes H and T. One of the two outcomes is heads, so P(heads) = 1/2." },
+        { title: "Die", text: "A fair die has 6 outcomes. Even numbers are 2, 4 and 6, so P(even) = 3/6 = 1/2." }
       ],
       visualLabel: "A fair-outcomes card showing wanted outcomes over total outcomes.",
       visual: createStudyVisualCard({ emoji: "🎲", title: "Count the outcomes", subtitle: "Wanted over total", chips: ["Favourable", "Total", "Simplify", "Fair"], accent: "#0ea5e9" })
@@ -67,14 +67,14 @@ registerStudyGuide({
       title: "Probability in Different Forms",
       summary: "Probability can be written as a fraction, decimal or percentage.",
       explanation: [
-        "The same probability can be shown in different ways. This is useful because some questions prefer fractions, while others use decimals or percentages.",
-        "Changing form does not change the chance itself, only the way you write it."
+        "A probability fraction can be converted into a decimal by dividing and into a percentage by multiplying by 100. The chance itself stays the same, only the form changes.",
+        "This matters because some questions mix formats, for example showing test success as 0.8, 80% or 4/5."
       ],
       steps: [
-        "Start with the probability fraction.",
-        "Turn it into a decimal by dividing.",
-        "Turn it into a percentage by multiplying by 100.",
-        "Check all forms match the same chance."
+        "Start with the fraction form if possible.",
+        "Divide numerator by denominator to get the decimal.",
+        "Multiply the decimal by 100 to get the percentage.",
+        "Check all forms represent the same chance on the 0 to 1 scale."
       ],
       tips: [
         "1/2 = 0.5 = 50%.",
@@ -82,8 +82,8 @@ registerStudyGuide({
         "A probability above 1 is impossible."
       ],
       examples: [
-        { title: "Quarter chance", text: "1/4 is the same as 0.25 or 25%." },
-        { title: "Three in ten", text: "3/10 = 0.3 = 30%." }
+        { title: "Quarter chance", text: "1/4 = 0.25 because 1 ÷ 4 = 0.25, and 0.25 = 25% after multiplying by 100." },
+        { title: "Three in ten", text: "3/10 = 0.3 = 30%, so all three forms describe the same probability." }
       ],
       visualLabel: "A conversion card showing probability in three forms.",
       visual: createStudyVisualCard({ emoji: "🔄", title: "Same chance, new form", subtitle: "Fraction, decimal, percentage", chips: ["1/2", "0.5", "50%", "Equivalent"], accent: "#f59e0b" })
@@ -92,14 +92,14 @@ registerStudyGuide({
       title: "Combined Outcomes & Simple Tables",
       summary: "Some probability questions need you to organise outcomes carefully.",
       explanation: [
-        "When two things happen, like flipping two coins or spinning and rolling, it can help to list the outcomes in a table or neat list.",
-        "Organisation is the key. If you miss one outcome, the whole probability can go wrong."
+        "When two stages happen, list every possible pair of outcomes using a table or systematic list. This avoids missing combinations.",
+        "If the events are independent, another useful rule is multiply probabilities: P(A and B) = P(A) × P(B). This works because one event does not change the chance of the other."
       ],
       steps: [
-        "Write all first-step outcomes.",
-        "Pair each one with all second-step outcomes.",
-        "Count the total number of combinations.",
-        "Count how many combinations match the event you want."
+        "List all outcomes for the first stage.",
+        "Pair each one with every possible outcome for the second stage.",
+        "Count the total combinations and the favourable combinations.",
+        "If suitable, use the multiplication rule for independent events to check the answer."
       ],
       tips: [
         "A table can stop you missing outcomes.",
@@ -107,8 +107,8 @@ registerStudyGuide({
         "Check that your list is complete."
       ],
       examples: [
-        { title: "Two coins", text: "The outcomes are HH, HT, TH and TT, so the probability of exactly one head is 2/4 = 1/2." },
-        { title: "Spinner and die", text: "List every pair so you do not forget any combination." }
+        { title: "Two coins", text: "The outcomes are HH, HT, TH and TT. Exactly one head happens in HT and TH, so P(exactly one head) = 2/4 = 1/2." },
+        { title: "Independent events", text: "Probability of rolling a 6 and then flipping heads = 1/6 × 1/2 = 1/12 because the events are independent." }
       ],
       visualLabel: "A probability table card showing all outcome pairs listed neatly.",
       visual: createStudyVisualCard({ emoji: "🗂️", title: "Organise the outcomes", subtitle: "Tables help you count safely", chips: ["List all", "No gaps", "Count total", "Count wanted"], accent: "#22c55e" })

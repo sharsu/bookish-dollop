@@ -17,14 +17,14 @@ registerStudyGuide({
       title: "Speed, Distance & Time Basics",
       summary: "The three main rules tell you how fast, how far and how long.",
       explanation: [
-        "Speed tells us how far something travels in a certain amount of time. Distance tells us how far it went, and time tells us how long the journey took.",
-        "If you know any two of these, you can find the third using the speed triangle or the matching formula."
+        "The three linked formulas are speed = distance ÷ time, distance = speed × time and time = distance ÷ speed. These are really the same fact rearranged in different ways.",
+        "Choose the formula that puts the unknown on its own. If you know two values, substitute them carefully with their units and solve for the third."
       ],
       steps: [
-        "Write down the numbers you know.",
-        "Decide whether you need speed, distance or time.",
-        "Choose the correct formula.",
-        "Substitute the numbers and calculate carefully."
+        "Write the known distance, speed and time values with their units.",
+        "Decide which of the three formulas matches the unknown.",
+        "Substitute the values into the formula.",
+        "Calculate and write the answer with the correct compound unit, such as km/h or m/s."
       ],
       tips: [
         "Speed = distance ÷ time.",
@@ -32,8 +32,8 @@ registerStudyGuide({
         "Time = distance ÷ speed."
       ],
       examples: [
-        { title: "Find speed", text: "If a car travels 120 km in 2 hours, its speed is 60 km/h." },
-        { title: "Find distance", text: "If a cyclist rides at 15 km/h for 3 hours, the distance is 45 km." }
+        { title: "Find speed", text: "Use speed = distance ÷ time. For 120 km in 2 h, speed = 120 ÷ 2 = 60 km/h." },
+        { title: "Find distance", text: "Use distance = speed × time. For 15 km/h over 3 h, distance = 15 × 3 = 45 km." }
       ],
       visualLabel: "A speed formula card showing the three linked rules.",
       visual: createStudyVisualCard({ emoji: "🚗", title: "Three linked ideas", subtitle: "Know two, find one", chips: ["Speed", "Distance", "Time", "Choose the rule"], accent: "#ef4444" })
@@ -42,14 +42,14 @@ registerStudyGuide({
       title: "Matching Units",
       summary: "Before you calculate, make sure the time and distance units fit together.",
       explanation: [
-        "A speed of kilometres per hour only works neatly if the distance is in kilometres and the time is in hours. If the question uses minutes, metres or seconds, you may need to convert first.",
-        "Many mistakes in speed questions happen because the calculation is right but the units are mixed up."
+        "A speed in km/h needs distance in kilometres and time in hours. A speed in m/s needs distance in metres and time in seconds. If the units do not match, convert before you use the formula.",
+        "Two especially useful conversion rules are 1 hour = 3600 seconds and 1 kilometre = 1000 metres. From these, 1 m/s = 3.6 km/h and 1 km/h = 5/18 m/s."
       ],
       steps: [
-        "Read the units beside each number.",
-        "Convert minutes to hours or seconds to hours if needed.",
-        "Convert metres to kilometres if the speed is in km/h.",
-        "Then do the main calculation."
+        "Read the unit on every number before starting the formula.",
+        "Convert time units so they match the speed unit, such as minutes to hours or hours to seconds.",
+        "Convert distance units so they match too, such as metres to kilometres.",
+        "Only then use the speed-distance-time formula."
       ],
       tips: [
         "60 minutes = 1 hour.",
@@ -57,8 +57,8 @@ registerStudyGuide({
         "Write the new unit after converting so you do not forget."
       ],
       examples: [
-        { title: "Minutes to hours", text: "30 minutes is 0.5 hours, so 20 km in 30 minutes means 20 ÷ 0.5 = 40 km/h." },
-        { title: "Metres to kilometres", text: "2500 m is 2.5 km." }
+        { title: "Minutes to hours", text: "30 minutes = 30/60 h = 0.5 h. So 20 km in 30 minutes gives speed = 20 ÷ 0.5 = 40 km/h." },
+        { title: "m/s to km/h", text: "12 m/s = 12 × 3.6 = 43.2 km/h because 1 m/s = 3.6 km/h." }
       ],
       visualLabel: "A units card showing common conversions used in speed questions.",
       visual: createStudyVisualCard({ emoji: "⏱️", title: "Match the units", subtitle: "Convert before you solve", chips: ["60 min = 1 h", "1000 m = 1 km", "Check units", "Then calculate"], accent: "#0ea5e9" })
@@ -67,14 +67,14 @@ registerStudyGuide({
       title: "Finding Time in Journeys",
       summary: "Time questions often need careful division and careful reading.",
       explanation: [
-        "If the question asks how long a journey takes, you divide the distance by the speed. This can produce an answer in hours, so you may need to turn part of an hour into minutes.",
-        "This is common in travel questions, especially when the final answer needs clock time."
+        "When time is the unknown, use time = distance ÷ speed. The answer may come out as a decimal number of hours, so you often need to convert the decimal part into minutes by multiplying by 60.",
+        "Clock-time questions use the same maths but add one more step: once you know the journey length, add it to the start time."
       ],
       steps: [
         "Use time = distance ÷ speed.",
-        "Work out the decimal or fraction of an hour.",
-        "Convert the leftover part into minutes.",
-        "Add it to the start time if the question asks for arrival time."
+        "Write the answer in hours first.",
+        "Convert any decimal part of an hour into minutes using ×60.",
+        "If needed, add the journey time to the start time to find the finishing clock time."
       ],
       tips: [
         "0.5 hours = 30 minutes.",
@@ -82,8 +82,8 @@ registerStudyGuide({
         "Clock-time questions often need two steps."
       ],
       examples: [
-        { title: "Journey length", text: "If 90 km is travelled at 45 km/h, the journey takes 2 hours." },
-        { title: "Arrival time", text: "If a journey lasts 1.5 hours and starts at 10:20, the arrival time is 11:50." }
+        { title: "Journey length", text: "Time = 90 ÷ 45 = 2, so the journey takes 2 hours." },
+        { title: "Decimal hours", text: "If time = 75 ÷ 50 = 1.5 h, that is 1 hour and 0.5 × 60 = 30 minutes, so the journey lasts 1 h 30 min." }
       ],
       visualLabel: "A travel-time card showing time found from distance and speed.",
       visual: createStudyVisualCard({ emoji: "🕒", title: "Find the time", subtitle: "Divide, then convert if needed", chips: ["Distance ÷ Speed", "Hours", "Minutes", "Arrival time"], accent: "#f59e0b" })
@@ -92,14 +92,14 @@ registerStudyGuide({
       title: "Average Speed Problems",
       summary: "Average speed looks at the whole journey, not just one part of it.",
       explanation: [
-        "Average speed is found by dividing the total distance by the total time. You cannot just average two speeds unless the times or distances work out in a special way.",
-        "This is a very common trap, so slow down and add all the journey parts first."
+        "Average speed uses the formula average speed = total distance ÷ total time. The word total matters. You must combine all journey sections before dividing.",
+        "A common trap is to average the separate speeds directly. That only works in special cases, so the safe method is always total distance over total time."
       ],
       steps: [
-        "Find the total distance travelled.",
-        "Find the total time taken.",
-        "Divide total distance by total time.",
-        "Check the answer is between the slower and faster parts if that makes sense."
+        "Add all distances travelled.",
+        "Add all times taken, making sure units match.",
+        "Use average speed = total distance ÷ total time.",
+        "Check whether the answer is sensible for the journey as a whole."
       ],
       tips: [
         "Average speed uses totals, not separate pieces on their own.",
@@ -107,8 +107,8 @@ registerStudyGuide({
         "Keep the units matched all the way through."
       ],
       examples: [
-        { title: "Whole journey", text: "A car travels 30 km in 1 hour and 60 km in 2 hours. Total distance is 90 km and total time is 3 hours, so average speed is 30 km/h." },
-        { title: "Common mistake", text: "Do not simply average 30 and 60 unless the question really allows it." }
+        { title: "Whole journey", text: "A car travels 30 km in 1 h and 60 km in 2 h. Total distance = 90 km and total time = 3 h, so average speed = 90 ÷ 3 = 30 km/h." },
+        { title: "Why not average the speeds?", text: "If one stage is 20 km/h and another is 60 km/h, do not just say 40 km/h. First add the total distance and total time, then divide." }
       ],
       visualLabel: "An average speed card showing totals used for the whole journey.",
       visual: createStudyVisualCard({ emoji: "📊", title: "Average speed", subtitle: "Use total distance and total time", chips: ["Add distances", "Add times", "Then divide", "Whole journey"], accent: "#22c55e" })

@@ -17,14 +17,14 @@ registerStudyGuide({
       title: "Expressions",
       summary: "Expressions are algebra sentences without an equals sign.",
       explanation: [
-        "An expression is made from numbers, letters and operations such as +, − and ×. It does not ask you to solve for a final value unless a number is given for the letter.",
-        "When you simplify an expression, you tidy it by combining like terms. Like terms have the same letters to the same power, so 3a and 2a can join, but 3a and 2b cannot."
+        "An expression is built from numbers, letters and operations, but it has no equals sign. The letter part is called the variable, and the number attached to it is the coefficient, so in 5x the coefficient is 5.",
+        "To simplify, combine like terms only. Like terms must have exactly the same letters to the same power, so 3a + 2a = 5a, but 3a + 2b stays separate. The distributive law also helps: a(b + c) = ab + ac."
       ],
       steps: [
-        "Read the whole expression first and spot the terms.",
-        "Group together like terms, such as 4x and 3x.",
-        "Add or subtract only the number part of those like terms.",
-        "Leave unlike terms as they are."
+        "Split the expression into terms separated by + or − signs.",
+        "Group like terms, such as x terms, y terms and plain numbers.",
+        "Add or subtract the coefficients of each matching group.",
+        "If there are brackets, expand first or factorise first depending on the question."
       ],
       tips: [
         "2a means 2 × a.",
@@ -32,8 +32,8 @@ registerStudyGuide({
         "Only like terms can be combined."
       ],
       examples: [
-        { title: "Combining like terms", text: "5x + 2x becomes 7x because both terms are x terms." },
-        { title: "Not like terms", text: "4a + 3b cannot be joined because a and b are different letters." }
+        { title: "Combining like terms", text: "5x + 2x - x = 7x - x = 6x because the coefficients 5, 2 and -1 belong to the same x term." },
+        { title: "Using brackets", text: "3(a + 4) expands to 3a + 12 because the 3 multiplies both a and 4." }
       ],
       visualLabel: "An expressions card showing like terms being grouped together.",
       visual: createStudyVisualCard({ emoji: "🧩", title: "Expressions", subtitle: "Group like terms together", chips: ["5x + 2x", "7x", "4a + 3b", "stay separate"], accent: "#ec4899" })
@@ -42,14 +42,14 @@ registerStudyGuide({
       title: "Equations",
       summary: "An equation is balanced, so whatever you do to one side must happen to the other side too.",
       explanation: [
-        "Equations have an equals sign. Your goal is to find the value of the letter that makes both sides equal.",
-        "The balancing idea is the key. If you add 3 on one side, you must add 3 on the other side. If you divide one side by 2, you divide the other side by 2 as well."
+        "An equation has an equals sign, so both sides must stay balanced. To solve it, undo the operations around the variable using inverse operations: subtract to undo add, divide to undo multiply and so on.",
+        "The same balancing rule works for inequalities such as x + 3 > 10. The only extra rule is this: if you multiply or divide an inequality by a negative number, the inequality sign reverses direction."
       ],
       steps: [
-        "Find the operation attached to the letter.",
-        "Undo that operation in the reverse order.",
-        "Do the same thing to both sides of the equation.",
-        "Check your answer by putting it back in."
+        "Identify the operations attached to the variable and undo them in reverse order.",
+        "Do the same operation to both sides to keep the statement balanced.",
+        "For inequalities, remember to flip the sign if you multiply or divide by a negative.",
+        "Substitute your answer back to check it makes the equation or inequality true."
       ],
       tips: [
         "Undo + with − and undo × with ÷.",
@@ -57,8 +57,8 @@ registerStudyGuide({
         "A quick check at the end can catch mistakes."
       ],
       examples: [
-        { title: "One-step equation", text: "If x + 4 = 11, subtract 4 from both sides, so x = 7." },
-        { title: "Two-step equation", text: "If 2y + 3 = 13, subtract 3 first to get 2y = 10, then divide by 2 to get y = 5." }
+        { title: "Two-step equation", text: "For 2y + 3 = 13, subtract 3 from both sides to get 2y = 10, then divide by 2 to get y = 5." },
+        { title: "Inequality rule", text: "For -2x < 8, divide both sides by -2 and flip the sign: x > -4." }
       ],
       visualLabel: "An equations card showing both sides staying balanced.",
       visual: createStudyVisualCard({ emoji: "⚖️", title: "Equations", subtitle: "Keep both sides fair", chips: ["x + 4 = 11", "−4 both sides", "x = 7", "Check"], accent: "#8b5cf6" })
@@ -67,14 +67,14 @@ registerStudyGuide({
       title: "Substitution",
       summary: "Substitution means replacing a letter with the number it stands for.",
       explanation: [
-        "When a question tells you the value of a letter, you can put that value into the expression. This is called substitution.",
-        "The most common mistakes are forgetting brackets with negative numbers or forgetting that 3a means 3 × a."
+        "Substitution means replacing each variable with its given value, then evaluating the expression using BIDMAS. This is how you test formulas and algebra rules with actual numbers.",
+        "Use brackets around negative values so the signs stay correct. For example, if b = -2 then b² means (-2)², not -2² by accident."
       ],
       steps: [
-        "Write the original expression clearly.",
-        "Replace each letter with the given value.",
-        "Use brackets when the number is negative.",
-        "Work out the answer carefully using the correct order."
+        "Copy the expression exactly before changing anything.",
+        "Replace each letter with the given value, using brackets for negatives.",
+        "Work out powers, brackets and multiplication before addition or subtraction.",
+        "Check that every variable has been replaced once and only once."
       ],
       tips: [
         "If a = 4, then 3a means 3 × 4.",
@@ -82,8 +82,8 @@ registerStudyGuide({
         "Check that every letter has been replaced."
       ],
       examples: [
-        { title: "Positive value", text: "If a = 4, then 3a + 2 becomes 3 × 4 + 2 = 14." },
-        { title: "Negative value", text: "If b = -2, then b² means (-2) × (-2) = 4." }
+        { title: "Positive value", text: "If a = 4, then 3a + 2 = 3 × 4 + 2 = 12 + 2 = 14." },
+        { title: "Negative value", text: "If b = -2, then b² + 3 = (-2)² + 3 = 4 + 3 = 7." }
       ],
       visualLabel: "A substitution card showing letters being replaced with values.",
       visual: createStudyVisualCard({ emoji: "🔁", title: "Substitution", subtitle: "Swap the letter for its value", chips: ["a = 4", "3a + 2", "3 × 4 + 2", "14"], accent: "#0ea5e9" })
@@ -92,14 +92,14 @@ registerStudyGuide({
       title: "Factorising & Expansion",
       summary: "Expansion opens brackets out. Factorising packs terms back into brackets.",
       explanation: [
-        "These two ideas are opposites. Expansion means multiplying through a bracket, while factorising means spotting a common factor and taking it outside the bracket.",
-        "In 11+ work, this often starts with one bracket and a single common factor, such as 3(x + 4) or 6a + 12."
+        "Expansion uses the distributive law: a(b + c) = ab + ac. This means every term inside the bracket must be multiplied by the outside factor.",
+        "Factorising is the reverse move. You look for the highest common factor in every term, take it outside the bracket, and leave the leftover terms inside."
       ],
       steps: [
-        "For expansion, multiply the outside number by each term inside the bracket.",
-        "For factorising, find the biggest common factor first.",
-        "Write the common factor outside the bracket.",
-        "Check by expanding again to see if you get back to the start."
+        "For expansion, multiply the outside factor by each term inside the bracket.",
+        "For factorising, find the highest common factor shared by all terms.",
+        "Write that common factor outside the bracket and divide each term by it for the inside.",
+        "Check by expanding your answer to see if you return to the original expression."
       ],
       tips: [
         "3(x + 4) becomes 3x + 12.",
@@ -107,8 +107,8 @@ registerStudyGuide({
         "A quick expand-back check is very helpful."
       ],
       examples: [
-        { title: "Expansion", text: "2(x + 5) becomes 2x + 10 because 2 multiplies both x and 5." },
-        { title: "Factorising", text: "8y + 12 becomes 4(2y + 3) because 4 is the largest common factor." }
+        { title: "Expansion", text: "2(x + 5) = 2 × x + 2 × 5 = 2x + 10." },
+        { title: "Factorising", text: "8y + 12 = 4(2y + 3) because 4 is the highest common factor and 4 × 2y + 4 × 3 expands back to 8y + 12." }
       ],
       visualLabel: "A brackets card showing expansion and factorising as opposite moves.",
       visual: createStudyVisualCard({ emoji: "📦", title: "Brackets", subtitle: "Open out or factor back", chips: ["2(x + 5)", "2x + 10", "8y + 12", "4(2y + 3)"], accent: "#f97316" })
@@ -117,14 +117,14 @@ registerStudyGuide({
       title: "Function Machines",
       summary: "A function machine follows a rule to turn an input into an output.",
       explanation: [
-        "Function machines are like maths robots. A number goes in, the rule happens, and a new number comes out.",
-        "To work backwards, you undo the rule in reverse order. This helps you find a missing input or a missing step."
+        "A function machine is really a rule. If the rule is '×2 then +3', you can write it as 2n + 3. This links function machines to algebra expressions and to nth-term rules for linear sequences.",
+        "To find the nth term of a linear sequence, first find the common difference. That number becomes the coefficient of n. Then compare the rule with a known term to find the constant part. For example, 4, 7, 10, 13 has difference 3, so start with 3n. Since 3 × 1 = 3 but the first term is 4, add 1. The nth term is 3n + 1."
       ],
       steps: [
-        "Read the rule on the machine carefully.",
-        "If you know the input, follow the rule forward.",
-        "If you know the output, work backwards by undoing the rule.",
-        "Check your answer by sending it through the machine again."
+        "Read the machine rule in order from input to output.",
+        "For forward questions, apply each operation in order.",
+        "For backward questions, undo the operations in reverse order.",
+        "For nth-term questions, use difference as the n coefficient, then adjust by adding or subtracting a constant."
       ],
       tips: [
         "Forward and backward methods are both useful.",
@@ -132,8 +132,8 @@ registerStudyGuide({
         "Write each step so you do not mix up the order."
       ],
       examples: [
-        { title: "Forward", text: "If the rule is ×2 then +3, an input of 4 gives 11." },
-        { title: "Backward", text: "If the output is 17 and the rule is ×2 then +3, subtract 3 first to get 14, then divide by 2 to get 7." }
+        { title: "Backward", text: "If the output is 17 and the rule is ×2 then +3, undo +3 first to get 14, then undo ×2 by dividing: input = 7." },
+        { title: "Nth term", text: "For 5, 8, 11, 14 the difference is 3, so start with 3n. Term 1 would be 3, but the sequence starts at 5, so add 2. The nth term is 3n + 2." }
       ],
       visualLabel: "A function machine card showing numbers going in and out.",
       visual: createStudyVisualCard({ emoji: "⚙️", title: "Function machines", subtitle: "Follow the rule, then undo it backwards", chips: ["Input 4", "×2", "+3", "Output 11"], accent: "#14b8a6" })
@@ -142,14 +142,14 @@ registerStudyGuide({
       title: "Magic Squares",
       summary: "In a magic square, each row, column and diagonal has the same total.",
       explanation: [
-        "Algebra magic squares mix number patterns and equations. Missing boxes might contain letters or expressions, and you use the equal totals to work out what fits.",
-        "The clever move is to find one complete row or column first, then use that total to solve the missing parts in the other rows."
+        "A magic square gives one fixed total, often called the magic sum. Every row, every column and each main diagonal must equal that same total.",
+        "This turns the puzzle into several short equations. First find the magic sum from a complete line, then write equations for the incomplete lines and solve them one by one."
       ],
       steps: [
-        "Find a row, column or diagonal where the total is easiest to work out.",
-        "Use that total as the target for the other rows and columns.",
-        "Form small equations for the missing boxes.",
-        "Check every row, column and diagonal at the end."
+        "Look for a complete row, column or diagonal to find the magic sum.",
+        "Write an equation for a line with a missing number or variable.",
+        "Solve each short equation and fill the square gradually.",
+        "Check every row, column and diagonal equals the same total."
       ],
       tips: [
         "Look for the row with the most known values first.",
@@ -157,8 +157,8 @@ registerStudyGuide({
         "Always do a full final check of all totals."
       ],
       examples: [
-        { title: "Finding the target total", text: "If one full row adds to 15, every row, column and diagonal must also add to 15." },
-        { title: "Using algebra", text: "If a row is x, 4 and 6 and the magic total is 15, then x + 4 + 6 = 15 so x = 5." }
+        { title: "Finding the target total", text: "If the top row is 8, 1 and 6, then the magic sum is 8 + 1 + 6 = 15, so every line must equal 15." },
+        { title: "Using algebra", text: "If a row is x, 4 and 6 and the magic sum is 15, write x + 4 + 6 = 15. Then x + 10 = 15, so x = 5." }
       ],
       visualLabel: "A magic square card showing equal totals in every direction.",
       visual: createStudyVisualCard({ emoji: "✨", title: "Magic squares", subtitle: "Every line must match the same total", chips: ["Rows match", "Columns match", "Diagonals match", "Solve the blanks"], accent: "#6366f1" })

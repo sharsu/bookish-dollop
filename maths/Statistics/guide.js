@@ -17,14 +17,14 @@ registerStudyGuide({
       title: "Reading Tables & Charts",
       summary: "The title, labels and scale are the first clues to read.",
       explanation: [
-        "Statistics questions often begin with a chart, table or graph. Before you calculate anything, make sure you understand what the picture is showing.",
-        "The most common mistakes happen when children rush past the scale or miss what each bar or line stands for."
+        "Statistics charts only make sense if you read the title, axis labels, units and scale first. A bar chart with a scale of 5s tells a different story from one with a scale of 1s.",
+        "The most common exam mistake is reading the picture shape without reading what each division is worth. In data questions, labels matter as much as numbers."
       ],
       steps: [
-        "Read the title first.",
-        "Check the labels on the axes or categories.",
-        "Work out what each step on the scale means.",
-        "Then read or compare the data."
+        "Read the title to see what the data is about.",
+        "Check category names, axis labels and units.",
+        "Work out the value of one division on the scale.",
+        "Only then read off, compare or total the data values."
       ],
       tips: [
         "The scale might go up in 2s, 5s or 10s.",
@@ -32,8 +32,8 @@ registerStudyGuide({
         "Bar charts, line graphs and tables all present data differently."
       ],
       examples: [
-        { title: "Bar chart", text: "If the bars go up in 5s, a bar at the third line means 15." },
-        { title: "Table", text: "A table can be easier to read if you cover one row at a time." }
+        { title: "Bar chart", text: "If the vertical scale goes 0, 5, 10, 15, a bar reaching the third interval above 0 shows 15, not 3." },
+        { title: "Line graph", text: "If each horizontal step is 1 hour and the point at hour 4 is at 18 on the scale, the value at 4 hours is 18." }
       ],
       visualLabel: "A data-reading card showing title, labels and scale.",
       visual: createStudyVisualCard({ emoji: "📊", title: "Read the chart", subtitle: "Title, labels, scale", chips: ["Title", "Axes", "Scale", "Then answer"], accent: "#0f766e" })
@@ -42,14 +42,14 @@ registerStudyGuide({
       title: "Mean, Median, Mode & Range",
       summary: "These four summaries help describe a set of data.",
       explanation: [
-        "Mean gives an overall average, median finds the middle, mode finds the most common value and range measures the spread.",
-        "These all tell you something different, so the question may choose one because it reveals the most useful fact."
+        "Mean = total of values ÷ number of values. Median is the middle value when the data is in order. Mode is the value with the highest frequency, and range = largest - smallest.",
+        "These measures do different jobs: mean shows overall average, median shows centre, mode shows the most common result and range shows spread."
       ],
       steps: [
-        "Put the data in order if needed.",
-        "Choose the summary the question asks for.",
-        "Use the correct rule for that summary.",
-        "Check your answer against the original data."
+        "Write the data in order if you need median, mode or range.",
+        "Choose the correct summary rule.",
+        "Calculate carefully, especially the total for the mean.",
+        "Check that the result matches the data set and is not impossible."
       ],
       tips: [
         "Mean = total ÷ number of values.",
@@ -57,8 +57,8 @@ registerStudyGuide({
         "Range = largest − smallest."
       ],
       examples: [
-        { title: "Mode and range", text: "For 3, 5, 5, 8 the mode is 5 and the range is 5." },
-        { title: "Mean", text: "For 4, 6, 8, the mean is 18 ÷ 3 = 6." }
+        { title: "Mode and range", text: "For 3, 5, 5, 8, the mode is 5 because it appears most often, and the range is 8 - 3 = 5." },
+        { title: "Mean and median", text: "For 4, 6, 8, 12 the mean is (4 + 6 + 8 + 12) ÷ 4 = 30 ÷ 4 = 7.5, and the median is the average of 6 and 8, which is 7." }
       ],
       visualLabel: "A data-summary card showing the four main statistics.",
       visual: createStudyVisualCard({ emoji: "🧮", title: "Choose the right summary", subtitle: "Each one tells a different story", chips: ["Mean", "Median", "Mode", "Range"], accent: "#0ea5e9" })
@@ -67,14 +67,14 @@ registerStudyGuide({
       title: "Comparing Data",
       summary: "Statistics is not only about finding answers but also about explaining what the data means.",
       explanation: [
-        "Some questions ask you to compare two groups or two charts. You might compare averages, totals or spread to decide which group did better or was more varied.",
-        "Always use actual data from the graph or table to support your answer."
+        "Comparing data means using evidence such as totals, averages and ranges to explain similarities and differences. A higher mean might show better average performance, while a larger range shows more spread.",
+        "A strong comparison sentence includes numbers, for example 'Group A has mean 12 and Group B has mean 9, so Group A scores higher on average.'"
       ],
       steps: [
-        "Look for what is similar and what is different.",
-        "Use numbers from the chart, not just opinion words.",
-        "Compare totals, averages or ranges if useful.",
-        "Write a short clear conclusion."
+        "Choose a useful comparison measure such as total, mean or range.",
+        "Read or calculate the values for both groups.",
+        "State what is bigger, smaller or more spread out using numbers.",
+        "Finish with a short conclusion that answers the question directly."
       ],
       tips: [
         "A bigger average does not always mean a bigger spread.",
@@ -82,8 +82,8 @@ registerStudyGuide({
         "Always support your point with evidence."
       ],
       examples: [
-        { title: "Two groups", text: "If Group A has a mean of 12 and Group B has a mean of 9, Group A did better on average." },
-        { title: "Spread", text: "If one set has range 2 and another has range 10, the second set is much more spread out." }
+        { title: "Two groups", text: "If Group A has mean 12 and Group B has mean 9, Group A scores 3 marks higher on average." },
+        { title: "Spread", text: "If Set 1 has range 2 and Set 2 has range 10, Set 2 is far less consistent because its values are more spread out." }
       ],
       visualLabel: "A comparison card showing two data sets being compared using evidence.",
       visual: createStudyVisualCard({ emoji: "⚖️", title: "Compare using data", subtitle: "Use evidence, not guessing", chips: ["Higher", "Lower", "Average", "Range"], accent: "#f59e0b" })
@@ -92,14 +92,14 @@ registerStudyGuide({
       title: "Pictograms & Frequency Tables",
       summary: "Sometimes data is stored in symbols or tallies instead of ordinary numbers.",
       explanation: [
-        "A pictogram may use a symbol worth more than one item, and a frequency table counts how often each value appears. Both need careful reading.",
-        "The key or tally value matters just as much as the picture or table itself."
+        "A pictogram uses a key, so one symbol may stand for 2, 5 or another number of items. A frequency table shows each value and how often it occurs.",
+        "Frequency tables also support formula work. For example, mean from a frequency table = sum of (value × frequency) ÷ total frequency."
       ],
       steps: [
-        "Read the key or tally system first.",
-        "Turn symbols or tallies into numbers.",
-        "Add or compare the frequencies.",
-        "Check the total if needed."
+        "Read the key or frequency headings first.",
+        "Convert symbols or tallies into actual frequencies.",
+        "Use the frequencies to total, compare or calculate a mean.",
+        "Check that the total frequency matches the number of items described."
       ],
       tips: [
         "Half a symbol may mean half the key value.",
@@ -107,8 +107,8 @@ registerStudyGuide({
         "A total-frequency check can catch errors."
       ],
       examples: [
-        { title: "Pictogram", text: "If one smiley stands for 4 children, two smileys mean 8 children." },
-        { title: "Frequency table", text: "If the value 6 has frequency 3, then 6 appears three times." }
+        { title: "Pictogram", text: "If one smiley stands for 4 children, then 2 1/2 smileys stand for 10 children because 2.5 × 4 = 10." },
+        { title: "Frequency mean", text: "If values 2, 4 and 6 have frequencies 1, 3 and 2, then mean = (2×1 + 4×3 + 6×2) ÷ (1+3+2) = 26 ÷ 6 = 4 1/3." }
       ],
       visualLabel: "A frequency card showing keys, tallies and counts.",
       visual: createStudyVisualCard({ emoji: "📝", title: "Count carefully", subtitle: "The key changes everything", chips: ["Key", "Frequency", "Tallies", "Total"], accent: "#22c55e" })
