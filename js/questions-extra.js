@@ -1,4 +1,4 @@
-/* Extra harder question bank: adds 1000 generated questions (hard + super hard) */
+/* Extra harder question bank: adds generated questions plus topic-specific harder extras. */
 (() => {
   if (typeof QUESTIONS === "undefined") return;
   const topics = ["Numbers","Decimals","Fractions","Percentages","BIDMAS","Algebra","Sequences","Ratio","Speed","Measurement","Geometry","Statistics","Probability","Logic"];
@@ -22,6 +22,42 @@
     return { id: id++, topic, question, options, answer: pos, difficulty };
   };
   const diff = i => i % 7 === 0 ? 4 : 3;
+  const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const wrapDay = index => dayNames[((index % 7) + 7) % 7];
+  const fmtTime = (hour, minute) => `${hour}:${`${minute}`.padStart(2, "0")}`;
+  const mirrorClock = (hour, minute) => {
+    const totalMinutes = (hour === 12 ? 720 : hour * 60) + minute;
+    let mirrorMinutes = 720 - totalMinutes;
+    if (mirrorMinutes <= 0) mirrorMinutes += 720;
+    if (mirrorMinutes === 720) return { hour: 12, minute: 0 };
+    const mirrorHour = Math.floor(mirrorMinutes / 60) || 12;
+    return { hour: mirrorHour, minute: mirrorMinutes % 60 };
+  };
+  const nextPalindrome = n => {
+    let candidate = n + 1;
+    while (`${candidate}` !== `${candidate}`.split("").reverse().join("")) candidate += 1;
+    return candidate;
+  };
+  const logicPdfExtras = [
+    mk("Logic","Find two consecutive integers whose sum is 75.","37 and 38",["36 and 39","35 and 40","38 and 39"],3,1400),
+    mk("Logic","Find three consecutive even integers whose sum is 222.","72, 74 and 76",["70, 72 and 74","74, 76 and 78","71, 74 and 77"],3,1401),
+    mk("Logic","Find two consecutive odd integers such that the sum of the smaller and 3 times the larger is 330.","81 and 83",["79 and 81","83 and 85","80 and 82"],4,1402),
+    mk("Logic","I am a three-digit number and a palindrome. I am less than 500, greater than 200, all my digits are odd, and the sum of my digits is 7. What number am I?","313",["333","515","373"],4,1403),
+    mk("Logic","A car's odometer shows 15951 miles, which is a palindrome. What is the minimum number of miles needed to reach the next palindrome?","110 miles",["10 miles","100 miles","111 miles"],4,1404),
+    mk("Logic","Which square numbers between 100 and 1,000 are also palindromes?","121, 484 and 676",["121, 676 and 961","144, 484 and 676","121, 242 and 676"],4,1405),
+    mk("Logic","What is the first palindrome greater than 5346?","5445",["5335","5435","5454"],3,1406),
+    mk("Logic","What is the acute angle between the hour and minute hands of a clock at 2:00?","60°",["30°","90°","120°"],3,1407),
+    mk("Logic","When viewed in a mirror, an analogue clock appears to show 10:10. What is the actual time?","1:50",["1:10","2:50","10:50"],3,1408),
+    mk("Logic","An analogue clock shows 7:45. What time appears in its mirror image?","4:15",["5:15","4:45","3:15"],3,1409),
+    mk("Logic","Which of these years is a leap year?","1600",["1800","1900","2100"],3,1410),
+    mk("Logic","If the 23rd of a month is a Sunday, what day was it two weeks and four days earlier?","Wednesday",["Monday","Tuesday","Thursday"],3,1411),
+    mk("Logic","Independence Day in 1988 was celebrated on a Wednesday. On which day was it celebrated in 1989?","Thursday",["Tuesday","Wednesday","Friday"],3,1412),
+    mk("Logic","Oliver was born on 29 February. He celebrated his birthday on 29 February 2008 for the fourth time. In which year was he born?","1996",["1992","2000","2004"],4,1413),
+    mk("Logic","In a 3×3 magic square, each row sums to 75. One row is 30, 5, 40. What is the row total checking this clue?","75",["70","80","85"],3,1414),
+    mk("Logic","In an addition pyramid, each block equals the sum of the two blocks below. If the bottom row is 20, 30 and 20, what is the top block?","100",["70","90","120"],3,1415),
+    mk("Logic","A multiplication arithmagon has side products 42, 48 and 56. What are the three corner numbers?","6, 7 and 8",["5, 7 and 8","6, 6 and 8","4, 7 and 8"],4,1416),
+    mk("Logic","If C + A + T + S = 27 and C + A + T + S + S = 35, what is C + A + T?","19",["17","18","20"],3,1417)
+  ];
 
   function genNumbers(i) {
     switch (i % 6) {
@@ -147,17 +183,118 @@
     }
   }
   function genLogic(i) {
-    switch (i % 5) {
-      case 0: { const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],s=i%7,n=85+i,x=days[(s+n)%7]; return mk("Logic",`${days[s]} is today. What day will it be in ${n} days?`,x,days.filter(d=>d!==x).slice(0,3),diff(i),i); }
-      case 1: { const mid=20+i%15,sum=5*mid; return mk("Logic",`Five consecutive integers add up to ${sum}. What is the middle integer?`,mid,[mid-1,mid+1,sum/5+1],diff(i),i); }
-      case 2: { const h=(1+i)%12||12,m=30,x=Math.abs(30*h-5.5*m); return mk("Logic",`What is the smaller angle between the hands of a clock at ${h}:30?`,fmt(x),[fmt(360-x),fmt(30*h),fmt(5.5*m)],diff(i),i); }
-      case 3: { const p=5+i%8,x=p*(p-1)/2; return mk("Logic",`If ${p} people each shake hands once with every other person, how many handshakes are there?`,x,[p*(p-1),p+p-1,x+p],diff(i),i); }
-      default:{ const base=121+i%30,x=Number(`${base}`.split("").reverse().join(""))+base; return mk("Logic",`A number is added to its reverse. If the number is ${base}, what is the total?`,x,[x-9,x+9,Number(`${base}`.split("").reverse().join(""))],diff(i),i); }
+    switch (i % 10) {
+      case 0: {
+        const today = i % 7;
+        const clue = wrapDay(today + 2);
+        const answer = wrapDay(today - 1);
+        return mk("Logic",`If the day after tomorrow is ${clue}, what day was yesterday?`,answer,[wrapDay(today),wrapDay(today + 1),wrapDay(today - 2)],diff(i),i);
+      }
+      case 1: {
+        const variant = Math.floor(i / 10) % 3;
+        if (variant === 0) {
+          const middle = 24 + 2 * (i % 8);
+          const total = 3 * middle;
+          return mk("Logic",`Three consecutive even integers add to ${total}. What is the largest integer?`,middle + 2,[middle - 2,middle,total / 3],diff(i),i);
+        }
+        if (variant === 1) {
+          const smaller = 11 + 2 * (i % 10);
+          const larger = smaller + 2;
+          const total = smaller + 3 * larger;
+          return mk("Logic",`Two consecutive odd integers satisfy: smaller + 3 × larger = ${total}. What is the larger integer?`,larger,[smaller,larger + 2,(total - 2) / 4],diff(i),i);
+        }
+        const smallest = 6 + (i % 8);
+        const mean = smallest + 1.5;
+        return mk("Logic",`Four consecutive integers have a mean of ${fmt(mean)}. What is the smallest integer?`,smallest,[smallest + 1,smallest + 2,fmt(mean)],diff(i),i);
+      }
+      case 2: {
+        const minutes = [0,5,10,15,20,25,30,40,45,50];
+        const h = (i % 11) + 1;
+        const m = minutes[(i * 3) % minutes.length];
+        const raw = Math.abs(30 * h - 5.5 * m);
+        const small = Math.min(raw, 360 - raw);
+        const askReflex = Math.floor(i / 10) % 2 === 1;
+        const answer = askReflex ? 360 - small : small;
+        return mk("Logic",`What is the ${askReflex ? "reflex" : "smaller"} angle between the hands of a clock at ${fmtTime(h, m)}?`,fmt(answer),[fmt(askReflex ? small : 360 - small),fmt(Math.abs(30 * h - 6 * m)),fmt(Math.abs(30 * h - 5 * m))],diff(i),i);
+      }
+      case 3: {
+        const minutes = [5,10,15,20,25,35,40,45,50];
+        const actualHour = (i % 11) + 1;
+        const actualMinute = minutes[(i * 5) % minutes.length];
+        const actual = fmtTime(actualHour, actualMinute);
+        const mirror = mirrorClock(actualHour, actualMinute);
+        const mirrorLabel = fmtTime(mirror.hour, mirror.minute);
+        const shiftedMirror = fmtTime(mirror.hour, (mirror.minute + 10) % 60);
+        const shiftedActual = fmtTime(actualHour === 12 ? 1 : actualHour + 1, actualMinute);
+        return Math.floor(i / 10) % 2 === 0
+          ? mk("Logic",`An analogue clock shows ${actual}. What time appears in its mirror image?`,mirrorLabel,[actual,shiftedMirror,shiftedActual],diff(i),i)
+          : mk("Logic",`The mirror image of an analogue clock shows ${mirrorLabel}. What is the actual time?`,actual,[mirrorLabel,shiftedMirror,shiftedActual],diff(i),i);
+      }
+      case 4: {
+        if (Math.floor(i / 10) % 2 === 0) {
+          const n = 2300 + 37 * i;
+          const answer = nextPalindrome(n);
+          return mk("Logic",`What is the first palindrome greater than ${n}?`,answer,[answer - 10,answer + 10,answer - 100],diff(i),i);
+        }
+        const thousand = 2 + (i % 7);
+        return mk("Logic",`How many palindromes are there between ${thousand}000 and ${thousand}999?`,10,[9,11,90],diff(i),i);
+      }
+      case 5: {
+        if (Math.floor(i / 10) % 2 === 0) {
+          const leapYears = [1600, 2000, 1996, 2004, 2024];
+          const normalYears = [1700, 1800, 1900, 2100, 2200, 1999, 2001, 2023];
+          const answer = leapYears[i % leapYears.length];
+          const start = (i * 2) % normalYears.length;
+          return mk("Logic","Which of these years is a leap year?",answer,[normalYears[start],normalYears[(start + 1) % normalYears.length],normalYears[(start + 2) % normalYears.length]],diff(i),i);
+        }
+        const givenDayIndex = (i + 2) % 7;
+        const givenDay = wrapDay(givenDayIndex);
+        const answer = wrapDay(givenDayIndex - 4);
+        return mk("Logic",`If the 23rd of a month is a ${givenDay}, what day was it two weeks and four days earlier?`,answer,[wrapDay(givenDayIndex - 3),wrapDay(givenDayIndex - 5),wrapDay(givenDayIndex - 2)],diff(i),i);
+      }
+      case 6: {
+        const missing = 10 + (i % 9);
+        const a = 6 + (i % 7);
+        const b = 9 + ((i * 2) % 8);
+        const total = a + b + missing;
+        return mk("Logic",`In a magic square, each row adds to ${total}. One row contains ${a}, ${b} and a blank. What is the blank?`,missing,[total - a,total - b,missing + 5],diff(i),i);
+      }
+      case 7: {
+        const a = 10 + (i % 9);
+        const b = 12 + ((i * 2) % 9);
+        const c = 8 + ((i * 3) % 9);
+        const top = a + 2 * b + c;
+        return mk("Logic",`In an addition pyramid, the bottom row is ${a}, ${b} and ${c}. What is the top block?`,top,[a + b + c,a + 2 * b,top + 10],diff(i),i);
+      }
+      case 8: {
+        if (Math.floor(i / 10) % 2 === 0) {
+          const a = 2 + (i % 6);
+          const b = 4 + (i % 5);
+          const c = 3 + (i % 4);
+          const ab = a + b, bc = b + c, ca = c + a;
+          return mk("Logic",`An addition arithmagon has side totals ${ab}, ${bc} and ${ca}. What is the corner shared by the ${ab} and ${ca} sides?`,a,[b,c,a + 1],diff(i),i);
+        }
+        const a = 2 + (i % 4);
+        const b = 3 + (i % 4);
+        const c = 4 + (i % 3);
+        const ab = a * b, bc = b * c, ca = c * a;
+        return mk("Logic",`A multiplication arithmagon has side products ${ab}, ${bc} and ${ca}. What is the smallest corner number?`,Math.min(a, b, c),[Math.max(a, b, c),b,c],diff(i),i);
+      }
+      default: {
+        if (Math.floor(i / 10) % 2 === 0) {
+          const extra = 5 + (i % 8);
+          const total = 24 + extra;
+          return mk("Logic",`If C + A + T + S = ${total} and C + A + T + S + S = ${total + extra}, what is the value of S?`,extra,[total,total - extra,extra + 2],diff(i),i);
+        }
+        const extra = 6 + (i % 7);
+        const total = 22 + extra;
+        return mk("Logic",`If M + A + P = ${total} and M + A + P + P = ${total + extra}, what is M + A?`,total - extra,[extra,total,total - 2 * extra],diff(i),i);
+      }
     }
   }
 
   const gens = { Numbers:genNumbers, Decimals:genDecimals, Fractions:genFractions, Percentages:genPercentages, BIDMAS:genBIDMAS, Algebra:genAlgebra, Sequences:genSequences, Ratio:genRatio, Speed:genSpeed, Measurement:genMeasurement, Geometry:genGeometry, Statistics:genStatistics, Probability:genProbability, Logic:genLogic };
-  const extras = [];
+  const extras = [...logicPdfExtras];
   topics.forEach((topic, idx) => { for (let i = 0; i < counts[idx]; i++) extras.push(gens[topic](i)); });
   QUESTIONS.push(...extras);
   console.log(`Loaded ${extras.length} extra harder questions. Total now: ${QUESTIONS.length}`);

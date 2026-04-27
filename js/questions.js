@@ -192,7 +192,7 @@ const QUESTIONS = [
 {id:177,topic:"Fractions",question:"Convert 17/5 to a mixed number.",options:["2 2/5","3 1/5","3 2/5","3 3/5"],answer:2,difficulty:1},
 {id:178,topic:"Fractions",question:"What is 1/4 of 360?",options:["80","90","100","120"],answer:1,difficulty:1},
 {id:179,topic:"Fractions",question:"What is 3/8 of 400?",options:["125","150","175","200"],answer:1,difficulty:2},
-{id:180,topic:"Fractions",question:"Which fraction is equivalent to 4/5?",options:["8/15","12/20","16/24","20/30"],answer:1,difficulty:1},
+{id:180,topic:"Fractions",question:"Which fraction is equivalent to 4/5?",options:["8/15","16/20","16/24","20/30"],answer:1,difficulty:1},
 {id:181,topic:"Fractions",question:"Which fraction is greater: 5/8 or 3/5?",options:["5/8","3/5","They are equal","Cannot tell"],answer:0,difficulty:2},
 {id:182,topic:"Fractions",question:"What is 5/6 + 2/9?",options:["7/15","7/18","19/18","17/18"],answer:2,difficulty:2},
 {id:183,topic:"Fractions",question:"What is 1 1/2 × 2 2/3?",options:["3 1/3","4","4 1/3","4 2/3"],answer:1,difficulty:2},
