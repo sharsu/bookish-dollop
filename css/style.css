@@ -53,11 +53,11 @@ body {
 /* ══════════════════════════════════════
    SETUP SCREEN
 ══════════════════════════════════════ */
-#setup-screen {
+#setup-screen, #test-type-screen {
   display: none; align-items: center; justify-content: center;
   min-height: 100vh; padding: 24px;
 }
-#setup-screen.active {
+#setup-screen.active, #test-type-screen.active {
   display: flex;
 }
 .setup-card {
@@ -98,6 +98,7 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .success-msg { color: var(--success); font-size: .95rem; text-align: center; margin-top: 10px; font-weight: 500; }
 #start-btn { width: 100%; margin-top: 10px; }
 #learn-topics-btn { width: 100%; }
+#setup-back-btn { width: 100%; }
 
 /* ══════════════════════════════════════
    STUDY MODE
@@ -239,6 +240,23 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .diff-superhard { background: #ede9fe; color: #5b21b6; }
 
 .question-text { font-size: 1.25rem; font-weight: 600; line-height: 1.6; margin-bottom: 28px; }
+
+.question-media {
+  margin: -8px 0 24px;
+  padding: 12px;
+  border: 2px solid #e0e7ff;
+  border-radius: 16px;
+  background: #f8f9ff;
+}
+
+.question-media img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: #fff;
+}
 
 .options-container { display: flex; flex-direction: column; gap: 14px; }
 .option-btn {

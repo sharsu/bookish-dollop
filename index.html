@@ -3,18 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maths Exam Prep</title>
+  <title>Exam Prep</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <!-- ══════════════ CHILD SETUP SCREEN (Simple - Name Only) ══════════════ -->
-  <div id="setup-screen" class="screen active">
+  <!-- ══════════════ TEST TYPE SCREEN ══════════════ -->
+  <div id="test-type-screen" class="screen active">
     <div class="card setup-card">
       <a href="#history" class="setup-history-link">History</a>
       <div class="logo"></div>
-      <h1>Ready to Test?</h1>
-      <p class="subtitle">Good luck! Do your best! 🌟</p>
+      <h1>Choose Your Test</h1>
+      <p class="subtitle">Pick the kind of challenge you want to try today. ✨</p>
+
+      <div class="setup-actions">
+        <button class="btn btn-primary btn-large" data-test-type="maths">➗ Maths Test</button>
+        <button class="btn btn-secondary btn-large" data-test-type="nvrt">🧩 NVRT Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CHILD SETUP SCREEN (Simple - Name Only) ══════════════ -->
+  <div id="setup-screen" class="screen">
+    <div class="card setup-card">
+      <a href="#history" class="setup-history-link">History</a>
+      <div class="logo"></div>
+      <h1 id="setup-title">Ready to Test?</h1>
+      <p id="setup-subtitle" class="subtitle">Good luck! Do your best! 🌟</p>
 
       <div class="form-group">
         <label for="student-name">Your Name</label>
@@ -24,6 +39,7 @@
       <div class="setup-actions">
         <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
         <button id="learn-topics-btn" class="btn btn-learn btn-large">📚 Learn Topics</button>
+        <button id="setup-back-btn" class="btn btn-secondary btn-large">← Change Test Type</button>
       </div>
       <p id="setup-error" class="error-msg" hidden></p>
 
@@ -160,6 +176,7 @@
             <span id="q-difficulty" class="q-difficulty-badge"></span>
           </div>
           <p id="question-text" class="question-text"></p>
+          <div id="question-media" class="question-media" hidden></div>
           <div id="options-container" class="options-container"></div>
         </div>
       </div>
@@ -357,6 +374,8 @@
   <script src="js/questions-extra.js"></script>
   <script src="js/questions-qe-style.js"></script>
   <script src="js/questions-counting-principle.js"></script>
+  <script src="js/questions-nvrt.js"></script>
+  <script src="js/questions-nvrt-generated.js"></script>
   <script src="js/config.js"></script>
   <script src="maths/study-guides.js"></script>
   <script src="maths/Numbers/guide.js"></script>

@@ -167,6 +167,53 @@ const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
 const ADAPTIVE_RESULTS_WINDOW = 5;
 const MAX_STORED_RESULTS = 100;
+const TEST_TYPE_CONFIG = Object.freeze({
+  maths: {
+    key: "maths",
+    label: "Maths Test",
+    setupTitle: "Ready for a Maths Test?",
+    setupSubtitle: "Good luck! Do your best! 🌟",
+    startLabel: "🚀 Start Maths Test",
+    learnTopics: true,
+    defaultQuestions: CONFIG.defaultQuestions,
+    defaultTimeLimit: CONFIG.defaultTimeLimit
+  },
+  nvrt: {
+    key: "nvrt",
+    label: "NVRT Test",
+    setupTitle: "Ready for an NVRT Test?",
+    setupSubtitle: "Look for patterns, read carefully and trust your thinking. 🧩",
+    startLabel: "🧩 Start NVRT Test",
+    learnTopics: false,
+    defaultQuestions: CONFIG.defaultQuestions,
+    defaultTimeLimit: CONFIG.defaultTimeLimit
+  }
+});
+
+function normalizeTestType(testType) {
+  return testType === "nvrt" ? "nvrt" : "maths";
+}
+
+function getTestTypeConfig(testType) {
+  return TEST_TYPE_CONFIG[normalizeTestType(testType)] || TEST_TYPE_CONFIG.maths;
+}
+
+function getTestTypeLabel(testType) {
+  return getTestTypeConfig(testType).label;
+}
+
+function getQuestionBankForTestType(testType) {
+  const normalized = normalizeTestType(testType);
+  const root = typeof window !== "undefined" ? window : globalThis;
+  if (normalized === "nvrt") {
+    return Array.isArray(root.NVRT_QUESTIONS) ? root.NVRT_QUESTIONS : [];
+  }
+  return typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS) ? QUESTIONS : [];
+}
+
+function matchesTestType(result, testType) {
+  return normalizeTestType(result?.testType) === normalizeTestType(testType);
+}
 
 function getDifficultyMeta(difficulty) {
   return CONFIG.difficultyLabel[difficulty] || CONFIG.difficultyLabel[3];
@@ -441,7 +488,7 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const validPool = getValidQuestionPool(pool);
   const difficultyOrder = shuffleArray([1, 2, 3, 4]);
   const topics = shuffleArray([...new Set(validPool.map(q => q.topic))]);
-  const storedResults = loadStoredResults();
+  const storedResults = loadStoredResults().filter(result => matchesTestType(result, options.testType));
   const studentResults = options.studentName
     ? storedResults.filter(result => result.studentName === options.studentName)
     : storedResults;
@@ -582,6 +629,7 @@ class ExamApp {
 
     // State
     this.studentName = "";
+    this.selectedTestType = "";
     this.numQuestions = CONFIG.defaultQuestions;
     this.timeLimit = CONFIG.defaultTimeLimit;
     this.selectedTopics = [];
@@ -597,6 +645,7 @@ class ExamApp {
     this.currentStudyConcept = "";
 
     // DOM
+    this.testTypeScreen = document.getElementById("test-type-screen");
     this.setupScreen = document.getElementById("setup-screen");
     this.studyLibraryScreen = document.getElementById("study-library-screen");
     this.studyTopicScreen = document.getElementById("study-topic-screen");
@@ -607,6 +656,8 @@ class ExamApp {
     this.studentInput = document.getElementById("student-name");
     this.startBtn = document.getElementById("start-btn");
     this.learnTopicsBtn = document.getElementById("learn-topics-btn");
+    this.setupTitle = document.getElementById("setup-title");
+    this.setupSubtitle = document.getElementById("setup-subtitle");
     this.studyLibraryGrid = document.getElementById("study-library-grid");
     this.studyConceptGrid = document.getElementById("study-concept-grid");
     this.setupError = document.getElementById("setup-error");
@@ -648,7 +699,7 @@ class ExamApp {
 
   handleHashRoute() {
     if (this.getCurrentHash() === "#history") {
-      this.openParentDashboard("setup", false);
+      this.openParentDashboard(this.selectedTestType ? "setup" : "test-type", false);
     }
   }
 
@@ -658,6 +709,7 @@ class ExamApp {
     console.log("DrawingPad initialized");
     this.attachEventListeners();
     this.attachRecoveryListeners();
+    this.showScreen("test-type");
     this.checkForRecoverableExam();
     this.handleHashRoute();
     console.log("Event listeners attached");
@@ -671,7 +723,11 @@ class ExamApp {
     } else {
       console.error("✗ Start button not found!");
     }
+    document.querySelectorAll("[data-test-type]").forEach(button => {
+      button.addEventListener("click", () => this.chooseTestType(button.dataset.testType));
+    });
     this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
+    document.getElementById("setup-back-btn")?.addEventListener("click", () => this.returnToTestTypeMenu());
     document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
@@ -731,6 +787,7 @@ class ExamApp {
     if (!this.examInProgress || !this.quizQuestions.length) return null;
 
     return {
+      testType: normalizeTestType(this.selectedTestType),
       studentName: this.studentName,
       numQuestions: this.numQuestions,
       timeLimit: this.timeLimit,
@@ -807,6 +864,8 @@ class ExamApp {
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - (savedState.savedAt || Date.now())) / 1000));
     const adjustedTimeRemaining = Math.max(0, (savedState.timeRemaining || 0) - elapsedSeconds);
 
+    this.selectedTestType = normalizeTestType(savedState.testType);
+    this.updateSetupScreen();
     this.studentName = savedState.studentName || "";
     this.numQuestions = savedState.numQuestions || quizQuestions.length || CONFIG.defaultQuestions;
     this.timeLimit = savedState.timeLimit || CONFIG.defaultTimeLimit;
@@ -844,6 +903,41 @@ class ExamApp {
     this.resetToSetup();
   }
 
+  chooseTestType(testType) {
+    const config = getTestTypeConfig(testType);
+    this.selectedTestType = config.key;
+    this.numQuestions = config.defaultQuestions;
+    this.timeLimit = config.defaultTimeLimit;
+    this.updateSetupScreen();
+    this.setupError?.setAttribute("hidden", "");
+    if (this.setupError) this.setupError.textContent = "";
+    this.showScreen("setup");
+  }
+
+  updateSetupScreen() {
+    const config = getTestTypeConfig(this.selectedTestType);
+    if (this.setupTitle) this.setupTitle.textContent = config.setupTitle;
+    if (this.setupSubtitle) this.setupSubtitle.textContent = config.setupSubtitle;
+    if (this.startBtn) this.startBtn.textContent = config.startLabel;
+    if (this.learnTopicsBtn) {
+      if (config.learnTopics) {
+        this.learnTopicsBtn.removeAttribute("hidden");
+      } else {
+        this.learnTopicsBtn.setAttribute("hidden", "");
+      }
+    }
+  }
+
+  returnToTestTypeMenu() {
+    this.setHistorySlug(false);
+    this.selectedTestType = "";
+    this.currentStudyTopic = "";
+    this.currentStudyConcept = "";
+    this.setupError?.setAttribute("hidden", "");
+    if (this.setupError) this.setupError.textContent = "";
+    this.showScreen("test-type");
+  }
+
   startExam() {
     console.log("startExam called");
     this.studentName = this.studentInput.value.trim();
@@ -855,8 +949,12 @@ class ExamApp {
       return;
     }
 
-    // Build question pool (all topics)
-    const pool = getValidQuestionPool(QUESTIONS);
+    if (!this.selectedTestType) {
+      this.showError("Please choose Maths or NVRT first");
+      return;
+    }
+
+    const pool = getValidQuestionPool(getQuestionBankForTestType(this.selectedTestType));
     console.log("Total questions available:", pool.length);
 
     if (pool.length < this.numQuestions) {
@@ -865,7 +963,10 @@ class ExamApp {
     }
 
     // Shuffle and select random questions, making sure a few super-hard ones are included
-    this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr), { studentName: this.studentName });
+    this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr), {
+      studentName: this.studentName,
+      testType: this.selectedTestType
+    });
     const superHardCount = this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length;
     console.log("Quiz questions selected:", this.quizQuestions.length, "| Super hard included:", superHardCount);
     this.answers = {};
@@ -940,6 +1041,21 @@ class ExamApp {
     document.getElementById("q-difficulty").textContent = difficultyMeta.label;
     document.getElementById("q-difficulty").className = `q-difficulty-badge ${difficultyMeta.css}`;
     document.getElementById("question-text").textContent = q.question;
+
+    const media = document.getElementById("question-media");
+    if (media) {
+      media.innerHTML = "";
+      if (q.questionImage) {
+        const img = document.createElement("img");
+        img.src = q.questionImage;
+        img.alt = q.questionImageAlt || q.question || "Question image";
+        img.loading = "eager";
+        media.appendChild(img);
+        media.removeAttribute("hidden");
+      } else {
+        media.setAttribute("hidden", "");
+      }
+    }
 
     // Options
     const container = document.getElementById("options-container");
@@ -1067,6 +1183,7 @@ class ExamApp {
 
     return {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      testType: normalizeTestType(this.selectedTestType),
       studentName: this.studentName,
       completedAt: new Date().toISOString(),
       questionCount: this.quizQuestions.length,
@@ -1093,7 +1210,7 @@ class ExamApp {
     const grade = CONFIG.grades.find(g => percentage >= g.min) || CONFIG.grades[CONFIG.grades.length - 1];
     document.getElementById("results-trophy").textContent = grade.trophy;
     document.getElementById("results-title").textContent = grade.label;
-    document.getElementById("results-student-name").textContent = `${this.studentName} — ${percentage}%`;
+    document.getElementById("results-student-name").textContent = `${this.studentName} — ${getTestTypeLabel(resultRecord.testType)} — ${percentage}%`;
 
     // Score circle
     document.getElementById("score-pct").textContent = percentage + "%";
@@ -1195,7 +1312,7 @@ class ExamApp {
         <div class="history-item">
           <div class="history-main">
             <div class="history-title">${result.studentName || "Student"} — ${formatCompletedAt(result.completedAt)}</div>
-            <div class="history-subtitle">${result.correct}/${result.questionCount} correct • ${result.superHardCount || 0} super hard question(s)</div>
+            <div class="history-subtitle">${getTestTypeLabel(result.testType)} • ${result.correct}/${result.questionCount} correct • ${result.superHardCount || 0} super hard question(s)</div>
           </div>
           <div class="history-score">${result.percentage}%</div>
           <div class="history-time">${formatDuration(result.timeTakenSeconds)}</div>
@@ -1324,6 +1441,7 @@ class ExamApp {
   }
 
   openStudyLibrary() {
+    if (normalizeTestType(this.selectedTestType) !== "maths") return;
     this.setHistorySlug(false);
     this.currentStudyTopic = "";
     this.currentStudyConcept = "";
@@ -1419,7 +1537,7 @@ class ExamApp {
     this.currentStudyTopic = "";
     this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
-    this.showScreen("setup");
+    this.showScreen(this.selectedTestType ? "setup" : "test-type");
   }
 
   openParentDashboard(fromScreen = "setup", syncHash = true) {
@@ -1431,7 +1549,11 @@ class ExamApp {
 
   returnFromParentDashboard() {
     this.setHistorySlug(false);
-    this.showScreen(this.parentDashboardReturnScreen === "results" ? "results" : "setup");
+    if (this.parentDashboardReturnScreen === "results") {
+      this.showScreen("results");
+      return;
+    }
+    this.showScreen(this.parentDashboardReturnScreen === "test-type" ? "test-type" : "setup");
   }
 
   retryQuiz() {
@@ -1442,6 +1564,7 @@ class ExamApp {
     clearInterval(this.timerInterval);
     this.setHistorySlug(false);
     this.examInProgress = false;
+    this.selectedTestType = "";
     this.studentName = "";
     this.numQuestions = CONFIG.defaultQuestions;
     this.timeLimit = CONFIG.defaultTimeLimit;
@@ -1465,7 +1588,8 @@ class ExamApp {
     this.hideDiscardRecoveryConfirm(false);
     this.setupError?.setAttribute("hidden", "");
     if (this.setupError) this.setupError.textContent = "";
-    this.showScreen("setup");
+    this.updateSetupScreen();
+    this.showScreen("test-type");
   }
 
   showError(msg) {
@@ -1476,6 +1600,8 @@ class ExamApp {
 
   showScreen(name) {
     console.log(`showScreen("${name}") called`);
+
+    this.testTypeScreen?.classList.toggle("active", name === "test-type");
 
     // Setup screen - use "active" class to control display
     this.setupScreen.classList.toggle("active", name === "setup");
