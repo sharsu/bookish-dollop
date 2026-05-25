@@ -1,889 +1,1631 @@
 /* ═══════════════════════════════════════════════════════════════════
-   QUESTION BANK  –  1000+ questions across 14 topics
+   CONSOLIDATED MATHS QUESTION BANK – template generators only
+   All 14 topics in one file. No hardcoded questions.
    Format: { id, topic, question, options:[A,B,C,D], answer(0-3), difficulty(1-3) }
-   difficulty: 1=Easy  2=Medium  3=Hard
+   Scale knob: VARIATIONS_PER_TEMPLATE near the bottom.
 ═══════════════════════════════════════════════════════════════════ */
-const QUESTIONS = [
-/* ─────────────────────────────────────────
-   NUMBERS  (Q1–Q100)
-───────────────────────────────────────── */
-{id:1,topic:"Numbers",question:"What is the value of the digit 7 in the number 47,392?",options:["70","700","7,000","70,000"],answer:2,difficulty:1},
-{id:2,topic:"Numbers",question:"What is 6,847 rounded to the nearest hundred?",options:["6,800","6,900","7,000","6,850"],answer:0,difficulty:1},
-{id:3,topic:"Numbers",question:"Which of these numbers is a prime number?",options:["21","27","29","33"],answer:2,difficulty:1},
-{id:4,topic:"Numbers",question:"What is the Lowest Common Multiple (LCM) of 4 and 6?",options:["10","12","18","24"],answer:1,difficulty:2},
-{id:5,topic:"Numbers",question:"What is the Highest Common Factor (HCF) of 24 and 36?",options:["6","8","12","18"],answer:2,difficulty:2},
-{id:6,topic:"Numbers",question:"What is 8² (8 squared)?",options:["16","56","64","72"],answer:2,difficulty:1},
-{id:7,topic:"Numbers",question:"What is the square root of 144?",options:["10","11","12","13"],answer:2,difficulty:1},
-{id:8,topic:"Numbers",question:"What is 3³ (3 cubed)?",options:["9","18","27","81"],answer:2,difficulty:1},
-{id:9,topic:"Numbers",question:"Which number is NOT a factor of 48?",options:["6","8","9","12"],answer:2,difficulty:2},
-{id:10,topic:"Numbers",question:"How many factors does the number 36 have?",options:["7","8","9","10"],answer:2,difficulty:2},
-{id:11,topic:"Numbers",question:"What is 345 × 6?",options:["1,970","2,070","2,170","2,270"],answer:1,difficulty:1},
-{id:12,topic:"Numbers",question:"What is 1,296 ÷ 8?",options:["152","162","172","182"],answer:1,difficulty:2},
-{id:13,topic:"Numbers",question:"Which Roman numeral represents 49?",options:["XLIX","IL","XLIV","XXXXIX"],answer:0,difficulty:2},
-{id:14,topic:"Numbers",question:"What is the value of MCMLXXXIV in digits?",options:["1,984","1,874","1,994","1,884"],answer:0,difficulty:3},
-{id:15,topic:"Numbers",question:"Put these in order smallest to largest: 4,312 ; 4,132 ; 4,321 ; 4,123",options:["4,132; 4,123; 4,312; 4,321","4,123; 4,132; 4,312; 4,321","4,321; 4,312; 4,132; 4,123","4,132; 4,312; 4,123; 4,321"],answer:1,difficulty:1},
-{id:16,topic:"Numbers",question:"What is 57,000 ÷ 100?",options:["57","570","5,700","5.7"],answer:1,difficulty:1},
-{id:17,topic:"Numbers",question:"What is 46 × 1,000?",options:["460","4,600","46,000","460,000"],answer:2,difficulty:1},
-{id:18,topic:"Numbers",question:"Which is the largest prime number less than 30?",options:["27","28","29","23"],answer:2,difficulty:1},
-{id:19,topic:"Numbers",question:"What is 9² + 4²?",options:["97","85","81","89"],answer:0,difficulty:2},
-{id:20,topic:"Numbers",question:"What is the cube root of 125?",options:["3","4","5","6"],answer:2,difficulty:2},
-{id:21,topic:"Numbers",question:"How many multiples of 7 are there between 1 and 50?",options:["6","7","8","9"],answer:1,difficulty:2},
-{id:22,topic:"Numbers",question:"What is 3,456 + 4,789?",options:["8,145","8,245","8,225","8,235"],answer:1,difficulty:1},
-{id:23,topic:"Numbers",question:"What is 10,000 − 3,768?",options:["6,122","6,232","6,332","6,222"],answer:1,difficulty:2},
-{id:24,topic:"Numbers",question:"Which pair of numbers has an HCF of 8?",options:["16 and 24","20 and 32","18 and 26","12 and 20"],answer:0,difficulty:2},
-{id:25,topic:"Numbers",question:"What is 72 × 34?",options:["2,348","2,448","2,548","2,438"],answer:1,difficulty:2},
-{id:26,topic:"Numbers",question:"What is 2,640 ÷ 12?",options:["210","220","230","240"],answer:1,difficulty:2},
-{id:27,topic:"Numbers",question:"A number is divisible by 9 if the sum of its digits is divisible by 9. Which is divisible by 9?",options:["4,563","4,572","4,581","4,590"],answer:2,difficulty:2},
-{id:28,topic:"Numbers",question:"What is the smallest number that is both a square number and a multiple of 4?",options:["4","8","12","16"],answer:0,difficulty:2},
-{id:29,topic:"Numbers",question:"What is 5! (5 factorial)?",options:["15","25","120","720"],answer:2,difficulty:3},
-{id:30,topic:"Numbers",question:"How many prime numbers are there between 20 and 40?",options:["3","4","5","6"],answer:1,difficulty:2},
-{id:31,topic:"Numbers",question:"What is the product of the first five prime numbers?",options:["2,310","1,155","2,015","3,003"],answer:0,difficulty:3},
-{id:32,topic:"Numbers",question:"Which number has exactly 3 factors?",options:["4","6","9","15"],answer:0,difficulty:2},
-{id:33,topic:"Numbers",question:"What is 15² − 10²?",options:["125","100","75","50"],answer:0,difficulty:2},
-{id:34,topic:"Numbers",question:"What is 248 × 25?",options:["5,800","6,000","6,200","6,400"],answer:2,difficulty:2},
-{id:35,topic:"Numbers",question:"What is the LCM of 8, 12 and 15?",options:["60","90","120","360"],answer:2,difficulty:3},
-{id:36,topic:"Numbers",question:"A shop sells 468 items a day. How many items are sold in a week?",options:["3,176","3,276","3,376","3,476"],answer:1,difficulty:2},
-{id:37,topic:"Numbers",question:"What is 7,832 rounded to the nearest thousand?",options:["7,000","7,800","7,900","8,000"],answer:3,difficulty:1},
-{id:38,topic:"Numbers",question:"What is the value of 2⁵?",options:["10","16","32","64"],answer:2,difficulty:2},
-{id:39,topic:"Numbers",question:"Which is a triangular number?",options:["16","21","24","30"],answer:1,difficulty:2},
-{id:40,topic:"Numbers",question:"What is 876 ÷ 4?",options:["209","219","218","217"],answer:1,difficulty:2},
-{id:41,topic:"Numbers",question:"Express 60 as a product of its prime factors.",options:["2 × 3 × 10","2² × 3 × 5","2 × 5 × 6","4 × 3 × 5"],answer:1,difficulty:3},
-{id:42,topic:"Numbers",question:"What is 999 × 9?",options:["8,901","8,991","9,001","9,091"],answer:1,difficulty:2},
-{id:43,topic:"Numbers",question:"Which number when multiplied by itself gives 289?",options:["15","16","17","18"],answer:2,difficulty:2},
-{id:44,topic:"Numbers",question:"What is the HCF of 60 and 84?",options:["6","12","14","18"],answer:1,difficulty:2},
-{id:45,topic:"Numbers",question:"How many two-digit prime numbers are there?",options:["20","21","22","23"],answer:2,difficulty:3},
-{id:46,topic:"Numbers",question:"What is 306 ÷ 9?",options:["32","34","36","38"],answer:1,difficulty:1},
-{id:47,topic:"Numbers",question:"What is the difference between 10,000 and 8,763?",options:["1,137","1,237","1,337","1,437"],answer:1,difficulty:1},
-{id:48,topic:"Numbers",question:"Which is NOT a square number?",options:["49","81","125","144"],answer:2,difficulty:1},
-{id:49,topic:"Numbers",question:"What is 4³?",options:["12","32","64","256"],answer:2,difficulty:1},
-{id:50,topic:"Numbers",question:"What is 8,400 ÷ 200?",options:["4.2","42","420","4,200"],answer:1,difficulty:1},
-{id:51,topic:"Numbers",question:"A number is even and a multiple of 3, and it is between 20 and 30. What is it?",options:["21","24","27","30"],answer:1,difficulty:1},
-{id:52,topic:"Numbers",question:"What is 1,234 + 5,678 + 910?",options:["7,722","7,822","7,922","7,812"],answer:1,difficulty:2},
-{id:53,topic:"Numbers",question:"Which of these is a composite number?",options:["2","13","41","57"],answer:3,difficulty:2},
-{id:54,topic:"Numbers",question:"What is 7,500 ÷ 25?",options:["250","280","300","320"],answer:2,difficulty:2},
-{id:55,topic:"Numbers",question:"What is the sum of all factors of 12?",options:["24","26","28","30"],answer:2,difficulty:2},
-{id:56,topic:"Numbers",question:"Write 2² × 3 × 5² in standard form.",options:["150","300","600","1,200"],answer:1,difficulty:3},
-{id:57,topic:"Numbers",question:"What is 17 × 13?",options:["201","211","221","231"],answer:2,difficulty:2},
-{id:58,topic:"Numbers",question:"What is 1,764 ÷ 42?",options:["40","42","44","46"],answer:1,difficulty:3},
-{id:59,topic:"Numbers",question:"What number must be subtracted from 5,000 to get 2,348?",options:["2,542","2,652","2,752","2,852"],answer:1,difficulty:2},
-{id:60,topic:"Numbers",question:"What is the LCM of 6 and 9?",options:["15","18","27","54"],answer:1,difficulty:1},
-{id:61,topic:"Numbers",question:"Which is the only even prime number?",options:["1","2","4","6"],answer:1,difficulty:1},
-{id:62,topic:"Numbers",question:"What is 123 × 9?",options:["1,017","1,097","1,107","1,207"],answer:2,difficulty:2},
-{id:63,topic:"Numbers",question:"What is 4,000 − 1,356?",options:["2,534","2,644","2,744","2,844"],answer:1,difficulty:2},
-{id:64,topic:"Numbers",question:"Express 84 as a product of prime factors.",options:["2 × 42","2² × 3 × 7","2 × 6 × 7","3 × 4 × 7"],answer:1,difficulty:3},
-{id:65,topic:"Numbers",question:"What is the next square number after 64?",options:["72","81","100","121"],answer:1,difficulty:1},
-{id:66,topic:"Numbers",question:"What is 345 rounded to the nearest 10?",options:["340","345","350","400"],answer:2,difficulty:1},
-{id:67,topic:"Numbers",question:"Which number is divisible by both 4 and 6?",options:["10","14","16","24"],answer:3,difficulty:1},
-{id:68,topic:"Numbers",question:"What is 987 − 654 + 321?",options:["554","644","654","664"],answer:2,difficulty:2},
-{id:69,topic:"Numbers",question:"What is 56 × 100 − 56 × 5?",options:["5,324","5,264","5,044","5,880"],answer:1,difficulty:3},
-{id:70,topic:"Numbers",question:"How many 3-digit numbers are multiples of 7?",options:["126","127","128","129"],answer:2,difficulty:3},
-{id:71,topic:"Numbers",question:"What is 11²?",options:["111","121","131","141"],answer:1,difficulty:1},
-{id:72,topic:"Numbers",question:"What is the HCF of 45 and 75?",options:["5","10","15","25"],answer:2,difficulty:2},
-{id:73,topic:"Numbers",question:"A cinema has 24 rows with 18 seats each. How many seats in total?",options:["402","422","432","442"],answer:2,difficulty:2},
-{id:74,topic:"Numbers",question:"What is 2,250 ÷ 9?",options:["240","245","250","255"],answer:2,difficulty:2},
-{id:75,topic:"Numbers",question:"What is 13² − 12²?",options:["1","25","169","27"],answer:1,difficulty:3},
-{id:76,topic:"Numbers",question:"Which is the closest to 1,000: 989, 1,009, 1,099 or 901?",options:["989","1,009","1,099","901"],answer:0,difficulty:1},
-{id:77,topic:"Numbers",question:"What is 48 ÷ 3 + 6 × 2 − 5?",options:["23","25","27","29"],answer:0,difficulty:2},
-{id:78,topic:"Numbers",question:"Which of these numbers is divisible by 11?",options:["121","132","143","All of these"],answer:3,difficulty:3},
-{id:79,topic:"Numbers",question:"What is the sum of the first 10 positive integers?",options:["45","50","55","60"],answer:2,difficulty:2},
-{id:80,topic:"Numbers",question:"A number is multiplied by 7 and the result is 504. What is the number?",options:["62","72","82","92"],answer:1,difficulty:2},
-{id:81,topic:"Numbers",question:"What is 9 × 9 × 9?",options:["243","629","729","819"],answer:2,difficulty:1},
-{id:82,topic:"Numbers",question:"Which is NOT a multiple of 8?",options:["40","48","56","60"],answer:3,difficulty:1},
-{id:83,topic:"Numbers",question:"What is 3,600 ÷ 60?",options:["6","60","600","6,000"],answer:1,difficulty:1},
-{id:84,topic:"Numbers",question:"What is the largest 4-digit number divisible by 9?",options:["9,990","9,999","9,972","9,981"],answer:3,difficulty:3},
-{id:85,topic:"Numbers",question:"How many seconds are in 2 hours?",options:["120","720","7,200","14,400"],answer:2,difficulty:2},
-{id:86,topic:"Numbers",question:"What number is 1,000 more than 45,870?",options:["46,870","55,870","45,970","46,070"],answer:0,difficulty:1},
-{id:87,topic:"Numbers",question:"What is 19²?",options:["341","351","361","371"],answer:2,difficulty:2},
-{id:88,topic:"Numbers",question:"Which of these is both a square number and a cube number?",options:["8","16","36","64"],answer:3,difficulty:3},
-{id:89,topic:"Numbers",question:"What is the sum of all prime numbers less than 20?",options:["57","58","77","88"],answer:2,difficulty:3},
-{id:90,topic:"Numbers",question:"What is 500 − 234 − 167?",options:["89","99","109","119"],answer:1,difficulty:2},
-{id:91,topic:"Numbers",question:"What is 144 ÷ 12 × 3?",options:["4","12","36","48"],answer:2,difficulty:1},
-{id:92,topic:"Numbers",question:"What is 1,000,000 − 1?",options:["99,999","999,099","999,999","1,000,001"],answer:2,difficulty:1},
-{id:93,topic:"Numbers",question:"Which number completes the sequence: 1, 4, 9, 16, __, 36?",options:["20","23","25","27"],answer:2,difficulty:1},
-{id:94,topic:"Numbers",question:"What is the product of 23 and 14?",options:["302","312","322","332"],answer:2,difficulty:2},
-{id:95,topic:"Numbers",question:"A baker makes 144 rolls each day. How many rolls in 5 days?",options:["620","680","720","760"],answer:2,difficulty:1},
-{id:96,topic:"Numbers",question:"What is 2¹⁰?",options:["200","512","1,000","1,024"],answer:3,difficulty:3},
-{id:97,topic:"Numbers",question:"What is the remainder when 100 is divided by 7?",options:["1","2","3","6"],answer:3,difficulty:2},
-{id:98,topic:"Numbers",question:"Express 180 as a product of prime factors.",options:["2² × 3² × 5","2 × 3 × 30","2 × 4 × 45","6 × 30"],answer:0,difficulty:3},
-{id:99,topic:"Numbers",question:"What is 8 × 7 − 6 × 5 + 4 × 3?",options:["28","38","48","58"],answer:1,difficulty:2},
-{id:100,topic:"Numbers",question:"Which is the smallest number with exactly 5 factors?",options:["8","12","16","24"],answer:2,difficulty:3},
-/* ─────────────────────────────────────────
-   DECIMALS  (Q101–Q170)
-───────────────────────────────────────── */
-{id:101,topic:"Decimals",question:"What is 3.7 + 4.56?",options:["8.16","8.26","8.36","7.26"],answer:1,difficulty:1},
-{id:102,topic:"Decimals",question:"What is 9.4 − 3.78?",options:["5.52","5.62","5.72","5.82"],answer:1,difficulty:1},
-{id:103,topic:"Decimals",question:"What is 4.5 × 3?",options:["12.5","13.5","14.5","15.5"],answer:1,difficulty:1},
-{id:104,topic:"Decimals",question:"What is 7.2 ÷ 4?",options:["1.6","1.7","1.8","1.9"],answer:2,difficulty:1},
-{id:105,topic:"Decimals",question:"Which is the largest: 0.35, 0.305, 0.53, 0.503?",options:["0.35","0.305","0.53","0.503"],answer:2,difficulty:1},
-{id:106,topic:"Decimals",question:"What is 0.6 × 0.4?",options:["0.24","2.4","0.024","24"],answer:0,difficulty:2},
-{id:107,topic:"Decimals",question:"What is 5.6 ÷ 0.7?",options:["0.8","7","8","80"],answer:2,difficulty:2},
-{id:108,topic:"Decimals",question:"Round 7.654 to 1 decimal place.",options:["7.5","7.6","7.7","8.0"],answer:1,difficulty:1},
-{id:109,topic:"Decimals",question:"Round 3.4571 to 2 decimal places.",options:["3.46","3.45","3.5","3.4"],answer:0,difficulty:1},
-{id:110,topic:"Decimals",question:"What is 0.3 + 0.07 + 0.004?",options:["0.374","0.347","0.34","0.371"],answer:0,difficulty:1},
-{id:111,topic:"Decimals",question:"What is 12.5 × 4?",options:["48","50","52","56"],answer:1,difficulty:1},
-{id:112,topic:"Decimals",question:"What is 2.5²?",options:["5","6","6.25","6.5"],answer:2,difficulty:2},
-{id:113,topic:"Decimals",question:"What is 0.9 × 0.9?",options:["0.081","0.81","8.1","81"],answer:1,difficulty:2},
-{id:114,topic:"Decimals",question:"What is 18 ÷ 0.3?",options:["6","54","60","600"],answer:2,difficulty:2},
-{id:115,topic:"Decimals",question:"Put in order smallest to largest: 0.21, 0.201, 0.12, 0.121",options:["0.12, 0.121, 0.201, 0.21","0.12, 0.121, 0.21, 0.201","0.201, 0.21, 0.12, 0.121","0.21, 0.201, 0.121, 0.12"],answer:0,difficulty:2},
-{id:116,topic:"Decimals",question:"What is 100 × 0.045?",options:["0.45","4.5","45","450"],answer:1,difficulty:1},
-{id:117,topic:"Decimals",question:"What is 4.7 × 100 ÷ 10?",options:["0.47","4.7","47","470"],answer:2,difficulty:1},
-{id:118,topic:"Decimals",question:"What is 1.23 + 4.5 + 0.678?",options:["6.308","6.408","6.418","6.508"],answer:1,difficulty:2},
-{id:119,topic:"Decimals",question:"What is 8.1 − 2.73 − 1.4?",options:["3.77","3.87","3.97","4.07"],answer:2,difficulty:2},
-{id:120,topic:"Decimals",question:"Which decimal is equivalent to 3/4?",options:["0.34","0.43","0.75","0.74"],answer:2,difficulty:1},
-{id:121,topic:"Decimals",question:"Which decimal is equivalent to 7/8?",options:["0.78","0.875","0.79","0.87"],answer:1,difficulty:2},
-{id:122,topic:"Decimals",question:"What is 3.6 × 2.5?",options:["7.9","8.5","9.0","9.5"],answer:2,difficulty:2},
-{id:123,topic:"Decimals",question:"What is 14.4 ÷ 0.4?",options:["3.6","36","360","3,600"],answer:1,difficulty:2},
-{id:124,topic:"Decimals",question:"A piece of ribbon is 5.4 m long. If you cut off 1.75 m, how much is left?",options:["3.55 m","3.65 m","3.75 m","4.05 m"],answer:1,difficulty:2},
-{id:125,topic:"Decimals",question:"What is 0.025 × 400?",options:["1","10","100","0.1"],answer:1,difficulty:2},
-{id:126,topic:"Decimals",question:"A chocolate bar weighs 0.125 kg. What is its weight in grams?",options:["12.5 g","125 g","1,250 g","1.25 g"],answer:1,difficulty:1},
-{id:127,topic:"Decimals",question:"What is 5.5² − 5.5?",options:["24.75","25.25","24.25","25.75"],answer:0,difficulty:3},
-{id:128,topic:"Decimals",question:"What is 0.4 × 0.4 × 0.4?",options:["0.064","0.64","0.0064","0.004"],answer:0,difficulty:3},
-{id:129,topic:"Decimals",question:"What is the value of the digit 6 in 4.6082?",options:["6 tenths","6 hundredths","6 thousandths","6 units"],answer:0,difficulty:1},
-{id:130,topic:"Decimals",question:"What is 7 ÷ 0.01?",options:["0.07","0.7","70","700"],answer:3,difficulty:2},
-{id:131,topic:"Decimals",question:"What is 2.5 × 2.5 × 4?",options:["20","25","24","16"],answer:1,difficulty:2},
-{id:132,topic:"Decimals",question:"Round 0.0456 to 3 significant figures.",options:["0.045","0.0456","0.046","0.05"],answer:2,difficulty:3},
-{id:133,topic:"Decimals",question:"A car travels 148.6 km in the morning and 97.35 km in the afternoon. Total distance?",options:["245.95 km","246.05 km","245.85 km","246.15 km"],answer:0,difficulty:2},
-{id:134,topic:"Decimals",question:"What is 1.1 × 1.1?",options:["1.1","1.21","1.22","1.11"],answer:1,difficulty:2},
-{id:135,topic:"Decimals",question:"What is 6.3 ÷ 0.09?",options:["7","70","700","7,000"],answer:1,difficulty:2},
-{id:136,topic:"Decimals",question:"A pencil costs £0.35. How much do 12 pencils cost?",options:["£3.50","£4.00","£4.20","£4.40"],answer:2,difficulty:1},
-{id:137,topic:"Decimals",question:"What is the sum of 0.1, 0.01, 0.001?",options:["0.100","0.111","0.110","0.101"],answer:1,difficulty:1},
-{id:138,topic:"Decimals",question:"What is 4.56 × 1,000?",options:["45.6","456","4,560","45,600"],answer:2,difficulty:1},
-{id:139,topic:"Decimals",question:"What is 3.14 × 5?",options:["15.07","15.17","15.70","16.70"],answer:2,difficulty:2},
-{id:140,topic:"Decimals",question:"Three friends share £14.40 equally. How much does each get?",options:["£4.60","£4.70","£4.80","£4.90"],answer:2,difficulty:1},
-{id:141,topic:"Decimals",question:"What is 9.9 ÷ 3 + 1.7?",options:["4.7","5.0","5.1","5.2"],answer:2,difficulty:2},
-{id:142,topic:"Decimals",question:"A jug holds 2.5 litres. If 0.375 l is used, how much remains?",options:["2.025 l","2.125 l","2.225 l","2.075 l"],answer:1,difficulty:2},
-{id:143,topic:"Decimals",question:"What is 0.7 + 0.07 + 0.007?",options:["0.777","0.770","0.700","7.77"],answer:0,difficulty:1},
-{id:144,topic:"Decimals",question:"Which two decimals multiply to give exactly 1?",options:["0.2 and 0.5","0.5 and 2","0.4 and 2.5","0.25 and 4"],answer:3,difficulty:2},
-{id:145,topic:"Decimals",question:"What is 50.5 ÷ 5?",options:["10.1","10.01","10.5","11.0"],answer:0,difficulty:2},
-{id:146,topic:"Decimals",question:"What is 7.7 × 11?",options:["84.7","84.6","84.8","85.7"],answer:0,difficulty:2},
-{id:147,topic:"Decimals",question:"A bag of sugar weighs 1.5 kg. What is the total weight of 6 bags?",options:["7.5 kg","8 kg","9 kg","9.5 kg"],answer:2,difficulty:1},
-{id:148,topic:"Decimals",question:"What is 0.002 × 500?",options:["0.1","1","10","100"],answer:1,difficulty:2},
-{id:149,topic:"Decimals",question:"What is 100 ÷ 0.5?",options:["50","200","500","1,000"],answer:1,difficulty:2},
-{id:150,topic:"Decimals",question:"What is 1.25 + 2.5 + 3.75?",options:["6.5","7.0","7.5","8.0"],answer:2,difficulty:1},
-{id:151,topic:"Decimals",question:"What is 8.06 − 3.9?",options:["4.06","4.16","4.26","5.06"],answer:1,difficulty:2},
-{id:152,topic:"Decimals",question:"What is 0.36 ÷ 0.06?",options:["0.6","6","60","600"],answer:1,difficulty:2},
-{id:153,topic:"Decimals",question:"A book costs £7.99. What is the cost of 4 books?",options:["£31.96","£32.96","£31.06","£30.96"],answer:0,difficulty:2},
-{id:154,topic:"Decimals",question:"What is 1 − 0.001?",options:["0.900","0.990","0.999","0.100"],answer:2,difficulty:1},
-{id:155,topic:"Decimals",question:"What is 3.5 × 3.5?",options:["10.5","12.25","11.25","13.25"],answer:1,difficulty:2},
-{id:156,topic:"Decimals",question:"What is 7.4 × 0.1?",options:["74","0.74","7.4","0.074"],answer:1,difficulty:1},
-{id:157,topic:"Decimals",question:"What is the product of 0.3, 0.3 and 10?",options:["0.09","0.9","9","0.009"],answer:1,difficulty:2},
-{id:158,topic:"Decimals",question:"What is 4.8 ÷ 0.12?",options:["4","40","400","0.04"],answer:1,difficulty:3},
-{id:159,topic:"Decimals",question:"A sprint time is 9.58 seconds. Round this to 1 decimal place.",options:["9.5 s","9.6 s","10 s","9.58 s"],answer:1,difficulty:1},
-{id:160,topic:"Decimals",question:"What is 12.5 − 0.125?",options:["12.375","12.275","12.475","12.325"],answer:0,difficulty:2},
-{id:161,topic:"Decimals",question:"What is 0.5³?",options:["1.5","0.125","0.25","0.015"],answer:1,difficulty:3},
-{id:162,topic:"Decimals",question:"A litre of milk costs £1.08. What do 7 litres cost?",options:["£7.46","£7.56","£7.66","£7.76"],answer:1,difficulty:2},
-{id:163,topic:"Decimals",question:"What is 2.4 ÷ 0.8?",options:["0.3","3","30","300"],answer:1,difficulty:2},
-{id:164,topic:"Decimals",question:"What is 0.9 − 0.09 + 0.009?",options:["0.819","0.891","0.901","0.920"],answer:0,difficulty:2},
-{id:165,topic:"Decimals",question:"What is 1.44 ÷ 1.2?",options:["0.12","1.0","1.2","12"],answer:2,difficulty:3},
-{id:166,topic:"Decimals",question:"A length is measured as 4.36 m. How many cm is that?",options:["43.6 cm","436 cm","4,360 cm","0.436 cm"],answer:1,difficulty:1},
-{id:167,topic:"Decimals",question:"What is 0.1 ÷ 0.01?",options:["0.001","0.1","1","10"],answer:3,difficulty:2},
-{id:168,topic:"Decimals",question:"3 metres of rope cost £1.80. What does 1 metre cost?",options:["£0.54","£0.60","£0.65","£0.70"],answer:1,difficulty:1},
-{id:169,topic:"Decimals",question:"What is the missing number? 3.□4 + 1.6 = 5.04",options:["3","4","5","6"],answer:1,difficulty:2},
-{id:170,topic:"Decimals",question:"What is 0.8 × 0.8 − 0.4?",options:["0.24","0.34","0.44","0.64"],answer:0,difficulty:3},
-/* ─────────────────────────────────────────
-   FRACTIONS  (Q171–Q250)
-───────────────────────────────────────── */
-,{id:171,topic:"Fractions",question:"What is 1/2 + 1/3?",options:["2/5","3/5","5/6","2/6"],answer:2,difficulty:1},
-{id:172,topic:"Fractions",question:"What is 3/4 − 1/8?",options:["2/4","5/8","4/8","2/8"],answer:1,difficulty:1},
-{id:173,topic:"Fractions",question:"Simplify 18/24.",options:["2/3","3/4","6/8","9/12"],answer:1,difficulty:1},
-{id:174,topic:"Fractions",question:"What is 2/3 × 3/4?",options:["5/7","6/12","1/2","5/12"],answer:2,difficulty:2},
-{id:175,topic:"Fractions",question:"What is 3/5 ÷ 2/3?",options:["6/15","9/10","2/5","5/6"],answer:1,difficulty:2},
-{id:176,topic:"Fractions",question:"Convert 2 3/4 to an improper fraction.",options:["9/4","10/4","11/4","12/4"],answer:2,difficulty:1},
-{id:177,topic:"Fractions",question:"Convert 17/5 to a mixed number.",options:["2 2/5","3 1/5","3 2/5","3 3/5"],answer:2,difficulty:1},
-{id:178,topic:"Fractions",question:"What is 1/4 of 360?",options:["80","90","100","120"],answer:1,difficulty:1},
-{id:179,topic:"Fractions",question:"What is 3/8 of 400?",options:["125","150","175","200"],answer:1,difficulty:2},
-{id:180,topic:"Fractions",question:"Which fraction is equivalent to 4/5?",options:["8/15","16/20","16/24","20/30"],answer:1,difficulty:1},
-{id:181,topic:"Fractions",question:"Which fraction is greater: 5/8 or 3/5?",options:["5/8","3/5","They are equal","Cannot tell"],answer:0,difficulty:2},
-{id:182,topic:"Fractions",question:"What is 5/6 + 2/9?",options:["7/15","7/18","19/18","17/18"],answer:2,difficulty:2},
-{id:183,topic:"Fractions",question:"What is 1 1/2 × 2 2/3?",options:["3 1/3","4","4 1/3","4 2/3"],answer:1,difficulty:2},
-{id:184,topic:"Fractions",question:"What is 3/4 ÷ 1/2?",options:["3/8","1 1/4","1 1/2","3/2"],answer:2,difficulty:2},
-{id:185,topic:"Fractions",question:"Simplify 45/60.",options:["2/3","3/4","5/6","7/9"],answer:1,difficulty:2},
-{id:186,topic:"Fractions",question:"What is 7/10 − 3/10 + 2/5?",options:["3/5","7/10","4/5","9/10"],answer:1,difficulty:2},
-{id:187,topic:"Fractions",question:"A pizza is cut into 12 slices. Tom eats 1/4 and Sara eats 1/3. How many slices are left?",options:["4","5","6","7"],answer:1,difficulty:2},
-{id:188,topic:"Fractions",question:"What fraction of 60 is 45?",options:["1/2","2/3","3/4","4/5"],answer:2,difficulty:1},
-{id:189,topic:"Fractions",question:"What is 2 1/4 + 1 3/8?",options:["3 3/8","3 5/8","4 1/8","3 1/4"],answer:1,difficulty:2},
-{id:190,topic:"Fractions",question:"What is 5 − 2 3/7?",options:["2 3/7","2 4/7","3 3/7","2 5/7"],answer:1,difficulty:2},
-{id:191,topic:"Fractions",question:"What is 2/3 of 270?",options:["150","160","170","180"],answer:3,difficulty:1},
-{id:192,topic:"Fractions",question:"Which is the smallest: 3/4, 7/10, 4/5, 2/3?",options:["3/4","7/10","4/5","2/3"],answer:3,difficulty:2},
-{id:193,topic:"Fractions",question:"What is (1/2)² + (1/3)²?",options:["5/12","1/6","1/5","13/36"],answer:3,difficulty:3},
-{id:194,topic:"Fractions",question:"A jar is 3/5 full. It contains 360 ml. What is the full capacity?",options:["540 ml","580 ml","600 ml","620 ml"],answer:2,difficulty:2},
-{id:195,topic:"Fractions",question:"What is 4/7 × 7/8?",options:["4/8","1/2","11/56","28/56"],answer:1,difficulty:2},
-{id:196,topic:"Fractions",question:"What is 3/4 of 3/4?",options:["6/8","9/16","3/16","6/16"],answer:1,difficulty:2},
-{id:197,topic:"Fractions",question:"What is 1 3/5 ÷ 4/5?",options:["1","2","3","4"],answer:1,difficulty:2},
-{id:198,topic:"Fractions",question:"Which fraction is between 1/3 and 1/2?",options:["2/7","2/5","1/4","3/8"],answer:3,difficulty:3},
-{id:199,topic:"Fractions",question:"In a bag of 60 balls, 2/5 are red. How many red balls are there?",options:["20","24","26","30"],answer:1,difficulty:1},
-{id:200,topic:"Fractions",question:"What is 4 2/3 + 2 5/6?",options:["6 3/6","7 1/6","7 1/2","6 5/6"],answer:2,difficulty:2},
-{id:201,topic:"Fractions",question:"What is 9/10 − 4/15?",options:["19/30","7/10","1/2","5/6"],answer:0,difficulty:3},
-{id:202,topic:"Fractions",question:"Simplify 84/126.",options:["2/3","3/4","4/6","6/9"],answer:0,difficulty:3},
-{id:203,topic:"Fractions",question:"What is 5/8 as a decimal?",options:["0.58","0.625","0.8","0.375"],answer:1,difficulty:2},
-{id:204,topic:"Fractions",question:"What is 7/20 as a decimal?",options:["0.35","0.7","0.37","0.8"],answer:0,difficulty:1},
-{id:205,topic:"Fractions",question:"If 3/8 of a number is 24, what is the number?",options:["56","64","72","80"],answer:1,difficulty:2},
-{id:206,topic:"Fractions",question:"What is 11/12 − 3/8?",options:["7/24","13/24","8/24","1/2"],answer:1,difficulty:3},
-{id:207,topic:"Fractions",question:"A recipe needs 2/3 cup of sugar. How much is needed for 3 batches?",options:["1 1/3","2","2 1/3","2 2/3"],answer:1,difficulty:1},
-{id:208,topic:"Fractions",question:"What is 1 ÷ 1/5?",options:["1/5","5","1/25","0.2"],answer:1,difficulty:1},
-{id:209,topic:"Fractions",question:"Put in order smallest to largest: 1/2, 2/5, 3/7, 5/9",options:["2/5, 3/7, 1/2, 5/9","1/2, 5/9, 3/7, 2/5","2/5, 3/7, 5/9, 1/2","3/7, 2/5, 1/2, 5/9"],answer:0,difficulty:3},
-{id:210,topic:"Fractions",question:"A rope 6 3/4 m long is cut into pieces of 3/4 m each. How many pieces?",options:["7","8","9","10"],answer:2,difficulty:2},
-{id:211,topic:"Fractions",question:"What is 7/8 − 1/4 − 1/8?",options:["1/2","5/8","3/4","5/16"],answer:0,difficulty:2},
-{id:212,topic:"Fractions",question:"A wall is 4/5 painted. If the wall is 30 m², how many m² are NOT painted?",options:["4 m²","5 m²","6 m²","7 m²"],answer:2,difficulty:2},
-{id:213,topic:"Fractions",question:"What is 2/3 + 3/4 + 5/12?",options:["10/12","11/12","7/4","23/12"],answer:3,difficulty:3},
-{id:214,topic:"Fractions",question:"What is 3 1/3 × 1 4/5?",options:["5","6","7","8"],answer:1,difficulty:3},
-{id:215,topic:"Fractions",question:"What fraction of 1 hour is 40 minutes?",options:["1/3","2/3","3/4","4/5"],answer:1,difficulty:1},
-{id:216,topic:"Fractions",question:"Which of these is NOT equivalent to 2/3?",options:["6/9","8/12","10/16","14/21"],answer:2,difficulty:2},
-{id:217,topic:"Fractions",question:"What is 4 3/4 − 1 7/8?",options:["2 5/8","2 7/8","3 1/8","2 3/8"],answer:1,difficulty:3},
-{id:218,topic:"Fractions",question:"A school has 600 pupils. 3/10 play football. How many is that?",options:["150","180","200","240"],answer:1,difficulty:1},
-{id:219,topic:"Fractions",question:"What is 3/5 as a percentage?",options:["35%","53%","60%","65%"],answer:2,difficulty:1},
-{id:220,topic:"Fractions",question:"What is 11/4 as a mixed number?",options:["2 1/4","2 3/4","3 1/4","2 2/4"],answer:1,difficulty:1},
-{id:221,topic:"Fractions",question:"Which fraction is closest to 1?",options:["8/10","9/11","7/8","11/13"],answer:3,difficulty:3},
-{id:222,topic:"Fractions",question:"What is 3/7 × 14/9?",options:["2/3","42/63","6/9","7/9"],answer:0,difficulty:2},
-{id:223,topic:"Fractions",question:"Three-quarters of the children in a class of 32 prefer pizza. How many prefer pizza?",options:["20","22","24","26"],answer:2,difficulty:1},
-{id:224,topic:"Fractions",question:"What is 2/5 ÷ 4?",options:["8/5","1/10","2/20","1/5"],answer:1,difficulty:2},
-{id:225,topic:"Fractions",question:"A bucket holds 15 litres. It is 2/3 full. How many more litres to fill it?",options:["4","5","6","7"],answer:1,difficulty:2},
-{id:226,topic:"Fractions",question:"What is 5/6 of 54?",options:["40","43","45","48"],answer:2,difficulty:2},
-{id:227,topic:"Fractions",question:"What is 8/9 ÷ 4/3?",options:["2/3","3/2","32/27","2/9"],answer:0,difficulty:3},
-{id:228,topic:"Fractions",question:"Add 1/2, 1/3 and 1/6.",options:["1","3/6","1 1/6","2/6"],answer:0,difficulty:2},
-{id:229,topic:"Fractions",question:"What is 2 4/5 − 1 2/3?",options:["1 1/5","1 2/15","1 3/5","2/15"],answer:1,difficulty:3},
-{id:230,topic:"Fractions",question:"In a survey of 240 people, 5/8 prefer tea. How many prefer tea?",options:["140","150","160","170"],answer:1,difficulty:2},
-/* ─────────────────────────────────────────
-   PERCENTAGES  (Q231–Q330)
-───────────────────────────────────────── */
-{id:231,topic:"Percentages",question:"What is 25% of 200?",options:["40","50","60","70"],answer:1,difficulty:1},
-{id:232,topic:"Percentages",question:"What is 15% of 80?",options:["10","12","14","16"],answer:1,difficulty:1},
-{id:233,topic:"Percentages",question:"Express 3/5 as a percentage.",options:["35%","53%","60%","65%"],answer:2,difficulty:1},
-{id:234,topic:"Percentages",question:"Express 0.375 as a percentage.",options:["3.75%","37.5%","375%","3750%"],answer:1,difficulty:1},
-{id:235,topic:"Percentages",question:"A shirt costs £40. It is reduced by 20%. What is the sale price?",options:["£20","£28","£30","£32"],answer:3,difficulty:1},
-{id:236,topic:"Percentages",question:"A price increases from £50 to £60. What is the percentage increase?",options:["10%","15%","20%","25%"],answer:2,difficulty:2},
-{id:237,topic:"Percentages",question:"70% of a number is 56. What is the number?",options:["72","78","80","84"],answer:2,difficulty:2},
-{id:238,topic:"Percentages",question:"What is 17.5% of 240?",options:["36","38","40","42"],answer:3,difficulty:2},
-{id:239,topic:"Percentages",question:"A house bought for £120,000 is sold for £150,000. What is the percentage profit?",options:["20%","25%","30%","35%"],answer:1,difficulty:2},
-{id:240,topic:"Percentages",question:"Which is greatest: 55%, 5/9, 0.56?",options:["55%","5/9","0.56","They are equal"],answer:1,difficulty:3},
-{id:241,topic:"Percentages",question:"What is 35% of 180?",options:["53","57","63","73"],answer:2,difficulty:2},
-{id:242,topic:"Percentages",question:"A coat costs £85 after a 15% discount. What was the original price?",options:["£95","£100","£102","£105"],answer:1,difficulty:3},
-{id:243,topic:"Percentages",question:"What percentage of 250 is 75?",options:["25%","30%","35%","40%"],answer:1,difficulty:2},
-{id:244,topic:"Percentages",question:"A team wins 18 out of 24 games. What percentage do they win?",options:["70%","72%","75%","80%"],answer:2,difficulty:2},
-{id:245,topic:"Percentages",question:"What is 12.5% of 64?",options:["6","7","8","9"],answer:2,difficulty:2},
-{id:246,topic:"Percentages",question:"A TV costs £360 + 20% VAT. What is the total cost?",options:["£406","£420","£432","£440"],answer:2,difficulty:2},
-{id:247,topic:"Percentages",question:"What is 5% of 5% of 100?",options:["0.025","0.25","2.5","25"],answer:1,difficulty:3},
-{id:248,topic:"Percentages",question:"A number is increased by 10% and then decreased by 10%. What is the net change?",options:["No change","−1%","1%","−0.1%"],answer:1,difficulty:3},
-{id:249,topic:"Percentages",question:"Express 7/8 as a percentage.",options:["78%","78.5%","87.5%","87%"],answer:2,difficulty:2},
-{id:250,topic:"Percentages",question:"What is 60% of 360?",options:["180","196","208","216"],answer:3,difficulty:1},
-{id:251,topic:"Percentages",question:"A population of 4,500 decreases by 8%. What is the new population?",options:["4,100","4,140","4,240","4,500"],answer:1,difficulty:2},
-{id:252,topic:"Percentages",question:"If 30% of a class are boys and there are 12 boys, how many pupils are in the class?",options:["36","38","40","42"],answer:2,difficulty:2},
-{id:253,topic:"Percentages",question:"What is 110% of 80?",options:["80","84","86","88"],answer:3,difficulty:2},
-{id:254,topic:"Percentages",question:"A discount of 25% is given. The new price is £48. What was the original price?",options:["£56","£60","£64","£68"],answer:2,difficulty:3},
-{id:255,topic:"Percentages",question:"What is 1% of 5,000?",options:["0.5","5","50","500"],answer:2,difficulty:1},
-{id:256,topic:"Percentages",question:"A test has 40 questions. Sarah answers 32 correctly. What percentage is correct?",options:["70%","75%","80%","85%"],answer:2,difficulty:1},
-{id:257,topic:"Percentages",question:"What is 3% of 700?",options:["18","21","24","27"],answer:1,difficulty:1},
-{id:258,topic:"Percentages",question:"A bike is on sale for £180 after a 25% reduction. What was the original price?",options:["£225","£235","£240","£250"],answer:2,difficulty:3},
-{id:259,topic:"Percentages",question:"Which is smallest: 33%, 1/3, 0.33?",options:["33%","1/3","0.33","They are equal"],answer:2,difficulty:2},
-{id:260,topic:"Percentages",question:"What is 40% of 40% of 500?",options:["32","64","80","160"],answer:2,difficulty:3},
-{id:261,topic:"Percentages",question:"A town has 12,000 residents. 35% are under 18. How many is that?",options:["3,800","4,000","4,200","4,400"],answer:2,difficulty:2},
-{id:262,topic:"Percentages",question:"What percentage of 2 kg is 500 g?",options:["20%","22.5%","25%","27.5%"],answer:2,difficulty:2},
-{id:263,topic:"Percentages",question:"A savings account earns 4% interest per year on £500. How much interest after 1 year?",options:["£15","£20","£25","£30"],answer:1,difficulty:2},
-{id:264,topic:"Percentages",question:"What is 120% of 75?",options:["80","85","90","95"],answer:2,difficulty:2},
-{id:265,topic:"Percentages",question:"A number increases from 80 to 100. What is the percentage increase?",options:["20%","22%","25%","28%"],answer:2,difficulty:2},
-{id:266,topic:"Percentages",question:"What is 7.5% of 200?",options:["12","13","14","15"],answer:3,difficulty:2},
-{id:267,topic:"Percentages",question:"After a 30% increase, a salary is £26,000. What was the original salary?",options:["£18,000","£19,000","£20,000","£21,000"],answer:2,difficulty:3},
-{id:268,topic:"Percentages",question:"What is 0.4% of 500?",options:["0.2","2","20","200"],answer:1,difficulty:2},
-{id:269,topic:"Percentages",question:"Convert 3/8 to a percentage.",options:["32.5%","37.5%","38.5%","35%"],answer:1,difficulty:2},
-{id:270,topic:"Percentages",question:"A shop has 240 items. 15% are on sale. How many items are on sale?",options:["32","36","40","44"],answer:1,difficulty:1},
-{id:271,topic:"Percentages",question:"What is 45% of 660?",options:["277","287","297","307"],answer:2,difficulty:2},
-{id:272,topic:"Percentages",question:"A car depreciates in value by 15% each year. After 1 year, a £12,000 car is worth:",options:["£9,800","£10,200","£10,600","£11,000"],answer:1,difficulty:2},
-{id:273,topic:"Percentages",question:"What percentage of 1 km is 250 m?",options:["2.5%","25%","0.25%","4%"],answer:1,difficulty:1},
-{id:274,topic:"Percentages",question:"An item is increased by 20%, then by another 20%. What is the total percentage increase?",options:["40%","42%","44%","46%"],answer:2,difficulty:3},
-{id:275,topic:"Percentages",question:"What is 62.5% as a fraction in its simplest form?",options:["5/8","6/10","62/100","31/50"],answer:0,difficulty:2},
-{id:276,topic:"Percentages",question:"A hotel offers 15% discount for early booking. Normal price is £200. What is the discount price?",options:["£160","£165","£170","£175"],answer:2,difficulty:2},
-{id:277,topic:"Percentages",question:"What is 100% − 37% − 28%?",options:["25%","35%","45%","55%"],answer:1,difficulty:1},
-{id:278,topic:"Percentages",question:"In a bag of 80 sweets, 40% are red, 25% are blue, and the rest are green. How many are green?",options:["24","28","32","36"],answer:2,difficulty:2},
-{id:279,topic:"Percentages",question:"What is 0.8% of 2,000?",options:["1.6","16","160","1,600"],answer:1,difficulty:2},
-{id:280,topic:"Percentages",question:"A price fell from £250 to £200. What was the percentage decrease?",options:["15%","20%","25%","30%"],answer:1,difficulty:2},
-{id:281,topic:"Percentages",question:"What is 87.5% as a fraction?",options:["7/8","8/9","6/7","5/6"],answer:0,difficulty:2},
-{id:282,topic:"Percentages",question:"If you spend 30% of £120, how much is left?",options:["£72","£78","£84","£90"],answer:2,difficulty:1},
-{id:283,topic:"Percentages",question:"A school raised £4,500 towards a target of £6,000. What percentage have they raised?",options:["65%","70%","75%","80%"],answer:2,difficulty:2},
-{id:284,topic:"Percentages",question:"What percentage is 48 out of 64?",options:["70%","72%","75%","78%"],answer:2,difficulty:2},
-{id:285,topic:"Percentages",question:"A jacket costs £95 + 5% VAT. What is the total price?",options:["£99.50","£99.75","£100.25","£99.00"],answer:0,difficulty:2},
-{id:286,topic:"Percentages",question:"What is 55% of 460?",options:["243","253","263","273"],answer:1,difficulty:2},
-{id:287,topic:"Percentages",question:"What is 3.5% of 800?",options:["24","26","28","30"],answer:2,difficulty:2},
-{id:288,topic:"Percentages",question:"A test score of 45 out of 60 is what percentage?",options:["70%","72.5%","75%","77.5%"],answer:2,difficulty:2},
-{id:289,topic:"Percentages",question:"Which is largest: 7/12, 58%, 0.587?",options:["7/12","58%","0.587","They are equal"],answer:2,difficulty:3},
-{id:290,topic:"Percentages",question:"After 2 years of 10% interest per year (compound), £1,000 becomes:",options:["£1,200","£1,210","£1,220","£1,100"],answer:1,difficulty:3},
-/* ─────────────────────────────────────────
-   BIDMAS / NEGATIVE NUMBERS  (Q291–Q360)
-───────────────────────────────────────── */
-,{id:291,topic:"BIDMAS",question:"What is 3 + 4 × 2?",options:["14","11","10","9"],answer:1,difficulty:1},
-{id:292,topic:"BIDMAS",question:"What is (3 + 4) × 2?",options:["14","11","10","9"],answer:0,difficulty:1},
-{id:293,topic:"BIDMAS",question:"What is 20 − 4² + 3?",options:["7","17","19","23"],answer:0,difficulty:2},
-{id:294,topic:"BIDMAS",question:"What is 12 ÷ (2 + 4) × 3?",options:["1","6","9","36"],answer:1,difficulty:2},
-{id:295,topic:"BIDMAS",question:"What is 5 + 3 × 4 − 6 ÷ 2?",options:["12","14","17","22"],answer:1,difficulty:2},
-{id:296,topic:"BIDMAS",question:"What is (6 + 2)² ÷ 4?",options:["10","16","18","64"],answer:1,difficulty:2},
-{id:297,topic:"BIDMAS",question:"What is −5 + 8?",options:["−13","3","−3","13"],answer:1,difficulty:1},
-{id:298,topic:"BIDMAS",question:"What is −4 − (−9)?",options:["−13","−5","5","13"],answer:2,difficulty:1},
-{id:299,topic:"BIDMAS",question:"What is −6 × (−3)?",options:["−18","−9","9","18"],answer:3,difficulty:1},
-{id:300,topic:"BIDMAS",question:"What is −12 ÷ 4?",options:["3","−3","8","−8"],answer:1,difficulty:1},
-{id:301,topic:"BIDMAS",question:"What is −7 + (−4)?",options:["−11","3","−3","11"],answer:0,difficulty:1},
-{id:302,topic:"BIDMAS",question:"What is −5 × 6?",options:["30","−30","11","−11"],answer:1,difficulty:1},
-{id:303,topic:"BIDMAS",question:"What is (−3)²?",options:["−9","9","6","−6"],answer:1,difficulty:2},
-{id:304,topic:"BIDMAS",question:"The temperature is −8°C. It rises by 13°C. What is the new temperature?",options:["−5°C","4°C","5°C","21°C"],answer:2,difficulty:1},
-{id:305,topic:"BIDMAS",question:"What is −4 × (−3) × (−2)?",options:["24","−24","12","−12"],answer:1,difficulty:2},
-{id:306,topic:"BIDMAS",question:"What is 3 + 2² × (5 − 3)?",options:["11","14","18","25"],answer:0,difficulty:3},
-{id:307,topic:"BIDMAS",question:"What is 36 ÷ 6 + 2 × 3?",options:["12","15","18","20"],answer:1,difficulty:2},
-{id:308,topic:"BIDMAS",question:"What is −18 ÷ (−3)?",options:["−6","6","54","−54"],answer:1,difficulty:1},
-{id:309,topic:"BIDMAS",question:"Which is the correct calculation for (2 + 3)² − 4 × 2?",options:["17","18","21","25"],answer:0,difficulty:2},
-{id:310,topic:"BIDMAS",question:"What is the missing operation? 5 __ 3 __ 2 = 13 (using + and ×)",options:["+ and ×","× and +","Both give 13","Neither"],answer:1,difficulty:2},
-{id:311,topic:"BIDMAS",question:"What is 100 − 4 × 5²?",options:["0","10","50","95"],answer:0,difficulty:2},
-{id:312,topic:"BIDMAS",question:"If the temperature drops from 3°C to −9°C, by how many degrees did it drop?",options:["6°C","9°C","12°C","15°C"],answer:2,difficulty:1},
-{id:313,topic:"BIDMAS",question:"What is −3 + 5 × (−2)?",options:["−13","−7","4","7"],answer:0,difficulty:2},
-{id:314,topic:"BIDMAS",question:"What is the value of 2³ × 3 + 4 ÷ 2?",options:["24","26","28","30"],answer:1,difficulty:2},
-{id:315,topic:"BIDMAS",question:"Which pair of numbers has a product of 24 and a sum of −10?",options:["−6 and −4","−8 and −3","6 and 4","−6 and 4"],answer:0,difficulty:3},
-{id:316,topic:"BIDMAS",question:"What is (−2)³?",options:["−8","8","−6","6"],answer:0,difficulty:2},
-{id:317,topic:"BIDMAS",question:"What is 8 − 3 × 2 + 4 ÷ 2?",options:["2","4","6","8"],answer:1,difficulty:2},
-{id:318,topic:"BIDMAS",question:"What is −25 ÷ (−5) + (−4)?",options:["−9","1","5","−1"],answer:1,difficulty:2},
-{id:319,topic:"BIDMAS",question:"What is 4 + (−4) × (−4)?",options:["0","20","−12","−4"],answer:1,difficulty:2},
-{id:320,topic:"BIDMAS",question:"The difference between −12 and 7 is:",options:["5","−5","19","−19"],answer:2,difficulty:2},
-{id:321,topic:"BIDMAS",question:"What is 6² − 4 × (3 + 2)?",options:["10","14","16","20"],answer:2,difficulty:2},
-{id:322,topic:"BIDMAS",question:"What is (4 + 6) ÷ (3 − 8)?",options:["2","−2","5","−5"],answer:1,difficulty:2},
-{id:323,topic:"BIDMAS",question:"What is −3 × (2 + 7)?",options:["27","−27","3","−3"],answer:1,difficulty:2},
-{id:324,topic:"BIDMAS",question:"Which symbol goes in the box? −8 ☐ (−2) = 4",options:["×","÷","+","−"],answer:1,difficulty:2},
-{id:325,topic:"BIDMAS",question:"What is 5 × 3 − 2² + 1?",options:["10","12","14","16"],answer:1,difficulty:2},
-{id:326,topic:"BIDMAS",question:"What is 18 ÷ 3² × 2?",options:["4","12","36","1"],answer:0,difficulty:3},
-{id:327,topic:"BIDMAS",question:"What is −100 ÷ 4 + 5 × 6?",options:["5","10","15","−5"],answer:0,difficulty:2},
-{id:328,topic:"BIDMAS",question:"What is 3 × (4 − 7)² − 5?",options:["22","19","27","14"],answer:0,difficulty:3},
-{id:329,topic:"BIDMAS",question:"Insert brackets to make this true: 3 + 5 × 2 = 16",options:["(3 + 5) × 2","3 + (5 × 2)","Both work","Neither works"],answer:0,difficulty:2},
-{id:330,topic:"BIDMAS",question:"What is −6 − 3 × (−4) + 2?",options:["−4","0","8","16"],answer:2,difficulty:3},
-{id:331,topic:"BIDMAS",question:"What is the cube of −4?",options:["−64","64","−12","12"],answer:0,difficulty:2},
-{id:332,topic:"BIDMAS",question:"What is √(9 × 16)?",options:["25","12","144","7"],answer:1,difficulty:2},
-{id:333,topic:"BIDMAS",question:"What is 2 + 3 × 4² − (5 − 2)?",options:["47","46","51","44"],answer:0,difficulty:3},
-{id:334,topic:"BIDMAS",question:"What is (−1)¹⁰⁰?",options:["100","−100","1","−1"],answer:2,difficulty:3},
-{id:335,topic:"BIDMAS",question:"What is 7 × 6 − 5 × 4 + 3 × 2?",options:["28","26","34","24"],answer:0,difficulty:2},
-{id:336,topic:"BIDMAS",question:"Put in order: −7, 3, −2, 0, 5 from smallest to largest.",options:["−7,−2,0,3,5","0,−2,3,5,−7","−2,−7,0,3,5","5,3,0,−2,−7"],answer:0,difficulty:1},
-{id:337,topic:"BIDMAS",question:"What is the product of three negative numbers?",options:["Always positive","Always negative","Zero","Cannot tell"],answer:1,difficulty:2},
-{id:338,topic:"BIDMAS",question:"What is 5 − (−3) − (−2) + (−4)?",options:["2","6","8","10"],answer:1,difficulty:2},
-{id:339,topic:"BIDMAS",question:"What is 4 × (3 + 2)² ÷ 5?",options:["20","100","5","16"],answer:0,difficulty:3},
-{id:340,topic:"BIDMAS",question:"What is −6 × (−6) ÷ (−4)?",options:["9","−9","−36","36"],answer:1,difficulty:2},
-{id:341,topic:"BIDMAS",question:"What is 3² + 4² − 5²?",options:["0","2","25","50"],answer:0,difficulty:2},
-{id:342,topic:"BIDMAS",question:"What is (−5 + 8) × (3 − 7)?",options:["−12","12","−20","20"],answer:0,difficulty:2},
-{id:343,topic:"BIDMAS",question:"What is 6 × 6 ÷ 6 + 6 − 6?",options:["5","6","7","8"],answer:1,difficulty:2},
-{id:344,topic:"BIDMAS",question:"What is −2³ (note: not (−2)³)?",options:["8","−8","6","−6"],answer:1,difficulty:3},
-{id:345,topic:"BIDMAS",question:"What is (10 − 7)³ ÷ (4 + 5)?",options:["1","3","9","27"],answer:1,difficulty:3},
-{id:346,topic:"BIDMAS",question:"What is 50 ÷ 5 − 3 × (−2)?",options:["4","16","20","−4"],answer:1,difficulty:2},
-{id:347,topic:"BIDMAS",question:"Find the missing number: −8 + __ = −3",options:["5","−5","11","−11"],answer:0,difficulty:1},
-{id:348,topic:"BIDMAS",question:"What is 2 × 3 + 4 × 5 − 6 × 7?",options:["−16","−14","−20","−8"],answer:0,difficulty:3},
-{id:349,topic:"BIDMAS",question:"What is √36 + √64?",options:["10","14","16","20"],answer:1,difficulty:1},
-{id:350,topic:"BIDMAS",question:"What is 4 + 2 × 3³?",options:["58","68","216","22"],answer:0,difficulty:3},
-/* ─────────────────────────────────────────
-   ALGEBRA  (Q351–Q450)
-───────────────────────────────────────── */
-{id:351,topic:"Algebra",question:"If x = 4, what is 3x + 5?",options:["15","17","19","21"],answer:1,difficulty:1},
-{id:352,topic:"Algebra",question:"Solve: x + 7 = 15",options:["x = 7","x = 8","x = 9","x = 22"],answer:1,difficulty:1},
-{id:353,topic:"Algebra",question:"Solve: 3x = 21",options:["x = 6","x = 7","x = 8","x = 9"],answer:1,difficulty:1},
-{id:354,topic:"Algebra",question:"Solve: 2x + 3 = 11",options:["x = 3","x = 4","x = 5","x = 6"],answer:1,difficulty:1},
-{id:355,topic:"Algebra",question:"Simplify: 4a + 3b − 2a + b",options:["2a + 4b","6a + 4b","2a + 2b","4a + 4b"],answer:0,difficulty:1},
-{id:356,topic:"Algebra",question:"Expand: 3(x + 4)",options:["3x + 4","3x + 12","x + 12","3x + 7"],answer:1,difficulty:1},
-{id:357,topic:"Algebra",question:"Expand and simplify: 2(x + 3) + 4(x − 1)",options:["6x + 10","6x + 2","6x − 10","6x + 6"],answer:1,difficulty:2},
-{id:358,topic:"Algebra",question:"Solve: 5x − 3 = 17",options:["x = 3","x = 4","x = 5","x = 6"],answer:1,difficulty:1},
-{id:359,topic:"Algebra",question:"Solve: x/4 = 7",options:["x = 1.75","x = 11","x = 28","x = 3"],answer:2,difficulty:1},
-{id:360,topic:"Algebra",question:"If a = 3 and b = −2, what is 2a − 3b?",options:["12","6","0","−6"],answer:0,difficulty:2},
-{id:361,topic:"Algebra",question:"Simplify: 5x² + 3x − 2x² + x",options:["3x² + 4x","7x² + 4x","3x² + 2x","5x² + 4x"],answer:0,difficulty:2},
-{id:362,topic:"Algebra",question:"Solve: 3(x + 2) = 18",options:["x = 2","x = 4","x = 6","x = 8"],answer:1,difficulty:2},
-{id:363,topic:"Algebra",question:"What is the nth term of the sequence 5, 8, 11, 14, ...?",options:["n + 4","2n + 3","3n + 2","4n + 1"],answer:2,difficulty:2},
-{id:364,topic:"Algebra",question:"Solve: 2x + 5 = x + 9",options:["x = 1","x = 2","x = 3","x = 4"],answer:3,difficulty:2},
-{id:365,topic:"Algebra",question:"If y = 2x − 1, find y when x = 5.",options:["7","8","9","11"],answer:2,difficulty:1},
-{id:366,topic:"Algebra",question:"Factorise: 6x + 9",options:["3(2x + 3)","3(2x + 9)","6(x + 3)","2(3x + 9)"],answer:0,difficulty:2},
-{id:367,topic:"Algebra",question:"Solve: x/3 + 2 = 7",options:["x = 5","x = 10","x = 15","x = 20"],answer:2,difficulty:2},
-{id:368,topic:"Algebra",question:"Which value satisfies 2x − 3 > 7?",options:["x = 4","x = 5","x = 6","x = 3"],answer:2,difficulty:2},
-{id:369,topic:"Algebra",question:"Expand: (x + 3)(x + 2)",options:["x² + 5x + 6","x² + 6x + 5","x² + 5x + 5","x² + 6x + 6"],answer:0,difficulty:3},
-{id:370,topic:"Algebra",question:"Solve: 4(x − 1) = 2(x + 3)",options:["x = 3","x = 4","x = 5","x = 6"],answer:2,difficulty:2},
-{id:371,topic:"Algebra",question:"If p = 5 and q = −1, find p² + 2q.",options:["23","21","27","25"],answer:0,difficulty:2},
-{id:372,topic:"Algebra",question:"Simplify: (3x)²",options:["6x²","9x²","3x²","6x"],answer:1,difficulty:2},
-{id:373,topic:"Algebra",question:"Solve the pair of equations: x + y = 10 and x − y = 4",options:["x=7, y=3","x=6, y=4","x=8, y=2","x=5, y=5"],answer:0,difficulty:3},
-{id:374,topic:"Algebra",question:"What is the value of 4n − 3 when n = 0?",options:["−7","−3","0","1"],answer:1,difficulty:1},
-{id:375,topic:"Algebra",question:"Factorise: x² + 5x + 6",options:["(x+1)(x+6)","(x+2)(x+3)","(x+3)(x+4)","(x+5)(x+1)"],answer:1,difficulty:3},
-{id:376,topic:"Algebra",question:"Solve: 7 − 2x = 1",options:["x = 2","x = 3","x = 4","x = 5"],answer:1,difficulty:2},
-{id:377,topic:"Algebra",question:"Which expression is equivalent to 3(2x − 1) − 2(x + 1)?",options:["4x − 5","4x − 1","6x − 5","4x + 5"],answer:0,difficulty:2},
-{id:378,topic:"Algebra",question:"A rectangle has length (2x + 3) and width 4. What is its area?",options:["8x + 3","2x + 7","8x + 12","8x + 7"],answer:2,difficulty:2},
-{id:379,topic:"Algebra",question:"Solve: x² = 49",options:["x = 7","x = ±7","x = 7 or 0","x = 49"],answer:1,difficulty:2},
-{id:380,topic:"Algebra",question:"Simplify: 4x × 3x",options:["7x","7x²","12x","12x²"],answer:3,difficulty:2},
-{id:381,topic:"Algebra",question:"Write an expression for 'I think of a number, double it and add 5'.",options:["n + 5","2 + 5n","2n + 5","5n + 2"],answer:2,difficulty:1},
-{id:382,topic:"Algebra",question:"Solve: 3x + 7 = 2x + 12",options:["x = 4","x = 5","x = 6","x = 7"],answer:1,difficulty:2},
-{id:383,topic:"Algebra",question:"If f(x) = x² − 3x, what is f(4)?",options:["4","6","8","16"],answer:0,difficulty:2},
-{id:384,topic:"Algebra",question:"Simplify: 15x²y ÷ 5xy",options:["3x","3y","3xy","3"],answer:0,difficulty:2},
-{id:385,topic:"Algebra",question:"Expand: 4(2x − 3y)",options:["8x − 3y","8x − 12y","4x − 12y","6x − 7y"],answer:1,difficulty:2},
-{id:386,topic:"Algebra",question:"Which inequality represents 'x is at least 5'?",options:["x < 5","x > 5","x ≤ 5","x ≥ 5"],answer:3,difficulty:1},
-{id:387,topic:"Algebra",question:"Solve: x/5 − 3 = 2",options:["x = 5","x = 10","x = 25","x = 30"],answer:2,difficulty:2},
-{id:388,topic:"Algebra",question:"What is the gradient of the line y = 3x + 4?",options:["4","3","1","7"],answer:1,difficulty:2},
-{id:389,topic:"Algebra",question:"What is the y-intercept of y = 5x − 2?",options:["5","2","−2","−5"],answer:2,difficulty:1},
-{id:390,topic:"Algebra",question:"Solve: 2(3x + 1) = 26",options:["x = 3","x = 4","x = 5","x = 6"],answer:1,difficulty:2},
-{id:391,topic:"Algebra",question:"Factorise: 12a² + 8a",options:["4(3a² + 2a)","4a(3a + 2)","2a(6a + 4)","8a(a + 1)"],answer:1,difficulty:2},
-{id:392,topic:"Algebra",question:"If 3x + 2 = 14, what is 2x?",options:["4","6","8","12"],answer:2,difficulty:2},
-{id:393,topic:"Algebra",question:"Expand: (x − 4)(x + 4)",options:["x² − 16","x² + 16","x² − 8x − 16","x² − 8"],answer:0,difficulty:3},
-{id:394,topic:"Algebra",question:"The perimeter of a square is 4(2x + 1). What is the side length?",options:["2x","2x + 1","8x + 4","4x + 2"],answer:1,difficulty:2},
-{id:395,topic:"Algebra",question:"Solve: (x − 3)/2 = 4",options:["x = 5","x = 7","x = 9","x = 11"],answer:3,difficulty:2},
-{id:396,topic:"Algebra",question:"Which of these is NOT a linear expression?",options:["3x + 2","5 − x","x/4","x²"],answer:3,difficulty:1},
-{id:397,topic:"Algebra",question:"Two angles of a triangle are x and 2x. If they sum to 90°, what is x?",options:["20°","25°","30°","35°"],answer:2,difficulty:2},
-{id:398,topic:"Algebra",question:"Solve the pair: 2x + y = 7 and x − y = 2",options:["x=2, y=3","x=3, y=1","x=4, y=−1","x=5, y=−3"],answer:1,difficulty:3},
-{id:399,topic:"Algebra",question:"Simplify: (2x)³",options:["6x³","8x³","2x³","6x"],answer:1,difficulty:3},
-{id:400,topic:"Algebra",question:"If a = 2, b = 3 and c = −1, find a² − bc.",options:["7","1","4","−7"],answer:0,difficulty:2},
-/* ─────────────────────────────────────────
-   SEQUENCES  (Q401–Q470)
-───────────────────────────────────────── */
-,{id:401,topic:"Sequences",question:"What is the next term in: 3, 7, 11, 15, ...?",options:["17","18","19","20"],answer:2,difficulty:1},
-{id:402,topic:"Sequences",question:"What is the 10th term of the sequence 4, 7, 10, 13, ...?",options:["30","31","32","33"],answer:1,difficulty:2},
-{id:403,topic:"Sequences",question:"What is the nth term of 2, 4, 6, 8, ...?",options:["n","2n","n+2","2n+2"],answer:1,difficulty:1},
-{id:404,topic:"Sequences",question:"What is the next term in: 1, 1, 2, 3, 5, 8, ...?",options:["11","12","13","14"],answer:2,difficulty:1},
-{id:405,topic:"Sequences",question:"What is the nth term of 5, 9, 13, 17, ...?",options:["4n+1","4n+5","3n+2","5n−1"],answer:0,difficulty:2},
-{id:406,topic:"Sequences",question:"Which term in 3, 6, 12, 24, ... is 192?",options:["5th","6th","7th","8th"],answer:1,difficulty:2},
-{id:407,topic:"Sequences",question:"What is the next term in: 100, 50, 25, 12.5, ...?",options:["5","6","6.25","6.5"],answer:2,difficulty:1},
-{id:408,topic:"Sequences",question:"What is the common difference in 7, 3, −1, −5, ...?",options:["4","−4","7","3"],answer:1,difficulty:1},
-{id:409,topic:"Sequences",question:"What is the 20th term of the sequence with nth term 3n − 1?",options:["58","59","60","61"],answer:1,difficulty:2},
-{id:410,topic:"Sequences",question:"What is the missing term: 2, __, 8, 14, 20?",options:["4","5","6","7"],answer:1,difficulty:1},
-{id:411,topic:"Sequences",question:"The nth term of a sequence is n² + 1. What is the 5th term?",options:["25","26","27","28"],answer:1,difficulty:2},
-{id:412,topic:"Sequences",question:"What is the next term: 1, 4, 9, 16, 25, ...?",options:["30","34","36","40"],answer:2,difficulty:1},
-{id:413,topic:"Sequences",question:"Which is the nth term of 0, 3, 8, 15, 24, ...?",options:["n²−1","n²+n","n(n−1)","(n+1)²"],answer:0,difficulty:3},
-{id:414,topic:"Sequences",question:"What is the sum of the first 10 terms of 1, 2, 3, 4, ...?",options:["45","50","55","60"],answer:2,difficulty:2},
-{id:415,topic:"Sequences",question:"In a Fibonacci-like sequence starting 3, 4, ..., what is the 6th term?",options:["19","20","21","22"],answer:2,difficulty:2},
-{id:416,topic:"Sequences",question:"What is the missing term: 2, 6, __, 54, 162?",options:["12","18","24","36"],answer:1,difficulty:2},
-{id:417,topic:"Sequences",question:"What is the 8th term of the sequence 100, 94, 88, 82, ...?",options:["54","58","60","64"],answer:0,difficulty:2},
-{id:418,topic:"Sequences",question:"What is the nth term of 1, 3, 5, 7, ...?",options:["n","n+1","2n−1","2n+1"],answer:2,difficulty:1},
-{id:419,topic:"Sequences",question:"Which term of the sequence 5n + 2 equals 52?",options:["8th","9th","10th","11th"],answer:2,difficulty:2},
-{id:420,topic:"Sequences",question:"What is the geometric sequence with first term 2 and ratio 3? Give the 5th term.",options:["162","243","486","54"],answer:0,difficulty:2},
-{id:421,topic:"Sequences",question:"What is the next term in −5, −2, 1, 4, ...?",options:["6","7","8","9"],answer:1,difficulty:1},
-{id:422,topic:"Sequences",question:"What is the 15th triangular number?",options:["100","105","110","120"],answer:3,difficulty:3},
-{id:423,topic:"Sequences",question:"Find the missing term: __, 10, 5, 2.5, 1.25",options:["15","18","20","25"],answer:2,difficulty:2},
-{id:424,topic:"Sequences",question:"The nth term is 2n² − n. What is the 4th term?",options:["26","27","28","29"],answer:2,difficulty:3},
-{id:425,topic:"Sequences",question:"What is the common ratio in: 1, 2, 4, 8, 16?",options:["2","3","4","8"],answer:0,difficulty:1},
-{id:426,topic:"Sequences",question:"What is the 7th term of 4n − 3?",options:["25","27","29","31"],answer:1,difficulty:1},
-{id:427,topic:"Sequences",question:"Which term in the sequence 3n + 1 is greater than 100?",options:["33rd","34th","35th","36th"],answer:1,difficulty:2},
-{id:428,topic:"Sequences",question:"The nth term of a sequence is 50 − 3n. What is the first negative term?",options:["16th","17th","18th","19th"],answer:1,difficulty:3},
-{id:429,topic:"Sequences",question:"Which of these is NOT an arithmetic sequence?",options:["3,6,9,12","1,4,9,16","5,10,15,20","2,5,8,11"],answer:1,difficulty:1},
-{id:430,topic:"Sequences",question:"In the Fibonacci sequence 1,1,2,3,5,8,13,..., what is the 10th term?",options:["34","55","89","144"],answer:1,difficulty:2},
-{id:431,topic:"Sequences",question:"What is the sum of the first 5 terms of the sequence with nth term 2n?",options:["28","30","32","36"],answer:1,difficulty:2},
-{id:432,topic:"Sequences",question:"Find the missing terms: 2, 5, __, 14, __, 23",options:["8 and 18","8 and 19","9 and 18","9 and 19"],answer:2,difficulty:2},
-{id:433,topic:"Sequences",question:"A sequence starts at 2 and each term is 3 more than twice the previous. What is the 3rd term?",options:["19","20","21","22"],answer:0,difficulty:3},
-{id:434,topic:"Sequences",question:"What is the nth term of 10, 7, 4, 1, ...?",options:["3n+7","−3n+13","13−3n","10−3n"],answer:2,difficulty:2},
-{id:435,topic:"Sequences",question:"How many terms in the arithmetic sequence 5, 8, 11, ..., 50?",options:["15","16","17","18"],answer:1,difficulty:2},
-{id:436,topic:"Sequences",question:"What is the 12th square number?",options:["132","144","148","156"],answer:1,difficulty:1},
-{id:437,topic:"Sequences",question:"What is the missing term in: 3, 9, __, 81, 243?",options:["18","27","36","45"],answer:1,difficulty:1},
-{id:438,topic:"Sequences",question:"The first four terms of a sequence are 1, 5, 14, 30. What is the next term?",options:["52","55","60","65"],answer:1,difficulty:3},
-{id:439,topic:"Sequences",question:"What is the 6th term of the sequence with nth term n(n+1)/2?",options:["18","21","24","28"],answer:1,difficulty:2},
-{id:440,topic:"Sequences",question:"What is the next term: 1, 8, 27, 64, ...?",options:["100","125","128","145"],answer:1,difficulty:2},
-/* ─────────────────────────────────────────
-   RATIO & PROPORTION  (Q441–Q520)
-───────────────────────────────────────── */
-{id:441,topic:"Ratio",question:"Simplify the ratio 15 : 25.",options:["3:4","3:5","5:3","4:5"],answer:1,difficulty:1},
-{id:442,topic:"Ratio",question:"Split £90 in the ratio 2 : 3.",options:["£30 and £60","£36 and £54","£40 and £50","£45 and £45"],answer:1,difficulty:1},
-{id:443,topic:"Ratio",question:"In a class, the ratio of boys to girls is 3 : 4. There are 28 pupils. How many boys?",options:["10","12","14","16"],answer:1,difficulty:2},
-{id:444,topic:"Ratio",question:"If 5 books cost £15, how much do 8 books cost?",options:["£22","£24","£26","£28"],answer:1,difficulty:1},
-{id:445,topic:"Ratio",question:"A recipe for 4 people uses 300g of flour. How much flour for 6 people?",options:["400g","450g","480g","500g"],answer:1,difficulty:1},
-{id:446,topic:"Ratio",question:"Write 4 : 6 : 10 in simplest form.",options:["2:3:5","1:2:3","4:5:6","2:4:6"],answer:0,difficulty:1},
-{id:447,topic:"Ratio",question:"The ratio of red to blue sweets is 3 : 5. If there are 24 red, how many blue?",options:["35","40","45","50"],answer:1,difficulty:2},
-{id:448,topic:"Ratio",question:"If y is directly proportional to x and y = 15 when x = 5, what is y when x = 9?",options:["25","27","30","45"],answer:1,difficulty:2},
-{id:449,topic:"Ratio",question:"If 6 workers take 4 days, how long do 8 workers take (inverse proportion)?",options:["2 days","3 days","5 days","6 days"],answer:1,difficulty:2},
-{id:450,topic:"Ratio",question:"A map has scale 1 : 50,000. A distance of 3 cm on the map is how far in real life?",options:["1.5 km","0.15 km","15 km","150 km"],answer:0,difficulty:2},
-{id:451,topic:"Ratio",question:"Divide 120 in the ratio 1 : 2 : 3.",options:["20, 40, 60","15, 40, 65","30, 40, 50","10, 50, 60"],answer:0,difficulty:2},
-{id:452,topic:"Ratio",question:"If 3 pens cost 75p, how much do 7 pens cost?",options:["£1.50","£1.65","£1.75","£1.85"],answer:2,difficulty:1},
-{id:453,topic:"Ratio",question:"A car travels 180 km on 15 litres. How far on 20 litres?",options:["220 km","230 km","240 km","250 km"],answer:2,difficulty:2},
-{id:454,topic:"Ratio",question:"The ratio of width to length of a rectangle is 3 : 7. The perimeter is 80 cm. What is the width?",options:["12 cm","15 cm","18 cm","20 cm"],answer:1,difficulty:3},
-{id:455,topic:"Ratio",question:"Share 450 in the ratio 4 : 5.",options:["180 and 270","200 and 250","175 and 275","190 and 260"],answer:0,difficulty:2},
-{id:456,topic:"Ratio",question:"A model car is built at a scale of 1 : 20. The model is 12 cm long. What is the real car's length?",options:["0.6 m","1.2 m","2.4 m","6 m"],answer:2,difficulty:2},
-{id:457,topic:"Ratio",question:"Orange squash is diluted in the ratio 1 : 4 (squash to water). How much squash in 500 ml of drink?",options:["80 ml","100 ml","120 ml","125 ml"],answer:1,difficulty:2},
-{id:458,topic:"Ratio",question:"If y is inversely proportional to x, and y = 12 when x = 4, find y when x = 6.",options:["6","8","10","12"],answer:1,difficulty:2},
-{id:459,topic:"Ratio",question:"The ratio of savings to spending is 2 : 9. Total income is £1,320. How much is saved?",options:["£240","£220","£200","£180"],answer:0,difficulty:2},
-{id:460,topic:"Ratio",question:"Concrete is made with cement, sand and gravel in ratio 1 : 2 : 4. How much sand in 140 kg?",options:["20 kg","30 kg","40 kg","50 kg"],answer:2,difficulty:2},
-{id:461,topic:"Ratio",question:"If 4 workers build a wall in 9 days, how many days for 6 workers?",options:["4 days","6 days","12 days","15 days"],answer:1,difficulty:2},
-{id:462,topic:"Ratio",question:"A photograph is 6 cm × 4 cm. It is enlarged in ratio 3 : 1. What are the new dimensions?",options:["9×6","12×8","18×12","15×10"],answer:2,difficulty:2},
-{id:463,topic:"Ratio",question:"In the ratio 7 : 3, the larger share is £84. What is the total?",options:["£100","£105","£110","£120"],answer:3,difficulty:3},
-{id:464,topic:"Ratio",question:"Which ratio is equivalent to 15 : 20?",options:["2:3","3:4","4:5","6:8"],answer:1,difficulty:1},
-{id:465,topic:"Ratio",question:"A triangle has sides in ratio 3 : 4 : 5. If the perimeter is 48 cm, what is the longest side?",options:["15 cm","18 cm","20 cm","24 cm"],answer:2,difficulty:2},
-{id:466,topic:"Ratio",question:"If 5 is to 8 as 30 is to ?, find ?.",options:["40","44","48","50"],answer:2,difficulty:2},
-{id:467,topic:"Ratio",question:"Mixing blue and yellow paint in ratio 2 : 5 gives green. How much blue for 56 litres of green?",options:["14 L","16 L","18 L","20 L"],answer:1,difficulty:2},
-{id:468,topic:"Ratio",question:"The exchange rate is £1 = €1.18. How many euros for £350?",options:["€403","€413","€423","€433"],answer:1,difficulty:2},
-{id:469,topic:"Ratio",question:"Three friends share profits in ratio 2 : 3 : 5. The profit is £6,000. What is the largest share?",options:["£1,200","£1,800","£3,000","£2,400"],answer:2,difficulty:2},
-{id:470,topic:"Ratio",question:"If y ∝ x² and y = 36 when x = 3, find y when x = 5.",options:["50","75","100","125"],answer:2,difficulty:3},
-{id:471,topic:"Ratio",question:"A solution is 30% acid. How much solution contains 12 ml of acid?",options:["36 ml","40 ml","48 ml","50 ml"],answer:1,difficulty:2},
-{id:472,topic:"Ratio",question:"Tom and Jerry share money in ratio 5 : 3. Tom has £40 more than Jerry. How much does Jerry have?",options:["£50","£55","£60","£65"],answer:2,difficulty:3},
-{id:473,topic:"Ratio",question:"A drawing has a scale of 2 cm = 1 m. What area (real) does 6 cm × 4 cm represent?",options:["6 m²","24 m²","3 m²","12 m²"],answer:0,difficulty:3},
-{id:474,topic:"Ratio",question:"If 8 chocolates cost £2.40, what is the cost of 15 chocolates?",options:["£4.00","£4.20","£4.40","£4.50"],answer:3,difficulty:2},
-{id:475,topic:"Ratio",question:"The ratio of teachers to students is 1 : 18. If there are 342 students, how many teachers?",options:["17","18","19","20"],answer:2,difficulty:2},
-{id:476,topic:"Ratio",question:"A tap fills a tank in 6 hours. How long for 4 taps? (inverse proportion)",options:["1.5 hours","2 hours","3 hours","4 hours"],answer:0,difficulty:2},
-{id:477,topic:"Ratio",question:"Which proportion is correct? 2/5 = ?/35",options:["12","14","16","18"],answer:1,difficulty:1},
-{id:478,topic:"Ratio",question:"In a 1 : 25,000 map, 4 cm represents what real distance?",options:["1 km","2 km","4 km","10 km"],answer:0,difficulty:2},
-{id:479,topic:"Ratio",question:"Divide 180° in ratio 1 : 2 : 3.",options:["30°,60°,90°","20°,60°,100°","40°,50°,90°","45°,60°,75°"],answer:0,difficulty:2},
-{id:480,topic:"Ratio",question:"If p : q = 3 : 4 and q : r = 5 : 6, find p : q : r.",options:["15:20:24","3:4:6","15:24:20","12:16:20"],answer:0,difficulty:3},
-/* ─────────────────────────────────────────
-   SPEED, DISTANCE & TIME  (Q481–Q540)
-───────────────────────────────────────── */
-,{id:481,topic:"Speed",question:"A car travels 120 km in 2 hours. What is its average speed?",options:["50 km/h","55 km/h","60 km/h","65 km/h"],answer:2,difficulty:1},
-{id:482,topic:"Speed",question:"A train travels at 80 km/h for 3 hours. What distance does it cover?",options:["200 km","220 km","240 km","260 km"],answer:2,difficulty:1},
-{id:483,topic:"Speed",question:"A cyclist covers 45 km at 15 km/h. How long does it take?",options:["2 h","3 h","4 h","5 h"],answer:1,difficulty:1},
-{id:484,topic:"Speed",question:"What is the formula for speed?",options:["D × T","D ÷ T","T ÷ D","T × D"],answer:1,difficulty:1},
-{id:485,topic:"Speed",question:"A runner runs 400 m in 50 seconds. What is their speed in m/s?",options:["6 m/s","7 m/s","8 m/s","9 m/s"],answer:2,difficulty:1},
-{id:486,topic:"Speed",question:"A bus travels 90 km/h. How long to travel 270 km?",options:["2 h","3 h","4 h","5 h"],answer:1,difficulty:1},
-{id:487,topic:"Speed",question:"A plane flew 1,800 km in 2.5 hours. What was its average speed?",options:["680 km/h","700 km/h","720 km/h","750 km/h"],answer:2,difficulty:2},
-{id:488,topic:"Speed",question:"Convert 72 km/h into m/s.",options:["15 m/s","18 m/s","20 m/s","25 m/s"],answer:2,difficulty:2},
-{id:489,topic:"Speed",question:"Convert 15 m/s into km/h.",options:["45 km/h","50 km/h","54 km/h","60 km/h"],answer:2,difficulty:2},
-{id:490,topic:"Speed",question:"A train leaves at 09:15 and arrives at 11:45. It travels 200 km. What is its average speed?",options:["75 km/h","80 km/h","85 km/h","90 km/h"],answer:1,difficulty:2},
-{id:491,topic:"Speed",question:"Two cars leave the same point. Car A travels at 60 km/h and Car B at 80 km/h. After 2 hours, how far apart are they?",options:["20 km","40 km","140 km","120 km"],answer:1,difficulty:2},
-{id:492,topic:"Speed",question:"A bird flies 5 km in 15 minutes. What is its speed in km/h?",options:["15 km/h","18 km/h","20 km/h","25 km/h"],answer:2,difficulty:2},
-{id:493,topic:"Speed",question:"A car travels at 50 km/h for 1.5 hours, then 70 km/h for 2 hours. What is the total distance?",options:["190 km","200 km","210 km","215 km"],answer:0,difficulty:2},
-{id:494,topic:"Speed",question:"What is the average speed if you travel 180 km in 2 hours 30 minutes?",options:["68 km/h","70 km/h","72 km/h","75 km/h"],answer:2,difficulty:2},
-{id:495,topic:"Speed",question:"A person walks at 5 km/h. How many minutes to walk 2 km?",options:["20 min","22 min","24 min","30 min"],answer:2,difficulty:1},
-{id:496,topic:"Speed",question:"A snail travels at 0.05 m/s. How far does it travel in 1 minute?",options:["0.3 m","3 m","30 m","300 m"],answer:1,difficulty:2},
-{id:497,topic:"Speed",question:"A journey of 360 km takes 4 hours. If the speed is increased by 10 km/h, how long does it take?",options:["3 h","3 h 36 min","3 h 20 min","3 h 30 min"],answer:1,difficulty:3},
-{id:498,topic:"Speed",question:"At 60 km/h, how long does it take to travel 1 km?",options:["1 min","1.5 min","2 min","3 min"],answer:0,difficulty:2},
-{id:499,topic:"Speed",question:"A rocket travels 7,200 km in 30 minutes. What is its speed in km/h?",options:["14,000 km/h","14,400 km/h","15,000 km/h","16,200 km/h"],answer:1,difficulty:2},
-{id:500,topic:"Speed",question:"Tom runs 100 m in 12.5 seconds. Sally runs 100 m in 11 seconds. How much faster is Sally?",options:["1 s","1.5 s","2 s","2.5 s"],answer:1,difficulty:1},
-{id:501,topic:"Speed",question:"A car travels 250 km at 100 km/h and 150 km at 75 km/h. What is the total journey time?",options:["4 h","4.5 h","5 h","5.5 h"],answer:0,difficulty:3},
-{id:502,topic:"Speed",question:"How many metres does a car travel at 90 km/h in 20 seconds?",options:["400 m","450 m","500 m","550 m"],answer:2,difficulty:3},
-{id:503,topic:"Speed",question:"A train travels between two cities 480 km apart. It takes 4 hours. What is the average speed?",options:["100 km/h","110 km/h","120 km/h","130 km/h"],answer:2,difficulty:1},
-{id:504,topic:"Speed",question:"Speed of sound is about 340 m/s. How long does it take to travel 1 km?",options:["2.9 s","3.0 s","3.4 s","3.5 s"],answer:0,difficulty:2},
-{id:505,topic:"Speed",question:"A cyclist travels at 12 km/h. What distance is covered in 45 minutes?",options:["7 km","8 km","9 km","10 km"],answer:2,difficulty:2},
-{id:506,topic:"Speed",question:"Two trains travel towards each other from cities 300 km apart at 60 km/h and 90 km/h. When do they meet?",options:["1 h","2 h","3 h","4 h"],answer:1,difficulty:3},
-{id:507,topic:"Speed",question:"A delivery van leaves at 06:30 and arrives at 09:00. It averaged 60 km/h. What distance was covered?",options:["140 km","150 km","160 km","165 km"],answer:1,difficulty:2},
-{id:508,topic:"Speed",question:"Which is faster: 30 m/s or 100 km/h?",options:["30 m/s","100 km/h","They are equal","Depends on direction"],answer:0,difficulty:2},
-{id:509,topic:"Speed",question:"A cyclist covers 240 km. The first half took 4 hours, second half took 6 hours. What was average speed?",options:["22 km/h","24 km/h","25 km/h","30 km/h"],answer:1,difficulty:3},
-{id:510,topic:"Speed",question:"Light travels at 300,000 km/s. How far does it travel in 8 seconds?",options:["240,000 km","2,400,000 km","24,000,000 km","24,000 km"],answer:1,difficulty:2},
-/* ─────────────────────────────────────────
-   MEASUREMENT  (Q511–Q570)
-───────────────────────────────────────── */
-{id:511,topic:"Measurement",question:"How many centimetres are in 3.7 metres?",options:["37 cm","3.7 cm","370 cm","3,700 cm"],answer:2,difficulty:1},
-{id:512,topic:"Measurement",question:"Convert 5,400 grams to kilograms.",options:["0.54 kg","5.4 kg","54 kg","540 kg"],answer:1,difficulty:1},
-{id:513,topic:"Measurement",question:"How many millilitres are in 2.5 litres?",options:["25 ml","250 ml","2,500 ml","25,000 ml"],answer:2,difficulty:1},
-{id:514,topic:"Measurement",question:"What is the area of a rectangle 8 cm × 5 cm?",options:["26 cm²","40 cm²","13 cm²","80 cm²"],answer:1,difficulty:1},
-{id:515,topic:"Measurement",question:"What is the perimeter of a square with side 7 cm?",options:["14 cm","21 cm","28 cm","49 cm"],answer:2,difficulty:1},
-{id:516,topic:"Measurement",question:"What is the area of a triangle with base 10 cm and height 6 cm?",options:["16 cm²","30 cm²","60 cm²","30 cm"],answer:1,difficulty:1},
-{id:517,topic:"Measurement",question:"What is the volume of a cuboid 5 cm × 3 cm × 4 cm?",options:["47 cm³","48 cm³","60 cm³","72 cm³"],answer:2,difficulty:2},
-{id:518,topic:"Measurement",question:"Convert 3.5 km to metres.",options:["350 m","3,500 m","35,000 m","0.35 m"],answer:1,difficulty:1},
-{id:519,topic:"Measurement",question:"How many 200 ml glasses can be filled from a 1.5 litre bottle?",options:["5","6","7","8"],answer:2,difficulty:1},
-{id:520,topic:"Measurement",question:"A room is 4 m × 3 m. Carpet costs £12 per m². What is the total cost?",options:["£84","£120","£144","£168"],answer:2,difficulty:2},
-{id:521,topic:"Measurement",question:"What is the perimeter of a rectangle 9 cm × 6 cm?",options:["54 cm","30 cm","15 cm","15 cm²"],answer:1,difficulty:1},
-{id:522,topic:"Measurement",question:"Convert 4 hours 25 minutes to minutes.",options:["245 min","255 min","265 min","275 min"],answer:2,difficulty:1},
-{id:523,topic:"Measurement",question:"A jug holds 1.2 litres. How many 75 ml cups can be filled?",options:["14","15","16","17"],answer:2,difficulty:2},
-{id:524,topic:"Measurement",question:"What is the area of a parallelogram with base 12 cm and height 5 cm?",options:["34 cm²","60 cm²","17 cm²","30 cm²"],answer:1,difficulty:2},
-{id:525,topic:"Measurement",question:"How many miles is approximately 80 km? (1 mile ≈ 1.6 km)",options:["45","50","55","60"],answer:1,difficulty:2},
-{id:526,topic:"Measurement",question:"A fence around a square garden needs 44 m of fencing. What is the area of the garden?",options:["81 m²","100 m²","121 m²","144 m²"],answer:2,difficulty:2},
-{id:527,topic:"Measurement",question:"Which is heavier: 4.5 kg or 4,450 g?",options:["4.5 kg","4,450 g","They are equal","Cannot tell"],answer:0,difficulty:1},
-{id:528,topic:"Measurement",question:"A box is 20 cm × 15 cm × 10 cm. What is its volume in litres?",options:["2 L","3 L","4 L","30 L"],answer:1,difficulty:2},
-{id:529,topic:"Measurement",question:"What is the area of a trapezium with parallel sides 8 cm and 12 cm, and height 5 cm?",options:["40 cm²","50 cm²","60 cm²","100 cm²"],answer:1,difficulty:2},
-{id:530,topic:"Measurement",question:"The radius of a circle is 7 cm. What is the diameter?",options:["3.5 cm","7 cm","14 cm","28 cm"],answer:2,difficulty:1},
-{id:531,topic:"Measurement",question:"The circumference of a circle is approximately π × d. With d = 10 cm, what is the circumference? (π ≈ 3.14)",options:["15.7 cm","31.4 cm","62.8 cm","314 cm"],answer:1,difficulty:2},
-{id:532,topic:"Measurement",question:"What is the area of a circle with radius 5 cm? (π ≈ 3.14)",options:["15.7 cm²","31.4 cm²","78.5 cm²","157 cm²"],answer:2,difficulty:2},
-{id:533,topic:"Measurement",question:"A container holds 6,000 cm³. How many litres is that?",options:["0.6 L","6 L","60 L","600 L"],answer:1,difficulty:2},
-{id:534,topic:"Measurement",question:"How many seconds in 1 hour?",options:["60","360","600","3,600"],answer:3,difficulty:1},
-{id:535,topic:"Measurement",question:"1 inch ≈ 2.54 cm. Convert 10 inches to cm.",options:["2.54 cm","25.4 cm","254 cm","0.254 cm"],answer:1,difficulty:1},
-{id:536,topic:"Measurement",question:"The area of a triangle is 24 cm². Its base is 8 cm. What is its height?",options:["3 cm","4 cm","6 cm","8 cm"],answer:2,difficulty:2},
-{id:537,topic:"Measurement",question:"A floor is 6 m × 4.5 m. How many 50 cm × 50 cm tiles are needed?",options:["100","108","120","216"],answer:1,difficulty:3},
-{id:538,topic:"Measurement",question:"Convert 3 weeks and 4 days into days.",options:["21","24","25","28"],answer:2,difficulty:1},
-{id:539,topic:"Measurement",question:"A cube has side length 4 cm. What is its surface area?",options:["64 cm²","80 cm²","96 cm²","144 cm²"],answer:2,difficulty:2},
-{id:540,topic:"Measurement",question:"A field is 80 m × 50 m. What is its area in hectares? (1 hectare = 10,000 m²)",options:["0.4 ha","4 ha","0.04 ha","40 ha"],answer:0,difficulty:2},
-/* ─────────────────────────────────────────
-   GEOMETRY  (Q541–Q640)
-───────────────────────────────────────── */
-{id:541,topic:"Geometry",question:"What is the sum of angles in a triangle?",options:["90°","180°","270°","360°"],answer:1,difficulty:1},
-{id:542,topic:"Geometry",question:"What is the sum of angles in a quadrilateral?",options:["180°","270°","360°","450°"],answer:2,difficulty:1},
-{id:543,topic:"Geometry",question:"An equilateral triangle has angles of:",options:["30°","45°","60°","90°"],answer:2,difficulty:1},
-{id:544,topic:"Geometry",question:"What type of angle is 135°?",options:["Acute","Right","Obtuse","Reflex"],answer:2,difficulty:1},
-{id:545,topic:"Geometry",question:"Two angles on a straight line add up to:",options:["90°","180°","270°","360°"],answer:1,difficulty:1},
-{id:546,topic:"Geometry",question:"What is the missing angle in a triangle if two angles are 65° and 75°?",options:["30°","40°","50°","60°"],answer:1,difficulty:1},
-{id:547,topic:"Geometry",question:"A regular hexagon has how many lines of symmetry?",options:["4","5","6","8"],answer:2,difficulty:2},
-{id:548,topic:"Geometry",question:"What is the order of rotational symmetry of an equilateral triangle?",options:["1","2","3","6"],answer:2,difficulty:2},
-{id:549,topic:"Geometry",question:"What are alternate angles?",options:["Equal angles on same side of transversal","Equal angles on opposite sides of transversal","Supplementary angles","Corresponding angles"],answer:1,difficulty:2},
-{id:550,topic:"Geometry",question:"A rectangle has length 10 cm and width 6 cm. What is the diagonal length?",options:["√136 cm","√164 cm","√196 cm","√116 cm"],answer:0,difficulty:3},
-{id:551,topic:"Geometry",question:"What is the exterior angle of a regular pentagon?",options:["60°","72°","108°","120°"],answer:1,difficulty:2},
-{id:552,topic:"Geometry",question:"What is the interior angle of a regular hexagon?",options:["108°","120°","135°","144°"],answer:1,difficulty:2},
-{id:553,topic:"Geometry",question:"The angles of a quadrilateral are 90°, 85°, 75°, and x. Find x.",options:["100°","105°","110°","115°"],answer:2,difficulty:2},
-{id:554,topic:"Geometry",question:"What is a line of symmetry?",options:["A line that divides a shape into two equal parts","A line parallel to the base","A line from vertex to midpoint","The diameter of a circle"],answer:0,difficulty:1},
-{id:555,topic:"Geometry",question:"How many faces does a cube have?",options:["4","6","8","12"],answer:1,difficulty:1},
-{id:556,topic:"Geometry",question:"How many edges does a triangular prism have?",options:["6","8","9","12"],answer:2,difficulty:2},
-{id:557,topic:"Geometry",question:"A square is reflected in the y-axis. The point (3, 2) maps to:",options:["(−3, 2)","(3, −2)","(−3, −2)","(2, 3)"],answer:0,difficulty:2},
-{id:558,topic:"Geometry",question:"What is the translation of point (4, 3) by vector (−2, 5)?",options:["(2,8)","(6,8)","(2,−2)","(6,−2)"],answer:0,difficulty:2},
-{id:559,topic:"Geometry",question:"What type of triangle has all sides equal?",options:["Isosceles","Scalene","Equilateral","Right-angled"],answer:2,difficulty:1},
-{id:560,topic:"Geometry",question:"What is the interior angle sum of a pentagon?",options:["450°","540°","630°","720°"],answer:1,difficulty:2},
-{id:561,topic:"Geometry",question:"A point (2, 5) is rotated 90° clockwise about the origin. Where does it map to?",options:["(−5, 2)","(5, −2)","(−2, 5)","(5, 2)"],answer:1,difficulty:3},
-{id:562,topic:"Geometry",question:"In the Pythagoras theorem a² + b² = c², if a = 6 and b = 8, find c.",options:["10","12","14","100"],answer:0,difficulty:2},
-{id:563,topic:"Geometry",question:"What is the name for a 3D shape with two circular bases?",options:["Cone","Sphere","Cylinder","Prism"],answer:2,difficulty:1},
-{id:564,topic:"Geometry",question:"What are co-interior (same-side interior) angles?",options:["Equal","Supplementary (add to 180°)","Complementary (add to 90°)","Both reflex"],answer:1,difficulty:2},
-{id:565,topic:"Geometry",question:"A shape has 5 faces, 8 edges and 5 vertices. What is it?",options:["Triangular prism","Square pyramid","Tetrahedron","Pentagonal prism"],answer:1,difficulty:2},
-{id:566,topic:"Geometry",question:"What is the perpendicular height of an equilateral triangle with side 4 cm? (≈)",options:["√6 cm","√12 cm","4 cm","2√3 cm"],answer:3,difficulty:3},
-{id:567,topic:"Geometry",question:"Angles a and b are vertically opposite. If a = 47°, what is b?",options:["43°","47°","133°","143°"],answer:1,difficulty:1},
-{id:568,topic:"Geometry",question:"The bearing of B from A is 070°. What is the bearing of A from B?",options:["110°","250°","290°","340°"],answer:1,difficulty:3},
-{id:569,topic:"Geometry",question:"What is the name for the angle between a tangent and a radius at the point of tangency?",options:["45°","90°","180°","Acute"],answer:1,difficulty:2},
-{id:570,topic:"Geometry",question:"A regular polygon has interior angles of 135°. How many sides does it have?",options:["6","7","8","9"],answer:2,difficulty:3},
-{id:571,topic:"Geometry",question:"What is the surface area of a cube with side 5 cm?",options:["100 cm²","125 cm²","150 cm²","200 cm²"],answer:2,difficulty:2},
-{id:572,topic:"Geometry",question:"The volume of a cylinder is πr²h. With r = 3 cm and h = 10 cm (π ≈ 3.14), what is the volume?",options:["270 cm³","282.6 cm³","314 cm³","94.2 cm³"],answer:1,difficulty:2},
-{id:573,topic:"Geometry",question:"What is a rhombus?",options:["A rectangle with equal sides","A parallelogram with all equal sides","A shape with only one pair of parallel sides","A square with unequal sides"],answer:1,difficulty:2},
-{id:574,topic:"Geometry",question:"Two parallel lines are cut by a transversal. Corresponding angles are:",options:["Supplementary","Complementary","Equal","Reflex"],answer:2,difficulty:1},
-{id:575,topic:"Geometry",question:"The circumference of a circle is 62.8 cm. What is the radius? (π ≈ 3.14)",options:["5 cm","10 cm","20 cm","30 cm"],answer:1,difficulty:2},
-{id:576,topic:"Geometry",question:"What is the interior angle sum of a nonagon (9-sided polygon)?",options:["1,080°","1,260°","1,440°","1,620°"],answer:1,difficulty:3},
-{id:577,topic:"Geometry",question:"An isosceles triangle has a vertex angle of 40°. What are the base angles?",options:["60°","65°","70°","75°"],answer:2,difficulty:2},
-{id:578,topic:"Geometry",question:"What is the area of a semicircle with diameter 12 cm? (π ≈ 3.14)",options:["56.52 cm²","113.04 cm²","226.08 cm²","18.84 cm²"],answer:0,difficulty:3},
-{id:579,topic:"Geometry",question:"A triangle has sides 5 cm, 12 cm and 13 cm. Is it right-angled?",options:["Yes","No","Only if it's isosceles","Cannot tell"],answer:0,difficulty:2},
-{id:580,topic:"Geometry",question:"What is the scale factor of enlargement if a 3 cm shape becomes 12 cm?",options:["3","4","5","9"],answer:1,difficulty:1},
-{id:581,topic:"Geometry",question:"What is the name for the longest side in a right-angled triangle?",options:["Adjacent","Opposite","Hypotenuse","Tangent"],answer:2,difficulty:1},
-{id:582,topic:"Geometry",question:"In a right-angled triangle, if one angle is 30°, what is the other non-right angle?",options:["30°","45°","60°","90°"],answer:2,difficulty:1},
-{id:583,topic:"Geometry",question:"A shape is enlarged by scale factor 3. If the original area is 8 cm², what is the new area?",options:["24 cm²","48 cm²","72 cm²","96 cm²"],answer:2,difficulty:3},
-{id:584,topic:"Geometry",question:"What is the angle at the centre of a regular octagon?",options:["30°","40°","45°","50°"],answer:2,difficulty:2},
-{id:585,topic:"Geometry",question:"A kite has two pairs of adjacent sides equal. How many lines of symmetry does it have?",options:["0","1","2","4"],answer:1,difficulty:2},
-{id:586,topic:"Geometry",question:"What coordinates is the midpoint of (2, 4) and (8, 10)?",options:["(4,7)","(5,7)","(6,7)","(5,6)"],answer:1,difficulty:2},
-{id:587,topic:"Geometry",question:"Using Pythagoras, find the missing side if the hypotenuse is 13 and one leg is 5.",options:["8","10","12","14"],answer:2,difficulty:2},
-{id:588,topic:"Geometry",question:"What is the exterior angle of a regular octagon?",options:["30°","40°","45°","50°"],answer:2,difficulty:2},
-{id:589,topic:"Geometry",question:"A circle has area 78.5 cm² (π ≈ 3.14). What is its radius?",options:["4 cm","5 cm","6 cm","7 cm"],answer:1,difficulty:2},
-{id:590,topic:"Geometry",question:"What type of symmetry does a regular pentagon have?",options:["No symmetry","Only line symmetry","Only rotational symmetry","Both line and rotational symmetry"],answer:3,difficulty:2},
-/* ─────────────────────────────────────────
-   STATISTICS  (Q591–Q670)
-───────────────────────────────────────── */
-,{id:591,topic:"Statistics",question:"Find the mean of: 4, 7, 9, 3, 7.",options:["6","7","8","9"],answer:0,difficulty:1},
-{id:592,topic:"Statistics",question:"Find the median of: 3, 7, 4, 9, 1.",options:["3","4","7","9"],answer:1,difficulty:1},
-{id:593,topic:"Statistics",question:"Find the mode of: 2, 5, 3, 5, 7, 5, 2.",options:["2","3","5","7"],answer:2,difficulty:1},
-{id:594,topic:"Statistics",question:"Find the range of: 12, 7, 19, 4, 15.",options:["8","12","15","19"],answer:2,difficulty:1},
-{id:595,topic:"Statistics",question:"The mean of 5 numbers is 8. Four of them are 6, 9, 10, 7. What is the fifth?",options:["7","8","9","10"],answer:1,difficulty:2},
-{id:596,topic:"Statistics",question:"Find the median of: 5, 12, 3, 8, 15, 9.",options:["8","8.5","9","9.5"],answer:1,difficulty:2},
-{id:597,topic:"Statistics",question:"A pie chart shows 25% for Sport. If 200 students were asked, how many chose Sport?",options:["40","50","60","70"],answer:1,difficulty:1},
-{id:598,topic:"Statistics",question:"What angle represents 30% in a pie chart?",options:["90°","100°","108°","120°"],answer:2,difficulty:2},
-{id:599,topic:"Statistics",question:"Data: 2, 3, 3, 4, 5, 6, 6, 6, 7. What is the mode?",options:["3","4","6","7"],answer:2,difficulty:1},
-{id:600,topic:"Statistics",question:"The mean of 4 numbers is 12.5. What is their total?",options:["40","48","50","56"],answer:2,difficulty:1},
-{id:601,topic:"Statistics",question:"In a stem-and-leaf diagram, the stem 3 | 2 4 7 represents:",options:["3, 2, 4, 7","32, 34, 37","324, 7","3, 247"],answer:1,difficulty:2},
-{id:602,topic:"Statistics",question:"A line graph shows temperatures: Mon 15°, Tue 18°, Wed 12°, Thu 20°, Fri 17°. What is the mean?",options:["15°","16.4°","17°","18°"],answer:1,difficulty:2},
-{id:603,topic:"Statistics",question:"Which average is most affected by extreme values?",options:["Mean","Median","Mode","Range"],answer:0,difficulty:2},
-{id:604,topic:"Statistics",question:"Which type of data is 'favourite colour'?",options:["Discrete","Continuous","Categorical","Ordinal"],answer:2,difficulty:1},
-{id:605,topic:"Statistics",question:"Heights of students in cm: 145, 152, 148, 160, 152. What is the median?",options:["148","150","152","155"],answer:2,difficulty:2},
-{id:606,topic:"Statistics",question:"30 students rated a film 1–5. Mean = 3.5. Total points given =",options:["100","105","110","115"],answer:1,difficulty:2},
-{id:607,topic:"Statistics",question:"A frequency table shows: score 1 (freq 3), 2 (freq 7), 3 (freq 5), 4 (freq 3), 5 (freq 2). What is the modal score?",options:["1","2","3","4"],answer:1,difficulty:1},
-{id:608,topic:"Statistics",question:"What is the mean from the table: score 1 (f=2), 2 (f=5), 3 (f=3)? (Total = 10 pupils)",options:["2.0","2.1","2.2","2.3"],answer:1,difficulty:2},
-{id:609,topic:"Statistics",question:"A bar chart shows 40 cats, 25 dogs and 15 birds were sold. What fraction were dogs?",options:["1/3","5/16","1/4","2/5"],answer:1,difficulty:2},
-{id:610,topic:"Statistics",question:"The range of a dataset is 18 and the smallest value is 7. What is the largest?",options:["11","18","25","30"],answer:2,difficulty:1},
-{id:611,topic:"Statistics",question:"In a grouped frequency table, the class 20 ≤ h < 30 has midpoint:",options:["20","25","29","30"],answer:1,difficulty:1},
-{id:612,topic:"Statistics",question:"Which of these is a continuous variable?",options:["Number of goals","Shoe size","Height","Favourite food"],answer:2,difficulty:1},
-{id:613,topic:"Statistics",question:"A pictogram shows 🌟🌟🌟 = 12 students. Each 🌟 = ? students",options:["3","4","5","6"],answer:1,difficulty:1},
-{id:614,topic:"Statistics",question:"Test scores: 45, 52, 67, 72, 80, 85, 91. What is the interquartile range?",options:["25","33","38","46"],answer:1,difficulty:3},
-{id:615,topic:"Statistics",question:"The mean of 3 numbers is 9. Two are 7 and 11. What is the third?",options:["7","8","9","10"],answer:2,difficulty:1},
-{id:616,topic:"Statistics",question:"A pie chart has 4 equal sectors. What angle is each sector?",options:["45°","60°","90°","120°"],answer:2,difficulty:1},
-{id:617,topic:"Statistics",question:"Which diagram shows individual data values and their frequencies?",options:["Bar chart","Pie chart","Stem-and-leaf","Line graph"],answer:2,difficulty:1},
-{id:618,topic:"Statistics",question:"In a scatter graph, a positive correlation means:",options:["As x increases, y decreases","As x increases, y increases","No relationship","Random pattern"],answer:1,difficulty:1},
-{id:619,topic:"Statistics",question:"A class scored: 55, 60, 65, 70, 75. The range is 20, but if the lowest is changed to 50, the new range is:",options:["20","25","30","35"],answer:1,difficulty:2},
-{id:620,topic:"Statistics",question:"10 test scores: 6, 8, 5, 9, 7, 8, 6, 8, 7, 6. What is the mean?",options:["7","7.2","6.9","6.8"],answer:0,difficulty:2},
-{id:621,topic:"Statistics",question:"What type of average is best for a dataset with an outlier?",options:["Mean","Mode","Median","Range"],answer:2,difficulty:2},
-{id:622,topic:"Statistics",question:"A survey of 60 people: 15 prefer pop, 20 rock, 25 classical. What angle for rock in a pie chart?",options:["100°","110°","120°","130°"],answer:2,difficulty:2},
-{id:623,topic:"Statistics",question:"The mean of 6 numbers is 10. If a 7th number (16) is added, what is the new mean?",options:["11","11.1","11.2","11.4"],answer:0,difficulty:3},
-{id:624,topic:"Statistics",question:"Which average cannot be used for non-numerical data?",options:["Mean","Mode","Both mean and mode","All of them"],answer:0,difficulty:2},
-{id:625,topic:"Statistics",question:"Data set: 4, 7, 7, 8, 9, 11, 14. Median =",options:["7","8","8.5","9"],answer:1,difficulty:1},
-{id:626,topic:"Statistics",question:"A frequency table: value 0 (f=4), 1 (f=6), 2 (f=5), 3 (f=5). How many values in total?",options:["18","20","22","24"],answer:1,difficulty:1},
-{id:627,topic:"Statistics",question:"In a back-to-back stem and leaf diagram, what does the key 3 | 2 | 7 mean?",options:["23 and 27","32 and 27","23 and 72","32 and 72"],answer:0,difficulty:3},
-{id:628,topic:"Statistics",question:"A scatter graph shows strong negative correlation. As x increases by 5, y decreases by 10. What is the gradient?",options:["2","−2","0.5","−0.5"],answer:1,difficulty:3},
-{id:629,topic:"Statistics",question:"The median of 6, 8, 9, x, 14, 15 is 10. What is x?",options:["9","10","11","12"],answer:2,difficulty:3},
-{id:630,topic:"Statistics",question:"A dataset has mean 20 and each value is multiplied by 3. The new mean is:",options:["23","40","60","80"],answer:2,difficulty:2},
-{id:631,topic:"Statistics",question:"In a frequency polygon, values are plotted at:",options:["Class boundaries","Midpoints of classes","Lowest values","Highest values"],answer:1,difficulty:2},
-{id:632,topic:"Statistics",question:"A pie chart shows that 30% chose basketball. There are 240 students. How many chose basketball?",options:["60","72","80","90"],answer:1,difficulty:1},
-{id:633,topic:"Statistics",question:"The mode of 3, 5, 5, 7, 9, 9 is:",options:["5","7","5 and 9 (bimodal)","9"],answer:2,difficulty:2},
-{id:634,topic:"Statistics",question:"Which graph is best for showing how data changes over time?",options:["Pie chart","Bar chart","Line graph","Scatter graph"],answer:2,difficulty:1},
-{id:635,topic:"Statistics",question:"5 numbers have a mean of 12 and a median of 11. If four of the numbers are 8, 10, 11 and 14, what is the fifth?",options:["16","17","18","19"],answer:1,difficulty:3},
-{id:636,topic:"Statistics",question:"In a cumulative frequency graph, the median is found at:",options:["25% of total","50% of total","75% of total","100% of total"],answer:1,difficulty:2},
-{id:637,topic:"Statistics",question:"What is the term for data collected by you directly?",options:["Secondary data","Primary data","Discrete data","Qualitative data"],answer:1,difficulty:1},
-{id:638,topic:"Statistics",question:"A class has 10 boys and 20 girls. 3 boys and 4 girls are left-handed. What fraction are left-handed?",options:["7/30","1/5","1/4","1/3"],answer:0,difficulty:2},
-{id:639,topic:"Statistics",question:"Which type of chart is best for comparing parts of a whole?",options:["Line graph","Bar chart","Pie chart","Scatter graph"],answer:2,difficulty:1},
-{id:640,topic:"Statistics",question:"Two data sets have the same mean but different ranges. What does this tell you?",options:["Same spread","Different spreads","One is larger","One is smaller"],answer:1,difficulty:2},
-/* ─────────────────────────────────────────
-   PROBABILITY  (Q641–Q710)
-───────────────────────────────────────── */
-{id:641,topic:"Probability",question:"A bag has 3 red and 7 blue balls. What is the probability of picking red?",options:["3/7","7/10","3/10","7/3"],answer:2,difficulty:1},
-{id:642,topic:"Probability",question:"A fair coin is flipped. What is the probability of tails?",options:["1/4","1/3","1/2","2/3"],answer:2,difficulty:1},
-{id:643,topic:"Probability",question:"A fair die is rolled. What is the probability of getting a 4?",options:["1/4","1/5","1/6","1/3"],answer:2,difficulty:1},
-{id:644,topic:"Probability",question:"The probability of rain is 0.65. What is the probability of no rain?",options:["0.25","0.35","0.45","0.65"],answer:1,difficulty:1},
-{id:645,topic:"Probability",question:"Which probability is impossible?",options:["0","0.5","1","1.5"],answer:3,difficulty:1},
-{id:646,topic:"Probability",question:"A fair die is rolled. What is the probability of an even number?",options:["1/3","1/2","2/3","3/4"],answer:1,difficulty:1},
-{id:647,topic:"Probability",question:"A bag has 5 red, 3 green and 2 yellow sweets. What is the probability of NOT picking red?",options:["1/2","3/10","5/10","7/10"],answer:0,difficulty:2},
-{id:648,topic:"Probability",question:"A card is picked from a standard deck (52 cards). What is the probability of picking a heart?",options:["1/4","1/3","1/2","4/52"],answer:0,difficulty:1},
-{id:649,topic:"Probability",question:"A spinner has 8 equal sections: 3 red, 2 blue, 3 green. What is P(blue)?",options:["1/4","3/8","2/8","1/8"],answer:0,difficulty:1},
-{id:650,topic:"Probability",question:"If P(A) = 0.4 and P(B) = 0.5 and A and B are mutually exclusive, find P(A or B).",options:["0.2","0.6","0.9","0.5"],answer:2,difficulty:2},
-{id:651,topic:"Probability",question:"A bag has 4 red and 6 blue balls. Two are drawn without replacement. P(both red) = ?",options:["2/15","4/25","16/100","1/5"],answer:0,difficulty:3},
-{id:652,topic:"Probability",question:"A fair die is rolled twice. What is P(both 6)?",options:["1/6","1/12","1/36","2/36"],answer:2,difficulty:2},
-{id:653,topic:"Probability",question:"How many outcomes when flipping a coin 3 times?",options:["4","6","8","10"],answer:2,difficulty:1},
-{id:654,topic:"Probability",question:"P(event) = 0. This means the event is:",options:["Certain","Likely","Impossible","Unlikely"],answer:2,difficulty:1},
-{id:655,topic:"Probability",question:"A bag has 12 balls: 4 red, 5 blue, 3 yellow. If yellow balls are removed, P(red) becomes:",options:["4/12","4/9","1/3","5/9"],answer:1,difficulty:2},
-{id:656,topic:"Probability",question:"In a class of 30, 18 play sport and 14 play music. 6 play both. P(sport only) = ?",options:["12/30","18/30","6/30","14/30"],answer:0,difficulty:3},
-{id:657,topic:"Probability",question:"A fair die is rolled. What is P(prime number)?",options:["1/6","1/3","1/2","2/3"],answer:2,difficulty:2},
-{id:658,topic:"Probability",question:"Two events cannot happen at the same time. They are:",options:["Independent","Mutually exclusive","Complementary","Combined"],answer:1,difficulty:2},
-{id:659,topic:"Probability",question:"A card is picked from 52. P(king or queen) = ?",options:["2/52","4/52","8/52","2/13"],answer:2,difficulty:2},
-{id:660,topic:"Probability",question:"A bag has 5 red and 3 blue. One is taken, not replaced, then another. P(red then blue) = ?",options:["15/56","15/64","8/15","3/8"],answer:0,difficulty:3},
-{id:661,topic:"Probability",question:"Which words describe a probability of 0.9?",options:["Unlikely","Evens","Likely","Certain"],answer:2,difficulty:1},
-{id:662,topic:"Probability",question:"In 60 trials, a spinner lands on red 15 times. Estimate P(red).",options:["0.15","0.20","0.25","0.30"],answer:2,difficulty:1},
-{id:663,topic:"Probability",question:"P(A) = 0.3, P(B) = 0.5. If independent, P(A and B) = ?",options:["0.15","0.20","0.80","0.35"],answer:0,difficulty:2},
-{id:664,topic:"Probability",question:"A tree diagram shows coin flip + die roll. How many outcomes?",options:["6","8","12","18"],answer:2,difficulty:2},
-{id:665,topic:"Probability",question:"A die is rolled. P(≤ 4) = ?",options:["1/6","1/3","1/2","2/3"],answer:3,difficulty:1},
-{id:666,topic:"Probability",question:"P(not A) = 0.7. What is P(A)?",options:["0.2","0.3","0.4","0.7"],answer:1,difficulty:1},
-{id:667,topic:"Probability",question:"The probability that it rains on a day is 1/5. What is the expected number of rainy days in June (30 days)?",options:["4","5","6","7"],answer:2,difficulty:2},
-{id:668,topic:"Probability",question:"A school bag has 3 maths, 4 English and 2 science books. P(not maths) = ?",options:["3/9","6/9","4/9","7/9"],answer:1,difficulty:2},
-{id:669,topic:"Probability",question:"A fair coin is tossed and a fair die is rolled. How many outcomes have heads and an even number?",options:["1","2","3","6"],answer:2,difficulty:2},
-{id:670,topic:"Probability",question:"In 200 trials, P(A) = 0.4. How many times would A be expected to occur?",options:["60","80","100","120"],answer:1,difficulty:1},
-/* ─────────────────────────────────────────
-   LOGICAL MATHS  (Q671–Q750)
-───────────────────────────────────────── */
-{id:671,topic:"Logic",question:"The sum of three consecutive integers is 48. What are they?",options:["14,15,16","15,16,17","16,17,18","13,14,15"],answer:1,difficulty:2},
-{id:672,topic:"Logic",question:"Is 121 a palindromic number?",options:["Yes","No","Sometimes","Cannot tell"],answer:0,difficulty:1},
-{id:673,topic:"Logic",question:"What angle does the minute hand of a clock sweep in 20 minutes?",options:["60°","90°","120°","150°"],answer:2,difficulty:2},
-{id:674,topic:"Logic",question:"In a magic square where each row, column and diagonal adds to 15, and centre is 5, what are the corners?",options:["2,4,6,8","1,3,7,9","1,4,6,9","3,5,7,9"],answer:1,difficulty:3},
-{id:675,topic:"Logic",question:"What day of the week is 100 days after a Monday?",options:["Monday","Tuesday","Wednesday","Thursday"],answer:3,difficulty:2},
-{id:676,topic:"Logic",question:"The product of two consecutive even numbers is 48. What are they?",options:["4 and 6","6 and 8","8 and 10","2 and 4"],answer:1,difficulty:2},
-{id:677,topic:"Logic",question:"How many palindromic numbers are between 100 and 200?",options:["8","9","10","11"],answer:1,difficulty:2},
-{id:678,topic:"Logic",question:"What angle do clock hands make at 3:00?",options:["60°","90°","120°","180°"],answer:1,difficulty:1},
-{id:679,topic:"Logic",question:"In an arithmagon, the number on a side equals the sum of the two corner numbers. Corners are a, b, c. Side ab = 11, side bc = 14, side ac = 9. Find a.",options:["2","3","4","5"],answer:2,difficulty:3},
-{id:680,topic:"Logic",question:"January 1st is a Wednesday. What day is February 1st (non-leap year)?",options:["Saturday","Sunday","Monday","Tuesday"],answer:0,difficulty:2},
-{id:681,topic:"Logic",question:"The sum of four consecutive odd numbers is 80. What is the largest?",options:["21","23","25","27"],answer:1,difficulty:2},
-{id:682,topic:"Logic",question:"What angle do clock hands make at 6:00?",options:["90°","120°","150°","180°"],answer:3,difficulty:1},
-{id:683,topic:"Logic",question:"A 3×3 magic square uses numbers 1–9. What is the magic sum?",options:["12","15","18","21"],answer:1,difficulty:2},
-{id:684,topic:"Logic",question:"What is the next palindromic number after 393?",options:["394","399","404","414"],answer:2,difficulty:1},
-{id:685,topic:"Logic",question:"In a number pyramid, each block equals the sum of the two below it. Bottom row is 2, 3, 5. What is the top?",options:["10","12","13","14"],answer:2,difficulty:2},
-{id:686,topic:"Logic",question:"The product of two consecutive integers is 90. What are they?",options:["8 and 9","9 and 10","10 and 11","7 and 8"],answer:1,difficulty:2},
-{id:687,topic:"Logic",question:"What angle does a clock's minute hand sweep in 1 hour?",options:["90°","180°","270°","360°"],answer:3,difficulty:1},
-{id:688,topic:"Logic",question:"How many days are in a leap year?",options:["365","366","367","364"],answer:1,difficulty:1},
-{id:689,topic:"Logic",question:"I think of a number. I add 5, double it and subtract 4. The result is 20. What was my number?",options:["4","5","6","7"],answer:3,difficulty:2},
-{id:690,topic:"Logic",question:"What is the angle between the hour and minute hand at 4:00?",options:["100°","110°","120°","130°"],answer:2,difficulty:1},
-{id:691,topic:"Logic",question:"If today is Tuesday, what day is it in 20 days?",options:["Monday","Tuesday","Wednesday","Thursday"],answer:0,difficulty:1},
-{id:692,topic:"Logic",question:"Find three consecutive multiples of 5 that sum to 90.",options:["25,30,35","20,25,30","30,35,40","15,20,25"],answer:0,difficulty:2},
-{id:693,topic:"Logic",question:"A multiplication arithmagon has corners a, b, c. Side ab = 12, side bc = 18, side ac = 24. Find a.",options:["2","3","4","6"],answer:2,difficulty:3},
-{id:694,topic:"Logic",question:"In 2024, what day is Christmas Day (Dec 25)? (Jan 1, 2024 is a Monday; 2024 is a leap year)",options:["Tuesday","Wednesday","Thursday","Friday"],answer:1,difficulty:3},
-{id:695,topic:"Logic",question:"Sum of 5 consecutive numbers is 100. What is the middle number?",options:["18","19","20","21"],answer:2,difficulty:2},
-{id:696,topic:"Logic",question:"How many 5-palindromic numbers are between 10,000 and 99,999?",options:["90","900","9,000","99"],answer:1,difficulty:3},
-{id:697,topic:"Logic",question:"At what time between 12:00 and 1:00 are the clock hands together?",options:["12:05","12:05:27","12:10","12:06"],answer:1,difficulty:3},
-{id:698,topic:"Logic",question:"What angle does the hour hand sweep in 30 minutes?",options:["7.5°","10°","12°","15°"],answer:3,difficulty:2},
-{id:699,topic:"Logic",question:"The sum of two numbers is 50 and their difference is 10. What are the numbers?",options:["20 and 30","25 and 25","15 and 35","30 and 20"],answer:0,difficulty:2},
-{id:700,topic:"Logic",question:"A bottom row of a pyramid is [3, 5, 2, 4]. Working up, the top is:",options:["28","30","32","34"],answer:1,difficulty:3},
-{id:701,topic:"Logic",question:"Which of these is NOT a palindrome?",options:["1221","12321","123321","1231"],answer:3,difficulty:1},
-{id:702,topic:"Logic",question:"How many times do the clock hands overlap in 24 hours?",options:["22","23","24","25"],answer:0,difficulty:3},
-{id:703,topic:"Logic",question:"The product of two numbers is 36 and their sum is 13. What are they?",options:["3 and 10","4 and 9","5 and 8","6 and 7"],answer:1,difficulty:2},
-{id:704,topic:"Logic",question:"A calender year starts on a Monday (non-leap year). What day does it end on?",options:["Sunday","Monday","Tuesday","Wednesday"],answer:1,difficulty:2},
-{id:705,topic:"Logic",question:"Find the sum of all integers from 1 to 100.",options:["4,950","5,000","5,050","5,100"],answer:2,difficulty:3},
-{id:706,topic:"Logic",question:"In a magic triangle with vertices summing the same as each side, corners are a,b,c. If sum = 17 using 1–6, what is possible?",options:["Corners 1,3,4","Corners 1,2,6","Corners 1,5,3","Corners 2,3,5"],answer:0,difficulty:3},
-{id:707,topic:"Logic",question:"A clock shows 8:20. What is the angle between the hands?",options:["90°","100°","110°","120°"],answer:2,difficulty:3},
-{id:708,topic:"Logic",question:"Five consecutive integers sum to 55. What is the smallest?",options:["9","10","11","12"],answer:0,difficulty:2},
-{id:709,topic:"Logic",question:"How many three-digit palindromes are there?",options:["80","90","99","100"],answer:1,difficulty:2},
-{id:710,topic:"Logic",question:"A number is added to its reverse to give a palindrome: 93 + 39 = 132. What must be done to 132?",options:["132 + 231 = 363 (palindrome)","132 is already a palindrome","No solution","132 + 123 = 255"],answer:0,difficulty:3},
-/* ─────────────────────────────────────────
-   STATISTICS  (Q711–Q750)
-───────────────────────────────────────── */
-,{id:711,topic:"Statistics",question:"Find the mean of: 4, 7, 9, 3, 7.",options:["6","7","8","9"],answer:0,difficulty:1},
-{id:712,topic:"Statistics",question:"Find the median of: 3, 7, 4, 9, 1.",options:["3","4","7","9"],answer:1,difficulty:1},
-{id:713,topic:"Statistics",question:"Find the mode of: 2, 5, 3, 5, 7, 5, 2.",options:["2","3","5","7"],answer:2,difficulty:1},
-{id:714,topic:"Statistics",question:"Find the range of: 12, 7, 19, 4, 15.",options:["8","12","15","19"],answer:2,difficulty:1},
-{id:715,topic:"Statistics",question:"The mean of 5 numbers is 8. Four of them are 6, 9, 10, 7. What is the fifth?",options:["7","8","9","10"],answer:1,difficulty:2},
-{id:716,topic:"Statistics",question:"Find the median of: 5, 12, 3, 8, 15, 9.",options:["8","8.5","9","9.5"],answer:1,difficulty:2},
-{id:717,topic:"Statistics",question:"A pie chart shows 25% for Sport. If 200 students were asked, how many chose Sport?",options:["40","50","60","70"],answer:1,difficulty:1},
-{id:718,topic:"Statistics",question:"What angle represents 30% in a pie chart?",options:["90°","100°","108°","120°"],answer:2,difficulty:2},
-{id:719,topic:"Statistics",question:"Data: 2, 3, 3, 4, 5, 6, 6, 6, 7. What is the mode?",options:["3","4","6","7"],answer:2,difficulty:1},
-{id:720,topic:"Statistics",question:"The mean of 4 numbers is 12.5. What is their total?",options:["40","48","50","56"],answer:2,difficulty:1},
-{id:721,topic:"Statistics",question:"What is the interior angle sum of a pentagon?",options:["450°","540°","630°","720°"],answer:1,difficulty:2},
-{id:722,topic:"Statistics",question:"A line graph shows temperatures: Mon 15°, Tue 18°, Wed 12°, Thu 20°, Fri 17°. What is the mean?",options:["15°","16.4°","17°","18°"],answer:1,difficulty:2},
-{id:723,topic:"Statistics",question:"Which average is most affected by extreme values?",options:["Mean","Median","Mode","Range"],answer:0,difficulty:2},
-{id:724,topic:"Statistics",question:"Which type of data is 'favourite colour'?",options:["Discrete","Continuous","Categorical","Ordinal"],answer:2,difficulty:1},
-{id:725,topic:"Statistics",question:"Heights of students in cm: 145, 152, 148, 160, 152. What is the median?",options:["148","150","152","155"],answer:2,difficulty:2},
-{id:726,topic:"Statistics",question:"30 students rated a film 1–5. Mean = 3.5. Total points given =",options:["100","105","110","115"],answer:1,difficulty:2},
-{id:727,topic:"Statistics",question:"A frequency table shows: score 1 (freq 3), 2 (freq 7), 3 (freq 5), 4 (freq 3), 5 (freq 2). What is the modal score?",options:["1","2","3","4"],answer:1,difficulty:1},
-{id:728,topic:"Statistics",question:"What is the mean from the table: score 1 (f=2), 2 (f=5), 3 (f=3)?",options:["2.0","2.1","2.2","2.3"],answer:1,difficulty:2},
-{id:729,topic:"Statistics",question:"A bar chart shows 40 cats, 25 dogs and 15 birds were sold. What fraction were dogs?",options:["1/3","5/16","1/4","2/5"],answer:1,difficulty:2},
-{id:730,topic:"Statistics",question:"The range of a dataset is 18 and the smallest value is 7. What is the largest?",options:["11","18","25","30"],answer:2,difficulty:1},
-{id:731,topic:"Statistics",question:"In a grouped frequency table, the class 20 ≤ h < 30 has midpoint:",options:["20","25","29","30"],answer:1,difficulty:1},
-{id:732,topic:"Statistics",question:"Which of these is a continuous variable?",options:["Number of goals","Shoe size","Height","Favourite food"],answer:2,difficulty:1},
-{id:733,topic:"Statistics",question:"A pictogram shows ⭐⭐⭐ = 12 students. Each ⭐ = ? students",options:["3","4","5","6"],answer:1,difficulty:1},
-{id:734,topic:"Statistics",question:"Test scores: 45, 52, 67, 72, 80, 85, 91. What is the middle value?",options:["25","33","72","80"],answer:2,difficulty:2},
-{id:735,topic:"Statistics",question:"The mean of 3 numbers is 9. Two are 7 and 11. What is the third?",options:["7","8","9","10"],answer:2,difficulty:1},
-{id:736,topic:"Statistics",question:"A pie chart has 4 equal sectors. What angle is each sector?",options:["45°","60°","90°","120°"],answer:2,difficulty:1},
-{id:737,topic:"Statistics",question:"Which diagram shows individual data values and their frequencies?",options:["Bar chart","Pie chart","Stem-and-leaf","Line graph"],answer:2,difficulty:1},
-{id:738,topic:"Statistics",question:"In a scatter graph, a positive correlation means:",options:["As x increases, y decreases","As x increases, y increases","No relationship","Random pattern"],answer:1,difficulty:1},
-{id:739,topic:"Statistics",question:"A class scored: 55, 60, 65, 70, 75. If lowest is 50, the new range is:",options:["20","25","30","35"],answer:1,difficulty:2},
-{id:740,topic:"Statistics",question:"10 test scores: 6, 8, 5, 9, 7, 8, 6, 8, 7, 6. What is the mean?",options:["7","7.2","6.9","6.8"],answer:0,difficulty:2},
-{id:741,topic:"Statistics",question:"What type of average is best for a dataset with an outlier?",options:["Mean","Mode","Median","Range"],answer:2,difficulty:2},
-{id:742,topic:"Statistics",question:"A survey of 60 people: 15 prefer pop, 20 rock, 25 classical. What angle for rock?",options:["100°","110°","120°","130°"],answer:2,difficulty:2},
-{id:743,topic:"Statistics",question:"The mean of 6 numbers is 10. If a 7th (16) is added, the new mean is:",options:["11","11.1","11.2","11.4"],answer:0,difficulty:3},
-{id:744,topic:"Statistics",question:"Which average cannot be used for non-numerical data?",options:["Mean","Mode","Both mean and mode","All"],answer:0,difficulty:2},
-{id:745,topic:"Statistics",question:"Data set: 4, 7, 7, 8, 9, 11, 14. Median =",options:["7","8","8.5","9"],answer:1,difficulty:1},
-{id:746,topic:"Statistics",question:"A frequency table: value 0 (f=4), 1 (f=6), 2 (f=5), 3 (f=5). Total count?",options:["18","20","22","24"],answer:1,difficulty:1},
-{id:747,topic:"Statistics",question:"A class has 10 boys and 20 girls. 3 boys and 4 girls are left-handed. Fraction?",options:["7/30","1/5","7/20","1/3"],answer:0,difficulty:2},
-{id:748,topic:"Statistics",question:"Which chart is best for showing parts of a whole?",options:["Line graph","Bar chart","Pie chart","Scatter"],answer:2,difficulty:1},
-{id:749,topic:"Statistics",question:"Two datasets have same mean but different ranges. This means?",options:["Same spread","Different spreads","One is larger","Can't tell"],answer:1,difficulty:2},
-{id:750,topic:"Statistics",question:"What type of chart is best for showing change over time?",options:["Pie chart","Bar chart","Line graph","Scatter"],answer:2,difficulty:1},
-/* ─────────────────────────────────────────
-   PROBABILITY  (Q751–Q780)
-───────────────────────────────────────── */
-,{id:751,topic:"Probability",question:"A bag has 3 red and 7 blue balls. P(red) = ?",options:["3/7","7/10","3/10","7/3"],answer:2,difficulty:1},
-{id:752,topic:"Probability",question:"A fair coin is flipped. P(tails) = ?",options:["1/4","1/3","1/2","2/3"],answer:2,difficulty:1},
-{id:753,topic:"Probability",question:"A fair die is rolled. P(4) = ?",options:["1/4","1/5","1/6","1/3"],answer:2,difficulty:1},
-{id:754,topic:"Probability",question:"P(rain) = 0.65. P(no rain) = ?",options:["0.25","0.35","0.45","0.65"],answer:1,difficulty:1},
-{id:755,topic:"Probability",question:"Which probability is impossible?",options:["0","0.5","1","1.5"],answer:3,difficulty:1},
-{id:756,topic:"Probability",question:"A die is rolled. P(even) = ?",options:["1/3","1/2","2/3","3/4"],answer:1,difficulty:1},
-{id:757,topic:"Probability",question:"A bag has 5 red, 3 green, 2 yellow sweets. P(NOT red) = ?",options:["1/2","3/10","5/10","7/10"],answer:0,difficulty:2},
-{id:758,topic:"Probability",question:"A card from 52. P(heart) = ?",options:["1/4","1/3","1/2","4/52"],answer:0,difficulty:1},
-{id:759,topic:"Probability",question:"Spinner: 3 red, 2 blue, 3 green sections. P(blue) = ?",options:["1/4","3/8","2/8","1/8"],answer:0,difficulty:1},
-{id:760,topic:"Probability",question:"P(A)=0.4, P(B)=0.5, mutually exclusive. P(A or B) = ?",options:["0.2","0.6","0.9","0.5"],answer:2,difficulty:2},
-{id:761,topic:"Probability",question:"Bag: 4 red, 6 blue. Draw 2 without replacement. P(both red) = ?",options:["2/15","4/25","16/100","1/5"],answer:0,difficulty:3},
-{id:762,topic:"Probability",question:"Die rolled twice. P(both 6) = ?",options:["1/6","1/12","1/36","2/36"],answer:2,difficulty:2},
-{id:763,topic:"Probability",question:"How many outcomes flipping a coin 3 times?",options:["4","6","8","10"],answer:2,difficulty:1},
-{id:764,topic:"Probability",question:"P(event) = 0 means:",options:["Certain","Likely","Impossible","Unlikely"],answer:2,difficulty:1},
-{id:765,topic:"Probability",question:"Bag: 12 balls (4 red, 5 blue, 3 yellow). Remove yellow. P(red) = ?",options:["4/12","4/9","1/3","5/9"],answer:1,difficulty:2},
-{id:766,topic:"Probability",question:"Class: 30 pupils. 18 play sport, 14 play music, 6 both. P(sport only) = ?",options:["12/30","18/30","6/30","14/30"],answer:0,difficulty:3},
-{id:767,topic:"Probability",question:"Die rolled. P(prime) = ?",options:["1/6","1/3","1/2","2/3"],answer:2,difficulty:2},
-{id:768,topic:"Probability",question:"Two events cannot happen together. They are:",options:["Independent","Mutually exclusive","Complementary","Combined"],answer:1,difficulty:2},
-{id:769,topic:"Probability",question:"Card from 52. P(king or queen) = ?",options:["2/52","4/52","8/52","2/13"],answer:2,difficulty:2},
-{id:770,topic:"Probability",question:"Bag: 5 red, 3 blue. Draw one, don't replace, draw another. P(red then blue) = ?",options:["15/56","15/64","8/15","3/8"],answer:0,difficulty:3},
-{id:771,topic:"Probability",question:"P = 0.9 describes what?",options:["Unlikely","Evens","Likely","Certain"],answer:2,difficulty:1},
-{id:772,topic:"Probability",question:"60 trials, spinner lands red 15 times. Estimate P(red).",options:["0.15","0.20","0.25","0.30"],answer:2,difficulty:1},
-{id:773,topic:"Probability",question:"P(A)=0.3, P(B)=0.5, independent. P(A and B) = ?",options:["0.15","0.20","0.80","0.35"],answer:0,difficulty:2},
-{id:774,topic:"Probability",question:"Coin flip + die roll. How many outcomes?",options:["6","8","12","18"],answer:2,difficulty:2},
-{id:775,topic:"Probability",question:"Die rolled. P(≤4) = ?",options:["1/6","1/3","1/2","2/3"],answer:3,difficulty:1},
-{id:776,topic:"Probability",question:"P(not A) = 0.7. P(A) = ?",options:["0.2","0.3","0.4","0.7"],answer:1,difficulty:1},
-{id:777,topic:"Probability",question:"P(rain on day) = 1/5. Expected rainy days in June?",options:["4","5","6","7"],answer:2,difficulty:2},
-{id:778,topic:"Probability",question:"Bag: 3 maths, 4 English, 2 science books. P(not maths) = ?",options:["3/9","6/9","4/9","7/9"],answer:1,difficulty:2},
-{id:779,topic:"Probability",question:"Coin tossed, die rolled. Outcomes with heads AND even = ?",options:["1","2","3","6"],answer:2,difficulty:2},
-{id:780,topic:"Probability",question:"200 trials, P(A)=0.4. Expected occurrences?",options:["60","80","100","120"],answer:1,difficulty:1},
-/* ─────────────────────────────────────────
-   LOGICAL MATHS  (Q781–Q830)
-───────────────────────────────────────── */
-,{id:781,topic:"Logic",question:"Sum of 3 consecutive integers is 48. What are they?",options:["14,15,16","15,16,17","16,17,18","13,14,15"],answer:1,difficulty:2},
-{id:782,topic:"Logic",question:"Is 121 a palindrome?",options:["Yes","No","Sometimes","Cannot tell"],answer:0,difficulty:1},
-{id:783,topic:"Logic",question:"Minute hand sweeps in 20 minutes?",options:["60°","90°","120°","150°"],answer:2,difficulty:2},
-{id:784,topic:"Logic",question:"Magic square with centre 5, rows sum to 15. Corners are?",options:["2,4,6,8","1,3,7,9","1,4,6,9","3,5,7,9"],answer:1,difficulty:3},
-{id:785,topic:"Logic",question:"100 days after Monday is what day?",options:["Monday","Tuesday","Wednesday","Thursday"],answer:3,difficulty:2},
-{id:786,topic:"Logic",question:"Product of 2 consecutive even numbers = 48. They are?",options:["4,6","6,8","8,10","2,4"],answer:1,difficulty:2},
-{id:787,topic:"Logic",question:"Palindromic numbers between 100–200?",options:["8","9","10","11"],answer:1,difficulty:2},
-{id:788,topic:"Logic",question:"Clock angle at 3:00?",options:["60°","90°","120°","180°"],answer:1,difficulty:1},
-{id:789,topic:"Logic",question:"Sum of 4 consecutive odd numbers is 80. Largest?",options:["21","23","25","27"],answer:1,difficulty:2},
-{id:790,topic:"Logic",question:"Clock angle at 6:00?",options:["90°","120°","150°","180°"],answer:3,difficulty:1},
-{id:791,topic:"Logic",question:"3×3 magic square (1–9). Magic sum?",options:["12","15","18","21"],answer:1,difficulty:2},
-{id:792,topic:"Logic",question:"Next palindrome after 393?",options:["394","399","404","410"],answer:2,difficulty:1},
-{id:793,topic:"Logic",question:"Pyramid: bottom [2,3,5]. Top value?",options:["10","12","13","14"],answer:2,difficulty:2},
-{id:794,topic:"Logic",question:"Product of 2 consecutive integers = 90. They are?",options:["8,9","9,10","10,11","7,8"],answer:1,difficulty:2},
-{id:795,topic:"Logic",question:"Minute hand sweeps in 1 hour?",options:["90°","180°","270°","360°"],answer:3,difficulty:1},
-{id:796,topic:"Logic",question:"Days in a leap year?",options:["365","366","367","364"],answer:1,difficulty:1},
-{id:797,topic:"Logic",question:"I add 5, double, subtract 4. Result 20. My number?",options:["4","5","6","7"],answer:3,difficulty:2},
-{id:798,topic:"Logic",question:"Hour-minute angle at 4:00?",options:["100°","110°","120°","130°"],answer:2,difficulty:1},
-{id:799,topic:"Logic",question:"Today Tuesday. Day in 20 days?",options:["Monday","Tuesday","Wednesday","Thursday"],answer:0,difficulty:1},
-{id:800,topic:"Logic",question:"Three consecutive multiples of 5 sum to 90?",options:["25,30,35","20,25,30","30,35,40","15,20,25"],answer:0,difficulty:2},
-{id:801,topic:"Logic",question:"5 consecutive integers sum to 100. Middle?",options:["18","19","20","21"],answer:2,difficulty:2},
-{id:802,topic:"Logic",question:"5-digit palindromes between 10,000–99,999?",options:["90","900","9000","99"],answer:1,difficulty:3},
-{id:803,topic:"Logic",question:"Sum of two numbers is 50, difference 10. Numbers?",options:["20,30","25,25","15,35","30,20"],answer:0,difficulty:2},
-{id:804,topic:"Logic",question:"Product of two numbers is 36, sum is 13. Numbers?",options:["3,10","4,9","5,8","6,7"],answer:1,difficulty:2},
-{id:805,topic:"Logic",question:"Non-leap year starts Monday. Ends on?",options:["Sunday","Monday","Tuesday","Wednesday"],answer:1,difficulty:2},
-{id:806,topic:"Logic",question:"Sum of integers from 1 to 100?",options:["4950","5000","5050","5100"],answer:2,difficulty:3},
-{id:807,topic:"Logic",question:"Clock shows 8:20. Angle between hands?",options:["90°","100°","110°","120°"],answer:2,difficulty:3},
-{id:808,topic:"Logic",question:"Five consecutive integers sum to 55. Smallest?",options:["9","10","11","12"],answer:0,difficulty:2},
-{id:809,topic:"Logic",question:"Three-digit palindromes count?",options:["80","90","99","100"],answer:1,difficulty:2},
-{id:810,topic:"Logic",question:"93+39=132. Add 132 to its reverse?",options:["363","Palindrome","No solution","255"],answer:0,difficulty:3},
-{id:811,topic:"Logic",question:"Two numbers sum to 24, product is 80. Numbers?",options:["4,20","5,19","8,16","10,14"],answer:2,difficulty:2},
-{id:812,topic:"Logic",question:"Consecutive numbers differ by 7, sum to 25. Numbers?",options:["8,16","9,16","10,15","11,14"],answer:1,difficulty:2},
-{id:813,topic:"Logic",question:"Pyramid bottom [1,2,3,4]. Top?",options:["16","18","20","24"],answer:1,difficulty:2},
-{id:814,topic:"Logic",question:"Test is 40 questions. Pass = 27+. What percent minimum?",options:["65%","67.5%","70%","72.5%"],answer:1,difficulty:2},
-{id:815,topic:"Logic",question:"Triangle with angles 50°, 60°. Third angle?",options:["60°","70°","80°","90°"],answer:2,difficulty:1},
-{id:816,topic:"Logic",question:"ISBN check: sum divisible by 10. 978044922? Last digit?",options:["4","6","8","9"],answer:2,difficulty:3},
-{id:817,topic:"Logic",question:"Coins: 10p, 5p, 2p to make 17p. Fewest coins?",options:["2","3","4","5"],answer:2,difficulty:2},
-{id:818,topic:"Logic",question:"Clock hands overlap how many times in 24h?",options:["22","23","24","25"],answer:0,difficulty:3},
-{id:819,topic:"Logic",question:"Rectangle perimeter 24 cm, length 7. Width?",options:["5 cm","6 cm","8 cm","9 cm"],answer:0,difficulty:1},
-{id:820,topic:"Logic",question:"Three consecutive odd numbers sum to 75. Middle?",options:["23","24","25","26"],answer:2,difficulty:2},
-{id:821,topic:"Logic",question:"Square side 8. Double side. Area multiplied by?",options:["2","3","4","5"],answer:2,difficulty:1},
-{id:822,topic:"Logic",question:"Stairs: 1+2+3...+10 steps = total?",options:["50","55","60","65"],answer:1,difficulty:2},
-{id:823,topic:"Logic",question:"Handshakes in room of 6 people, each once?",options:["12","15","18","21"],answer:1,difficulty:2},
-{id:824,topic:"Logic",question:"Checkerboard 8×8. Red squares?",options:["32","34","36","40"],answer:0,difficulty:1},
-{id:825,topic:"Logic",question:"Candle burns in 6 hours. Half burns in?",options:["3 h","2 h","1.5 h","Cannot determine"],answer:3,difficulty:3},
-{id:826,topic:"Logic",question:"Vending machine: 20p, 50p. Buy 70p item. Ways?",options:["1","2","3","4"],answer:1,difficulty:2},
-{id:827,topic:"Logic",question:"Walking speed 4 km/h. Distance in 45 min?",options:["2 km","3 km","4 km","5 km"],answer:1,difficulty:1},
-{id:828,topic:"Logic",question:"Petrol price doubles. Cost increases by?",options:["50%","100%","200%","300%"],answer:1,difficulty:1},
-{id:829,topic:"Logic",question:"10% of 20% of 50?",options:["0.5","1","5","10"],answer:1,difficulty:2},
-{id:830,topic:"Logic",question:"Pattern: 1,4,9,16,25... Next term?",options:["35","36","42","49"],answer:1,difficulty:1}
-];
+const QUESTIONS = [];
 
+(() => {
+  let id = 1;
+
+  /* ────────── shared helpers ────────── */
+  const gcd = (a, b) => b ? gcd(b, a % b) : Math.abs(a);
+  const lcm = (a, b) => Math.abs(a * b) / gcd(a, b);
+  const lcmAll = arr => arr.reduce((acc, x) => lcm(acc, x), 1);
+  const isPrime = n => { if (n < 2) return false; for (let k = 2; k * k <= n; k++) if (n % k === 0) return false; return true; };
+  const primesBetween = (a, b) => { const out = []; for (let k = a; k <= b; k++) if (isPrime(k)) out.push(k); return out; };
+  const factorsOf = n => { const out = []; for (let k = 1; k <= n; k++) if (n % k === 0) out.push(k); return out; };
+  const isSquare = n => { const r = Math.round(Math.sqrt(n)); return r >= 0 && r * r === n; };
+  const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const simp = (n, d) => { const g = gcd(Math.abs(n), Math.abs(d)) || 1; return `${n / g}/${d / g}`; };
+  const fmt = n => { const v = Number(n); return Number.isFinite(v) ? (Number.isInteger(v) ? `${v}` : `${Number(v.toFixed(3))}`) : `${n}`; };
+  const fmtMoney = n => `£${Number(n).toFixed(2).replace(/\.00$/, "")}`;
+  const comma = n => Number(n).toLocaleString("en-GB");
+  const sum = arr => arr.reduce((a, b) => a + b, 0);
+  const mean = arr => sum(arr) / arr.length;
+  const median = arr => { const s = arr.slice().sort((a, b) => a - b), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+  const range = arr => Math.max(...arr) - Math.min(...arr);
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const wrapDay = idx => dayNames[((idx % 7) + 7) % 7];
+  const fmtTime = (h, m) => `${h}:${`${m}`.padStart(2, "0")}`;
+  const mirrorClock = (hour, minute) => {
+    const total = (hour === 12 ? 720 : hour * 60) + minute;
+    let mirror = 720 - total;
+    if (mirror <= 0) mirror += 720;
+    if (mirror === 720) return { hour: 12, minute: 0 };
+    return { hour: Math.floor(mirror / 60) || 12, minute: mirror % 60 };
+  };
+  const nextPalindrome = n => { let c = n + 1; while (`${c}` !== `${c}`.split("").reverse().join("")) c += 1; return c; };
+
+  /* pickWording(i, variants) → cycles through equivalent phrasings.
+     Uses i/3 so consecutive variations within a small window get different wording. */
+  const pickWording = (i, variants) => variants[Math.floor(i / 3) % variants.length];
+
+  /* mk(topic, question, correct, distractors, difficulty, seed) → MCQ object */
+  const mk = (topic, question, correct, distractors, difficulty, seed) => {
+    const uniq = [];
+    [correct, ...distractors].map(v => `${v}`).forEach(v => { if (!uniq.includes(v)) uniq.push(v); });
+    const num = Number(correct);
+    let pad = 1;
+    while (uniq.length < 4) {
+      const cand = Number.isFinite(num) ? fmt(num + pad * 3 + difficulty) : `${uniq[0]} v${pad}`;
+      if (!uniq.includes(cand)) uniq.push(cand);
+      pad++;
+      if (pad > 30) uniq.push(`${uniq[0]}_${uniq.length}`);
+    }
+    const pos = ((seed % 4) + 4) % 4;
+    const opts = uniq.slice(1, 4);
+    opts.splice(pos, 0, uniq[0]);
+    return { id: id++, topic, question, options: opts, answer: pos, difficulty };
+  };
+
+  const diff = (i, hardCycle = 5) => (i % hardCycle === 0 ? 3 : (i % 2 === 0 ? 2 : 1));
+
+  /* ═══════════════════ NUMBERS ═══════════════════ */
+
+  function numPlaceValue(i) {
+    const digits = [4, 7, 3, 9, 2, 5, 8, 6, 1];
+    const target = digits[i % digits.length];
+    const pos = i % 5;
+    const others = digits.filter(d => d !== target);
+    const arr = Array.from({ length: 5 }, (_, k) => others[(i + k) % others.length]);
+    arr[4 - pos] = target;
+    const num = Number(arr.join(""));
+    const ans = target * 10 ** pos;
+    return mk("Numbers",
+      `What is the value of the digit ${target} in the number ${comma(num)}?`,
+      comma(ans),
+      [comma(target), comma(ans * 10), comma(target * 10 ** (pos + 1))],
+      diff(i, 4), i);
+  }
+
+  function numPlaceValueDiff(i) {
+    const d = 3 + (i % 6);
+    const hi = 4 + (i % 4);
+    const lo = i % 3;
+    const baseDigits = [1, 7, 2, 4, 5, 8, 9, 3];
+    const arr = baseDigits.slice(0, hi + 2);
+    arr[arr.length - 1 - hi] = d;
+    arr[arr.length - 1 - lo] = d;
+    const num = Number(arr.join(""));
+    const ans = d * (10 ** hi - 10 ** lo);
+    return mk("Numbers",
+      `In the number ${comma(num)}, what is the difference between the place values of the two ${d}s?`,
+      comma(ans),
+      [comma(ans + 10 ** lo * d), comma(ans - 10 ** lo), comma(d * 10 ** hi)],
+      diff(i), i);
+  }
+
+  function numRounding(i) {
+    const places = [10, 100, 1000];
+    const labels = ["ten", "hundred", "thousand"];
+    const idx = i % 3;
+    const p = places[idx];
+    const n = 1000 + 17 * (i + 3) + 3 * i;
+    const ans = Math.round(n / p) * p;
+    return mk("Numbers", `What is ${comma(n)} rounded to the nearest ${labels[idx]}?`,
+      comma(ans),
+      [comma(ans + p), comma(ans - p), comma(Math.floor(n / p) * p === ans ? ans + 2 * p : Math.floor(n / p) * p)],
+      diff(i, 5), i);
+  }
+
+  function numRoundingBounds(i) {
+    const target = 100 + 10 * (i % 50);
+    const wantSmall = i % 2 === 0;
+    const ans = wantSmall ? target - 5 : target + 4;
+    return mk("Numbers",
+      `A whole number rounded to the nearest 10 gives ${target}. What is the ${wantSmall ? "smallest" : "largest"} whole number it could have been?`,
+      `${ans}`, [`${ans - 1}`, `${ans + 1}`, `${target}`], diff(i), i);
+  }
+
+  function numIsPrime(i) {
+    const starts = [10, 20, 30, 40, 50, 60, 70, 80];
+    const start = starts[i % starts.length];
+    const window = primesBetween(start, start + 14);
+    const prime = window[i % window.length];
+    const composites = [];
+    for (let k = start; k <= start + 14 && composites.length < 3; k++) if (!isPrime(k) && k !== prime) composites.push(k);
+    while (composites.length < 3) composites.push(prime + composites.length + 1);
+    const wording = pickWording(i, [
+      `Which of these numbers is a prime number?`,
+      `Identify the prime number from these options.`,
+      `Which one of the following is prime?`,
+      `Pick the prime number from the list.`,
+      `Which number below is prime?`,
+      `Select the prime number.`,
+      `Which of the following is a prime number?`
+    ]);
+    return mk("Numbers", wording, `${prime}`, composites.map(c => `${c}`), diff(i, 5), i);
+  }
+
+  function numLCM(i) {
+    const pairs = [
+      [4, 6], [6, 8], [3, 5], [4, 10], [8, 12], [9, 12], [5, 7], [6, 10], [4, 5], [3, 8],
+      [10, 15], [8, 14], [6, 9], [10, 12], [15, 20], [7, 14], [8, 10], [6, 15], [9, 15],
+      [12, 18], [14, 21], [10, 25], [3, 7], [5, 8], [6, 7], [9, 10], [12, 15], [8, 18],
+      [10, 14], [15, 18], [20, 24], [12, 16], [11, 22], [14, 28], [16, 20], [18, 24],
+      [5, 9], [7, 9], [7, 11], [13, 26], [11, 33], [12, 20], [9, 24], [14, 35], [16, 24],
+      [18, 30], [21, 28], [22, 33], [24, 36], [25, 30]
+    ];
+    const [a, b] = pairs[i % pairs.length];
+    const ans = lcm(a, b);
+    return mk("Numbers", `What is the Lowest Common Multiple (LCM) of ${a} and ${b}?`,
+      `${ans}`, [`${a * b}`, `${ans + a}`, `${gcd(a, b) * (a + b)}`], diff(i, 4), i);
+  }
+
+  function numHCF(i) {
+    const k = 2 + (i % 6);
+    const a = k * (2 + (i % 5));
+    const b = k * (3 + ((i + 1) % 5));
+    if (a === b) return numHCF(i + 1);
+    const ans = gcd(a, b);
+    return mk("Numbers", `What is the Highest Common Factor (HCF) of ${a} and ${b}?`,
+      `${ans}`, [`${k}`, `${ans * 2}`, `${ans + 2}`], diff(i, 4), i);
+  }
+
+  function numHCFofFour(i) {
+    const g = 2 + (i % 13);
+    const a = g * (4 + (i % 17)), b = g * (7 + ((i * 2) % 19)), c = g * (11 + ((i * 3) % 13)), d = g * (15 + ((i * 5) % 11));
+    return mk("Numbers", `What is the Highest Common Factor (HCF) of ${a}, ${b}, ${c} and ${d}?`,
+      `${g}`, [`${g * 2}`, `${g * 3}`, `${g + 1}`], diff(i, 3), i);
+  }
+
+  function numPowers(i) {
+    const kind = i % 4;
+    if (kind === 0) {
+      const x = 4 + (i % 11);
+      return mk("Numbers", `What is ${x}² (${x} squared)?`, `${x * x}`,
+        [`${x * 2}`, `${(x + 1) ** 2}`, `${x * x - x}`], diff(i, 4), i);
+    } else if (kind === 1) {
+      const x = 2 + (i % 6);
+      return mk("Numbers", `What is ${x}³ (${x} cubed)?`, `${x * x * x}`,
+        [`${x * 3}`, `${x * x}`, `${(x + 1) ** 3}`], diff(i, 4), i);
+    } else if (kind === 2) {
+      const x = 4 + (i % 12);
+      return mk("Numbers", `What is the square root of ${x * x}?`, `${x}`,
+        [`${x - 1}`, `${x + 1}`, `${Math.floor(x * x / 2)}`], diff(i, 4), i);
+    } else {
+      const x = 2 + (i % 6);
+      return mk("Numbers", `What is the cube root of ${x * x * x}?`, `${x}`,
+        [`${x - 1}`, `${x + 1}`, `${x * x}`], diff(i, 4), i);
+    }
+  }
+
+  function numFactorCount(i) {
+    const pool = [
+      12, 18, 20, 24, 28, 30, 36, 40, 42, 45, 48, 50, 54, 56, 60, 63, 64, 66, 70, 72,
+      75, 78, 80, 81, 84, 88, 90, 96, 99, 100, 108, 112, 120, 126, 128, 132, 140, 144,
+      150, 160, 168, 180, 192, 196, 200, 210, 216, 224, 240, 256
+    ];
+    const n = pool[i % pool.length];
+    const ans = factorsOf(n).length;
+    return mk("Numbers", `How many factors does ${n} have?`,
+      `${ans}`, [`${ans + 1}`, `${ans - 1}`, `${ans + 2}`], diff(i, 4), i);
+  }
+
+  function numPrimeFactorCount(i) {
+    const a = 2 + (i % 4), b = 1 + ((i + 1) % 4), c = 1 + ((i + 2) % 3);
+    const x = a + b + c;
+    return mk("Numbers", `How many prime factors does 2^${a} × 3^${b} × 5^${c} have, counting repeats?`,
+      `${x}`, [`${x - 1}`, `${x + 1}`, `${a * b * c}`], diff(i, 3), i);
+  }
+
+  function numArithmetic(i) {
+    const op = i % 4;
+    if (op === 0) {
+      const a = 1000 + 137 * (i + 1), b = 2000 + 211 * (i + 2);
+      return mk("Numbers", `What is ${comma(a)} + ${comma(b)}?`, comma(a + b),
+        [comma(a + b + 100), comma(a + b - 100), comma(a + b + 10)], diff(i, 4), i);
+    } else if (op === 1) {
+      const a = 8000 + 173 * (i + 1), b = 1000 + 89 * (i + 1);
+      return mk("Numbers", `What is ${comma(a)} − ${comma(b)}?`, comma(a - b),
+        [comma(a - b + 100), comma(a - b - 10), comma(a - b + 1)], diff(i, 4), i);
+    } else if (op === 2) {
+      const a = 20 + (i % 80), b = 3 + (i % 9);
+      return mk("Numbers", `What is ${a} × ${b}?`, comma(a * b),
+        [comma(a * b + b), comma(a * b - b), comma(a * b + a)], diff(i, 4), i);
+    } else {
+      const b = 3 + (i % 9), ansBase = 30 + (i % 90);
+      return mk("Numbers", `What is ${comma(ansBase * b)} ÷ ${b}?`, `${ansBase}`,
+        [`${ansBase + 1}`, `${ansBase - 1}`, `${ansBase + 10}`], diff(i, 4), i);
+    }
+  }
+
+  function numWordProblem(i) {
+    const perDay = 200 + 50 * (i % 8) + (i % 3);
+    const days = 5 + (i % 6);
+    return mk("Numbers",
+      `A shop sells ${perDay} items every day. How many items does it sell in ${days} days?`,
+      comma(perDay * days),
+      [comma(perDay * days + perDay), comma(perDay * days - perDay), comma(perDay + days)],
+      diff(i, 3), i);
+  }
+
+  function numBusLCM(i) {
+    const triplets = [
+      [3, 5, 8], [4, 6, 9], [2, 5, 6], [3, 4, 7], [5, 6, 8], [2, 3, 7],
+      [4, 5, 6], [3, 5, 7], [2, 4, 9], [3, 6, 8], [4, 7, 9], [2, 5, 9],
+      [3, 4, 5], [5, 7, 8], [4, 6, 7], [3, 8, 9], [2, 6, 9], [5, 6, 9],
+      [4, 5, 8], [3, 7, 8], [2, 7, 9], [4, 5, 7], [6, 8, 9], [3, 5, 9]
+    ];
+    const [p, q, r] = triplets[i % triplets.length];
+    const start = 7 + (i % 8);
+    const totalMin = lcmAll([p, q, r]);
+    const endMin = start * 60 + totalMin;
+    const eh = Math.floor(endMin / 60), em = endMin % 60;
+    const pad = n => `${n}`.padStart(2, "0");
+    const tStr = (h, m) => `${((h - 1) % 12) + 1}:${pad(m)} ${h < 12 ? "a.m." : "p.m."}`;
+    return mk("Numbers",
+      `Three buses leave a stop together at ${tStr(start, 0)}. Bus A runs every ${p} min, Bus B every ${q} min, Bus C every ${r} min. When do all three next leave together?`,
+      tStr(eh, em),
+      [tStr(eh, (em + 30) % 60), tStr(eh + 1, em), `${p * q * r} min later`],
+      diff(i, 3), i);
+  }
+
+  function numSmallestEvenFromDigits(i) {
+    const pools = [
+      [5, 3, 9, 4, 8], [7, 2, 5, 4, 6], [1, 3, 8, 5, 2], [9, 4, 7, 6, 2], [3, 1, 8, 5, 6], [2, 7, 4, 9, 3],
+      [6, 1, 3, 5, 8], [4, 7, 2, 9, 5], [8, 3, 1, 6, 7], [2, 5, 9, 4, 7], [1, 6, 8, 3, 9], [4, 2, 7, 5, 8],
+      [9, 1, 6, 4, 3], [7, 3, 2, 8, 5], [3, 9, 6, 1, 4], [5, 8, 2, 7, 6], [6, 4, 9, 1, 2], [8, 5, 3, 7, 4],
+      [2, 1, 5, 9, 6], [7, 4, 3, 8, 1], [9, 2, 6, 5, 3], [4, 8, 1, 7, 9], [5, 6, 2, 3, 8], [1, 9, 7, 4, 6]
+    ];
+    const digits = pools[i % pools.length].slice();
+    const evens = digits.filter(d => d % 2 === 0).sort((a, b) => a - b);
+    const units = evens[0];
+    const rest = digits.filter(d => d !== units).sort((a, b) => a - b);
+    const ans = Number([...rest, units].join(""));
+    return mk("Numbers",
+      `Using each of the digits ${digits.join(", ")} once, what is the smallest even ${digits.length}-digit number you can make?`,
+      `${comma(ans)}`,
+      [comma(ans + 10), comma(ans - 10), comma(Number([...rest.slice(0, -1), rest[rest.length - 1], units].join("")))],
+      diff(i, 3), i);
+  }
+
+  function numCubeMissing(i) {
+    const r = 3 + (i % 13);
+    return mk("Numbers",
+      `The same whole number is missing from each box: □ × □ × □ = ${r ** 3}. What is that number?`,
+      `${r}`, [`${r - 1}`, `${r + 1}`, `${Math.round(Math.sqrt(r ** 3))}`], diff(i), i);
+  }
+
+  function numPrimeSumSquare(i) {
+    const ranges = [
+      [10, 20], [20, 40], [40, 60], [5, 25], [30, 50], [50, 80], [60, 100],
+      [2, 30], [15, 45], [25, 55], [35, 65], [45, 75], [55, 95], [70, 110]
+    ];
+    const [a, b] = ranges[i % ranges.length];
+    const ps = primesBetween(a, b);
+    let foundSum = 36;
+    for (let x = 0; x < ps.length; x++) for (let y = x + 1; y < ps.length; y++) {
+      if (isSquare(ps[x] + ps[y])) { foundSum = ps[x] + ps[y]; x = ps.length; break; }
+    }
+    return mk("Numbers",
+      `Two prime numbers between ${a} and ${b} are added to give a square number. Which square number is it?`,
+      `${foundSum}`, [`${foundSum + 1}`, `${foundSum - 4}`, `${foundSum + 13}`], diff(i), i);
+  }
+
+  function numFourConsecOdd(i) {
+    const small = 2 * (5 + (i % 45)) + 1;                 // odd ≥ 11, up to ~99
+    const total = small + (small + 2) + (small + 4) + (small + 6);
+    return mk("Numbers",
+      `Four consecutive odd numbers add up to ${total}. What is the largest of them?`,
+      `${small + 6}`, [`${small + 4}`, `${small + 8}`, `${total / 4}`], diff(i, 3), i);
+  }
+
+  /* ═══════════════════ DECIMALS ═══════════════════ */
+
+  function decAdd(i) {
+    const a = +(1.5 + 0.3 * (i % 9)).toFixed(2);
+    const b = +(2.4 + 0.13 * (i % 7)).toFixed(2);
+    const ans = +(a + b).toFixed(2);
+    return mk("Decimals", `What is ${fmt(a)} + ${fmt(b)}?`, `${fmt(ans)}`,
+      [`${fmt(ans + 0.1)}`, `${fmt(ans - 0.01)}`, `${fmt(a - b)}`], diff(i, 4), i);
+  }
+
+  function decSubtract(i) {
+    const a = +(8.5 + 0.27 * (i % 12)).toFixed(2);
+    const b = +(2.18 + 0.13 * (i % 9)).toFixed(2);
+    const ans = +(a - b).toFixed(2);
+    return mk("Decimals", `What is ${fmt(a)} − ${fmt(b)}?`, `${fmt(ans)}`,
+      [`${fmt(ans + 0.1)}`, `${fmt(ans - 0.1)}`, `${fmt(a + b)}`], diff(i, 4), i);
+  }
+
+  function decMultiply(i) {
+    const a = +(0.7 + 0.23 * (i % 25)).toFixed(2);
+    const b = 2 + (i % 12);
+    const ans = +(a * b).toFixed(2);
+    return mk("Decimals", `What is ${fmt(a)} × ${b}?`, `${fmt(ans)}`,
+      [`${fmt(ans + 0.5)}`, `${fmt(ans / 2)}`, `${fmt(a + b)}`], diff(i, 4), i);
+  }
+
+  function decDivide(i) {
+    const b = 2 + (i % 11);
+    const ansBase = +(0.8 + 0.17 * (i % 23)).toFixed(2);
+    const a = +(ansBase * b).toFixed(2);
+    const ans = +(a / b).toFixed(2);
+    return mk("Decimals", `What is ${fmt(a)} ÷ ${b}?`, `${fmt(ans)}`,
+      [`${fmt(ans + 0.1)}`, `${fmt(ans * 2)}`, `${fmt(a - b)}`], diff(i, 4), i);
+  }
+
+  function decCompare(i) {
+    const sets = [
+      [0.35, 0.305, 0.53, 0.503], [0.71, 0.107, 0.7, 0.17], [0.82, 0.28, 0.802, 0.208],
+      [0.64, 0.046, 0.604, 0.46], [0.93, 0.039, 0.309, 0.7], [0.27, 0.702, 0.072, 0.6],
+      [0.45, 0.405, 0.54, 0.045], [0.18, 0.81, 0.108, 0.801], [0.39, 0.093, 0.309, 0.93],
+      [0.56, 0.065, 0.506, 0.65], [0.42, 0.024, 0.204, 0.402], [0.88, 0.088, 0.808, 0.18],
+      [0.61, 0.106, 0.16, 0.601], [0.74, 0.047, 0.407, 0.47], [0.25, 0.052, 0.502, 0.205],
+      [0.96, 0.069, 0.69, 0.906], [0.31, 0.013, 0.103, 0.301], [0.58, 0.085, 0.508, 0.805],
+      [0.43, 0.034, 0.304, 0.403], [0.67, 0.076, 0.607, 0.706], [0.29, 0.092, 0.209, 0.902],
+      [0.84, 0.048, 0.408, 0.804]
+    ];
+    const s = sets[i % sets.length];
+    const askLargest = i % 2 === 0;
+    const ans = askLargest ? Math.max(...s) : Math.min(...s);
+    return mk("Decimals",
+      `Which is the ${askLargest ? "largest" : "smallest"}: ${s.map(fmt).join(", ")}?`,
+      `${fmt(ans)}`, s.filter(x => x !== ans).slice(0, 3).map(fmt), diff(i, 3), i);
+  }
+
+  function decRound(i) {
+    const dp = (i % 3) + 1;
+    const raw = 1.2345 + 0.731 * (i % 9) + 0.0123 * (i % 7);
+    const ans = +raw.toFixed(dp);
+    return mk("Decimals",
+      `Round ${fmt(+raw.toFixed(4))} to ${dp} decimal place${dp === 1 ? "" : "s"}.`,
+      `${fmt(ans)}`,
+      [`${fmt(ans + 10 ** -dp)}`, `${fmt(ans - 10 ** -dp)}`, `${fmt(+raw.toFixed(dp + 1))}`],
+      diff(i, 4), i);
+  }
+
+  function decToFrac(i) {
+    const pairs = [
+      { d: 0.25, f: "1/4" }, { d: 0.5, f: "1/2" }, { d: 0.75, f: "3/4" },
+      { d: 0.2, f: "1/5" }, { d: 0.4, f: "2/5" }, { d: 0.6, f: "3/5" }, { d: 0.8, f: "4/5" },
+      { d: 0.125, f: "1/8" }, { d: 0.375, f: "3/8" }, { d: 0.625, f: "5/8" }, { d: 0.875, f: "7/8" },
+      { d: 0.1, f: "1/10" }, { d: 0.3, f: "3/10" }, { d: 0.7, f: "7/10" }, { d: 0.9, f: "9/10" },
+      { d: 0.05, f: "1/20" }, { d: 0.15, f: "3/20" }, { d: 0.35, f: "7/20" }, { d: 0.45, f: "9/20" },
+      { d: 0.55, f: "11/20" }, { d: 0.65, f: "13/20" }, { d: 0.85, f: "17/20" }, { d: 0.95, f: "19/20" },
+      { d: 0.04, f: "1/25" }, { d: 0.08, f: "2/25" }, { d: 0.12, f: "3/25" }, { d: 0.16, f: "4/25" },
+      { d: 0.24, f: "6/25" }, { d: 0.28, f: "7/25" }, { d: 0.36, f: "9/25" }, { d: 0.44, f: "11/25" },
+      { d: 0.02, f: "1/50" }, { d: 0.06, f: "3/50" }, { d: 0.14, f: "7/50" }, { d: 0.22, f: "11/50" },
+      { d: 0.32, f: "8/25" }, { d: 0.48, f: "12/25" }, { d: 0.52, f: "13/25" }, { d: 0.56, f: "14/25" },
+      { d: 0.64, f: "16/25" }, { d: 0.68, f: "17/25" }, { d: 0.72, f: "18/25" }, { d: 0.76, f: "19/25" },
+      { d: 0.84, f: "21/25" }, { d: 0.88, f: "22/25" }, { d: 0.92, f: "23/25" }, { d: 0.96, f: "24/25" }
+    ];
+    const p = pairs[i % pairs.length];
+    return mk("Decimals", `Express ${fmt(p.d)} as a fraction in simplest form.`,
+      p.f, pairs.filter(x => x.f !== p.f).slice(0, 3).map(x => x.f), diff(i, 4), i);
+  }
+
+  function decHalfway(i) {
+    const a = 1 + 0.1 * (i % 9);
+    const b = a + 0.05 + 0.013 * ((i % 7) + 1);
+    const ans = (a + b) / 2;
+    return mk("Decimals", `What number is halfway between ${fmt(a)} and ${fmt(b)}?`,
+      `${fmt(ans)}`,
+      [`${fmt((b - a) / 2)}`, `${fmt(a + b)}`, `${fmt(ans + 0.01)}`],
+      diff(i, 3), i);
+  }
+
+  function decMultFactReuse(i) {
+    const a = 12 + (i % 30), b = 8 + (i % 20);
+    const c = a * b;
+    const ans = c / (b * 10);
+    return mk("Decimals", `Given that ${a} × ${b} = ${c}, work out ${c} ÷ ${b * 10}.`,
+      `${fmt(ans)}`, [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt(a / 10)}`], diff(i, 4), i);
+  }
+
+  function decPriceChange(i) {
+    const v = +((125 + i % 20) / 10).toFixed(1);
+    const p = 10 + 5 * (i % 5);
+    const q = 5 + 5 * (i % 4);
+    const final = +(v * (1 + p / 100) * (1 - q / 100)).toFixed(2);
+    return mk("Decimals",
+      `A price of £${fmt(v)} is increased by ${p}% and then reduced by ${q}%. What is the final price?`,
+      `£${fmt(final)}`,
+      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 + p / 100 - q / 100))}`, `£${fmt(v * (1 - q / 100))}`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ FRACTIONS ═══════════════════ */
+
+  const fracWordings = (op, opSym, a, b, c, d) => [
+    `What is ${a}/${b} ${opSym} ${c}/${d}?`,
+    `Calculate ${a}/${b} ${opSym} ${c}/${d}, giving your answer in simplest form.`,
+    `${a}/${b} ${opSym} ${c}/${d} = ?`,
+    `Work out ${a}/${b} ${opSym} ${c}/${d}.`,
+    `Simplify ${a}/${b} ${opSym} ${c}/${d}.`,
+    `${op} the fractions ${a}/${b} and ${c}/${d}.`,
+    `Find ${a}/${b} ${opSym} ${c}/${d}.`
+  ];
+
+  function fracAdd(i) {
+    const a = 1 + (i % 7), b = 2 + ((i * 3) % 9);
+    const c = 1 + ((i * 5 + 1) % 7), d = 3 + ((i * 7 + 2) % 9);
+    if (a >= b || c >= d) return fracAdd(i + 1);
+    if (a / b + c / d >= 1) return fracAdd(i + 5);
+    const n = a * d + c * b, m = b * d;
+    const wording = pickWording(i, fracWordings("Add", "+", a, b, c, d));
+    return mk("Fractions", wording, simp(n, m),
+      [simp(a + c, b + d), simp(n + b, m), simp(n - 1, m)], diff(i, 4), i);
+  }
+
+  function fracSubtract(i) {
+    const b = 3 + ((i * 3) % 9), a = 2 + (i % Math.max(b - 1, 1));
+    const d = 4 + ((i * 5) % 11), c = 1 + ((i * 7) % Math.max(d - 2, 1));
+    if (a >= b || c >= d) return fracSubtract(i + 1);
+    if (a / b - c / d <= 0) return fracSubtract(i + 5);
+    const n = a * d - c * b, m = b * d;
+    const wording = pickWording(i, fracWordings("Subtract", "−", a, b, c, d));
+    return mk("Fractions", wording, simp(n, m),
+      [simp(Math.abs(a - c), Math.max(b - d, 1)), simp(n + 1, m), simp(c, d)], diff(i, 4), i);
+  }
+
+  function fracMultiply(i) {
+    const a = 1 + (i % 7), b = 2 + ((i * 3) % 9);
+    const c = 1 + ((i * 5 + 2) % 7), d = 2 + ((i * 7 + 1) % 9);
+    if (a >= b || c >= d) return fracMultiply(i + 1);
+    const wording = pickWording(i, fracWordings("Multiply", "×", a, b, c, d));
+    return mk("Fractions", wording, simp(a * c, b * d),
+      [simp(a + c, b + d), simp(a * c, b + d), simp(a, b)], diff(i, 4), i);
+  }
+
+  function fracDivide(i) {
+    const a = 1 + (i % 7), b = 2 + ((i * 3) % 9);
+    const c = 1 + ((i * 5 + 1) % 7), d = 2 + ((i * 7 + 3) % 9);
+    if (a >= b || c >= d) return fracDivide(i + 1);
+    const wording = pickWording(i, fracWordings("Divide", "÷", a, b, c, d));
+    return mk("Fractions", wording, simp(a * d, b * c),
+      [simp(a * c, b * d), simp(a + d, b + c), simp(a, b)], diff(i, 4), i);
+  }
+
+  function fracSimplify(i) {
+    const k = 2 + (i % 6);
+    const a = 1 + (i % 4), b = 2 + ((i + 1) % 5);
+    if (gcd(a, b) !== 1) return fracSimplify(i + 3);
+    return mk("Fractions", `Simplify ${a * k}/${b * k}.`, simp(a, b),
+      [simp(a + 1, b), simp(a, b + 1), simp(a * k, b * k - 1)], diff(i, 4), i);
+  }
+
+  function fracImproperToMixed(i) {
+    const whole = 1 + (i % 4), d = 3 + (i % 5), n = 1 + (i % (d - 1));
+    const improper = whole * d + n;
+    return mk("Fractions",
+      `Convert ${improper}/${d} to a mixed number in simplest form.`,
+      `${whole} ${simp(n, d)}`,
+      [`${whole + 1} ${simp(n, d)}`, `${whole} ${simp(n + 1, d)}`, `${whole} ${simp(n, d + 1)}`],
+      diff(i, 4), i);
+  }
+
+  function fracOfX(i) {
+    const fracs = [[3, 7], [2, 5], [3, 8], [5, 6], [4, 9], [3, 10]];
+    const [n, d] = fracs[i % fracs.length];
+    const x = d * (10 + (i % 20));
+    const ans = (n * x) / d;
+    return mk("Fractions", `How much is ${n}/${d} of ${x}?`,
+      `${ans}`, [`${ans + n}`, `${ans - n}`, `${x / d}`], diff(i, 5), i);
+  }
+
+  function fracMixedMultiply(i) {
+    const w1 = 1 + (i % 6), n1 = 1 + (i % 5), d1 = 3 + (i % 7);
+    const w2 = 1 + ((i + 1) % 4), n2 = 1 + ((i + 2) % 4), d2 = 2 + ((i + 3) % 5);
+    if (n1 >= d1 || n2 >= d2) return fracMixedMultiply(i + 1);
+    const num = (w1 * d1 + n1) * (w2 * d2 + n2);
+    const den = d1 * d2;
+    const wholePart = Math.floor(num / den);
+    const remPart = num % den;
+    const ansStr = remPart === 0 ? `${wholePart}` : `${wholePart} ${simp(remPart, den)}`;
+    return mk("Fractions",
+      `Calculate ${w1} ${n1}/${d1} × ${w2} ${n2}/${d2} in simplest form.`,
+      ansStr,
+      [`${wholePart + 1} ${simp(remPart || 1, den)}`, `${wholePart} ${simp((remPart + 1) % den || 1, den)}`, `${w1 + w2} ${simp(n1 + n2, d1 + d2)}`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ PERCENTAGES ═══════════════════ */
+
+  function pctOf(i) {
+    const pcts = [10, 15, 20, 25, 30, 40, 50, 60, 75];
+    const p = pcts[i % pcts.length];
+    const base = 40 + 20 * (i % 8);
+    const ans = (p * base) / 100;
+    return mk("Percentages", `What is ${p}% of ${base}?`, `${fmt(ans)}`,
+      [`${fmt(ans + 5)}`, `${fmt(base - ans)}`, `${fmt(base / p)}`], diff(i, 4), i);
+  }
+
+  function pctFracToPct(i) {
+    const pairs = [
+      [1, 2, 50], [1, 4, 25], [3, 4, 75], [1, 5, 20], [2, 5, 40], [3, 5, 60], [4, 5, 80],
+      [1, 10, 10], [3, 10, 30], [7, 10, 70], [9, 10, 90], [1, 8, 12.5], [3, 8, 37.5],
+      [5, 8, 62.5], [7, 8, 87.5], [1, 20, 5], [3, 20, 15], [7, 20, 35], [9, 20, 45],
+      [11, 20, 55], [13, 20, 65], [17, 20, 85], [19, 20, 95], [1, 25, 4], [3, 25, 12],
+      [7, 25, 28], [9, 25, 36], [11, 25, 44], [13, 25, 52], [17, 25, 68], [19, 25, 76],
+      [21, 25, 84], [23, 25, 92], [1, 50, 2], [3, 50, 6], [7, 50, 14], [11, 50, 22],
+      [13, 50, 26], [17, 50, 34], [19, 50, 38], [23, 50, 46], [27, 50, 54], [29, 50, 58],
+      [31, 50, 62], [33, 50, 66], [37, 50, 74], [39, 50, 78], [41, 50, 82], [43, 50, 86]
+    ];
+    const [n, d, p] = pairs[i % pairs.length];
+    return mk("Percentages", `Express ${n}/${d} as a percentage.`, `${fmt(p)}%`,
+      [`${fmt(p + 5)}%`, `${fmt(p - 5)}%`, `${fmt(n * 10)}%`], diff(i, 4), i);
+  }
+
+  function pctDecToPct(i) {
+    const decs = [0.05, 0.1, 0.125, 0.2, 0.25, 0.375, 0.4, 0.5, 0.625, 0.7, 0.75, 0.8, 0.875, 0.9];
+    const d = decs[i % decs.length];
+    const ans = d * 100;
+    return mk("Percentages", `Express ${fmt(d)} as a percentage.`, `${fmt(ans)}%`,
+      [`${fmt(ans + 5)}%`, `${fmt(ans / 10)}%`, `${fmt(ans * 10)}%`], diff(i, 4), i);
+  }
+
+  function pctSalePrice(i) {
+    const original = 20 + 10 * (i % 12);
+    const discount = [10, 15, 20, 25, 30, 40, 50][i % 7];
+    const ans = original * (1 - discount / 100);
+    return mk("Percentages",
+      `An item costs £${original}. It is reduced by ${discount}%. What is the sale price?`,
+      fmtMoney(ans),
+      [fmtMoney(original * discount / 100), fmtMoney(original - discount), fmtMoney(ans + 5)],
+      diff(i, 4), i);
+  }
+
+  function pctIncrease(i) {
+    const original = 20 + 12 * (i % 25);
+    const p = [4, 5, 8, 10, 12, 15, 18, 20, 22, 25, 30, 35, 40][i % 13];
+    const newPrice = original * (1 + p / 100);
+    return mk("Percentages",
+      `A price of £${original} is increased by ${p}%. What is the new price?`,
+      fmtMoney(newPrice),
+      [fmtMoney(original + p), fmtMoney(original * p / 100), fmtMoney(newPrice + 10)],
+      diff(i, 4), i);
+  }
+
+  function pctSimpleInterest(i) {
+    const principal = 500 + 200 * (i % 10);
+    const rate = 2 + (i % 6);
+    const years = 1 + (i % 4);
+    const ans = (principal * rate * years) / 100;
+    return mk("Percentages",
+      `Simple interest on £${comma(principal)} at ${rate}% per year for ${years} year${years === 1 ? "" : "s"}?`,
+      fmtMoney(ans),
+      [fmtMoney(ans * 2), fmtMoney(principal * rate / 100), fmtMoney(ans + rate)],
+      diff(i, 4), i);
+  }
+
+  function pctReverse(i) {
+    const ps = [10, 20, 25, 40, 50, 75];
+    const p = ps[i % ps.length], n = 5 + (i % 18);
+    const y = (p * n) / 100;
+    return mk("Percentages", `${p}% of a number is ${fmt(y)}. What is the number?`,
+      `${fmt(n)}`, [`${fmt(y * 4)}`, `${fmt(n / 2)}`, `${fmt(y + p)}`], diff(i, 3), i);
+  }
+
+  function pctChained(i) {
+    const aPool = [10, 20, 25, 30, 40, 50, 60, 75, 80];
+    const bPool = [20, 25, 30, 40, 50, 60, 80];
+    const cPool = [10, 20, 25, 40, 50, 80];
+    const a = aPool[i % aPool.length];
+    const b = bPool[(i * 3) % bPool.length];
+    const c = cPool[(i * 7) % cPool.length];
+    const total = 100 + 50 * (i % 12);
+    const ans = (a / 100) * (b / 100) * (c / 100) * total;
+    return mk("Percentages", `What is ${a}% of ${b}% of ${c}% of ${total}?`,
+      `${fmt(ans)}`,
+      [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt((a + b + c) / 100 * total)}`],
+      diff(i, 2), i);
+  }
+
+  /* ═══════════════════ BIDMAS ═══════════════════ */
+
+  function bidSimple(i) {
+    const a = 3 + (i % 8), b = 2 + (i % 6), c = 2 + (i % 5);
+    return mk("BIDMAS", `What is ${a} + ${b} × ${c}?`, `${a + b * c}`,
+      [`${(a + b) * c}`, `${a + b * c + 1}`, `${a + b * c - 1}`], diff(i, 4), i);
+  }
+
+  function bidBrackets(i) {
+    const a = 3 + (i % 7), b = 2 + (i % 6), c = 2 + (i % 5);
+    const ans = (a + b) * c;
+    return mk("BIDMAS", `What is (${a} + ${b}) × ${c}?`, `${ans}`,
+      [`${a + b * c}`, `${ans + c}`, `${ans - c}`], diff(i, 4), i);
+  }
+
+  function bidPowers(i) {
+    const a = 10 + 5 * (i % 8), b = 2 + (i % 4), c = 1 + (i % 5);
+    const ans = a - b * b + c;
+    return mk("BIDMAS", `What is ${a} − ${b}² + ${c}?`, `${ans}`,
+      [`${(a - b) * b + c}`, `${a - (b + c) ** 2}`, `${ans + 5}`], diff(i, 4), i);
+  }
+
+  function bidMixed(i) {
+    const a = 5 + (i % 6), b = 2 + (i % 5), c = 2 + (i % 4), d = 4 + (i % 6), e = 2;
+    const ans = a + b * c - d / e;
+    return mk("BIDMAS", `What is ${a} + ${b} × ${c} − ${d} ÷ ${e}?`, `${ans}`,
+      [`${ans + 2}`, `${ans - 2}`, `${(a + b) * c - d / e}`], diff(i, 4), i);
+  }
+
+  function bidNegative(i) {
+    const a = 2 + (i % 5), b = 3 + (i % 4), c = 2 + (i % 5);
+    const ans = -a + b * -c;
+    return mk("BIDMAS", `What is −${a} + ${b} × (−${c})?`, `${ans}`,
+      [`${ans + 2}`, `${a + b * c}`, `${-(a + b * c)}`], diff(i, 4), i);
+  }
+
+  function bidTempChange(i) {
+    const start = 1 + (i % 18);
+    const endTemp = -(3 + ((i * 3) % 17));
+    return mk("BIDMAS",
+      `If the temperature drops from ${start}°C to ${endTemp}°C, by how many degrees did it drop?`,
+      `${start - endTemp}°C`,
+      [`${start + endTemp}°C`, `${endTemp}°C`, `${start - endTemp + 1}°C`],
+      diff(i, 4), i);
+  }
+
+  /* ═══════════════════ ALGEBRA ═══════════════════ */
+
+  function algSubLinear(i) {
+    const x = 2 + (i % 8), a = 2 + (i % 5), b = 1 + (i % 7);
+    return mk("Algebra", `If x = ${x}, what is ${a}x + ${b}?`, `${a * x + b}`,
+      [`${a * x + b + a}`, `${a * x + b - a}`, `${a + x + b}`], diff(i, 4), i);
+  }
+
+  function algSubMulti(i) {
+    const x = -3 - (i % 4), y = 1 + (i % 3), z = -2 - (i % 3);
+    const a = 2 + (i % 3);
+    const ans = a * x - y + z;
+    return mk("Algebra", `If x = ${x}, y = ${y} and z = ${z}, find ${a}x − y + z.`,
+      `${ans}`, [`${ans + 2}`, `${ans - 2}`, `${a * x + y - z}`], diff(i, 3), i);
+  }
+
+  function algSubQuadratic(i) {
+    const x = -2 - (i % 11);
+    const k = 2 + (i % 9);
+    const ans = -k * x * x;
+    return mk("Algebra", `If x = ${x}, find the value of −${k}x².`,
+      `${ans}`, [`${-ans}`, `${k * x}`, `${ans + k}`], diff(i, 3), i);
+  }
+
+  function algSolve1Step(i) {
+    const op = i % 2;
+    if (op === 0) {
+      const x = 3 + (i % 12), c = 5 + (i % 10);
+      return mk("Algebra", `Solve: x + ${c} = ${x + c}`, `x = ${x}`,
+        [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${c}`], diff(i, 4), i);
+    } else {
+      const x = 2 + (i % 9), c = 2 + (i % 7);
+      return mk("Algebra", `Solve: ${c}x = ${c * x}`, `x = ${x}`,
+        [`x = ${x + 1}`, `x = ${c}`, `x = ${c * x}`], diff(i, 4), i);
+    }
+  }
+
+  function algSolve2Step(i) {
+    const x = 2 + (i % 9), a = 2 + (i % 5), b = 1 + (i % 8);
+    return mk("Algebra", `Solve: ${a}x + ${b} = ${a * x + b}`, `x = ${x}`,
+      [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${a * x + b - b}`], diff(i, 3), i);
+  }
+
+  function algSolveBothSides(i) {
+    const x = 2 + (i % 7);
+    const a = 3 + (i % 4), c = 1 + (i % 3);
+    const b = 1 + (i % 5), d = (a - c) * x + b;
+    return mk("Algebra", `Solve: ${a}x + ${b} = ${c}x + ${d}`, `x = ${x}`,
+      [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${b + d}`], diff(i, 3), i);
+  }
+
+  function algSimplifyTerms(i) {
+    const a = 2 + (i % 5), b = 1 + (i % 4), c = 1 + (i % 3), d = 1 + (i % 4);
+    if (a - c <= 0) return algSimplifyTerms(i + 1);
+    return mk("Algebra", `Simplify: ${a}a + ${b}b − ${c}a + ${d}b`,
+      `${a - c}a + ${b + d}b`,
+      [`${a + c}a + ${b + d}b`, `${a - c}a − ${b + d}b`, `${a}a + ${b}b`],
+      diff(i, 4), i);
+  }
+
+  function algCustomOp(i) {
+    const k = 2 + (i % 4), a = 4 + (i % 5), b = 2 + (i % 4);
+    const ans = a * a + k * b;
+    return mk("Algebra", `Define a ⊗ b = a² + ${k}b. What is ${a} ⊗ ${b}?`,
+      `${ans}`, [`${ans + k}`, `${ans - k}`, `${a * a * k + b}`], diff(i, 3), i);
+  }
+
+  function algWeightPair(i) {
+    const total = 100 + 20 * (i % 8) + (i % 3);
+    const d = 5 + 2 * (i % 7);
+    const heavier = (total + d) / 2, lighter = (total - d) / 2;
+    const askH = i % 2 === 0;
+    return mk("Algebra",
+      `Two people weigh ${fmt(total)} kg in total. One is ${d} kg heavier than the other. How heavy is the ${askH ? "heavier" : "lighter"} person?`,
+      `${fmt(askH ? heavier : lighter)} kg`,
+      [`${fmt(askH ? lighter : heavier)} kg`, `${fmt(total - d)} kg`, `${fmt(total / 2)} kg`],
+      diff(i, 3), i);
+  }
+
+  function algTriangleAngles(i) {
+    const kPool = [3, 4, 5, 2];
+    const k = kPool[i % kPool.length];
+    const d = 5 + 3 * (i % 30);
+    const C = 180 / (k + 1);
+    const A = (k * C + d) / 2, B = k * C - A;
+    if (B <= 0) return algTriangleAngles(i + 1);
+    return mk("Algebra",
+      `In a triangle, two angles sum to ${k} times the third. The largest is ${d}° more than the second largest. Find the largest angle.`,
+      `${fmt(A)}°`, [`${fmt(B)}°`, `${fmt(C)}°`, `${fmt(A + 10)}°`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ SEQUENCES ═══════════════════ */
+
+  function seqArithNext(i) {
+    const a = 1 + (i % 8), d = 2 + (i % 7);
+    const terms = [a, a + d, a + 2 * d, a + 3 * d];
+    return mk("Sequences", `What is the next term in: ${terms.join(", ")}, ...?`,
+      `${a + 4 * d}`, [`${a + 5 * d}`, `${a + 3 * d}`, `${a + 4 * d + 1}`], diff(i, 4), i);
+  }
+
+  function seqArithNth(i) {
+    const a = 2 + (i % 9), d = 2 + (i % 6), n = 8 + (i % 12);
+    return mk("Sequences",
+      `What is the ${n}th term of the sequence ${a}, ${a + d}, ${a + 2 * d}, ${a + 3 * d}, ...?`,
+      `${a + (n - 1) * d}`,
+      [`${a + n * d}`, `${a + (n - 1) * d - d}`, `${a * n}`],
+      diff(i, 3), i);
+  }
+
+  function seqArithNthFormula(i) {
+    const d = 2 + (i % 11), a = 1 + (i % 13);
+    const first4 = [a, a + d, a + 2 * d, a + 3 * d];
+    const intercept = a - d;
+    const ansStr = intercept === 0 ? `${d}n` : (intercept > 0 ? `${d}n+${intercept}` : `${d}n${intercept}`);
+    return mk("Sequences", `What is the nth term of ${first4.join(", ")}, ...?`,
+      ansStr, [`${d + 1}n`, `${d}n+${a}`, `${d * 2}n`], diff(i, 3), i);
+  }
+
+  function seqFibLike(i) {
+    const a = 1 + (i % 9), b = 1 + ((i * 3 + 1) % 11);
+    const t3 = a + b, t4 = b + t3, t5 = t3 + t4, t6 = t4 + t5;
+    return mk("Sequences",
+      `Each term is the sum of the previous two: ${a}, ${b}, ${t3}, ${t4}, ${t5}, ... What is the next term?`,
+      `${t6}`, [`${t6 + 1}`, `${t6 - 1}`, `${t5 * 2}`], diff(i, 3), i);
+  }
+
+  function seqGeomNext(i) {
+    const a = 1 + (i % 9), r = 2 + (i % 5);
+    const terms = [a, a * r, a * r * r, a * r ** 3];
+    return mk("Sequences", `What is the next term in: ${terms.join(", ")}, ...?`,
+      `${a * r ** 4}`,
+      [`${a * r ** 5}`, `${terms[3] + r}`, `${terms[3] * 2}`],
+      diff(i, 4), i);
+  }
+
+  function seqBallPattern(i) {
+    const a = 1 + (i % 4), d = 3 + (i % 5), n = 8 + (i % 8);
+    const ans = a + d * (n - 1);
+    return mk("Sequences",
+      `A pattern has ${a}, ${a + d}, ${a + 2 * d}, ${a + 3 * d}, ... balls (adding ${d} each time). How many balls in the ${n}th pattern?`,
+      `${ans}`, [`${ans + d}`, `${ans - d}`, `${a * n}`], diff(i, 3), i);
+  }
+
+  /* ═══════════════════ RATIO ═══════════════════ */
+
+  function ratSimplify(i) {
+    const k = 2 + (i % 6), a = 1 + (i % 5), b = a + 1 + (i % 4);
+    if (gcd(a, b) !== 1) return ratSimplify(i + 1);
+    return mk("Ratio", `Simplify the ratio ${a * k} : ${b * k}.`, `${a}:${b}`,
+      [`${a + 1}:${b}`, `${a}:${b + 1}`, `${a * k}:${b * k - 1}`], diff(i, 4), i);
+  }
+
+  function ratSplit(i) {
+    const a = 2 + (i % 4), b = a + 1 + (i % 4), perPart = 6 + (i % 10);
+    const total = (a + b) * perPart;
+    return mk("Ratio", `Split £${total} in the ratio ${a} : ${b}.`,
+      `£${a * perPart} and £${b * perPart}`,
+      [`£${b * perPart} and £${a * perPart}`, `£${(a + 1) * perPart} and £${(b - 1) * perPart}`, `£${total / 2} and £${total / 2}`],
+      diff(i, 3), i);
+  }
+
+  function ratWordTotal(i) {
+    const a = 2 + (i % 4), b = a + 1 + (i % 4), perPart = 3 + (i % 5);
+    const total = (a + b) * perPart;
+    const askBoys = i % 2 === 0;
+    return mk("Ratio",
+      `In a class, boys to girls is ${a} : ${b}. There are ${total} pupils. How many ${askBoys ? "boys" : "girls"}?`,
+      `${(askBoys ? a : b) * perPart}`,
+      [`${(askBoys ? b : a) * perPart}`, `${(a + 1) * perPart}`, `${total / 2}`],
+      diff(i, 3), i);
+  }
+
+  function ratDifference(i) {
+    const a = 2 + (i % 3), b = a + 1 + (i % 4);
+    const diffParts = b - a, perPart = 4 + 2 * (i % 8);
+    return mk("Ratio",
+      `Years 7 and 8 are entered in the ratio ${a}:${b}. There are ${diffParts * perPart} more Year 8 pupils. How many in total?`,
+      `${(a + b) * perPart}`,
+      [`${(a + b) * perPart + (a + b)}`, `${(a + b) * perPart - (a + b)}`, `${diffParts * perPart * (a + b)}`],
+      diff(i, 3), i);
+  }
+
+  function ratRecipe(i) {
+    const baseSrv = 4 + 2 * (i % 4), baseAmt = 200 + 100 * (i % 5);
+    const newSrv = baseSrv + 2 + 2 * (i % 4);
+    const ans = (baseAmt * newSrv) / baseSrv;
+    return mk("Ratio",
+      `A recipe for ${baseSrv} people uses ${baseAmt} g of flour. How much for ${newSrv} people?`,
+      `${fmt(ans)} g`,
+      [`${fmt(ans + baseAmt / 4)} g`, `${fmt(baseAmt + newSrv)} g`, `${fmt(ans / 2)} g`],
+      diff(i, 3), i);
+  }
+
+  function ratMapScale(i) {
+    const realM = 4 + (i % 10), planCm = 3 + (i % 8);
+    return mk("Ratio",
+      `A plan uses a scale of 1 cm to ${realM} m. A playground is ${planCm} cm on the plan. What is its real length?`,
+      `${planCm * realM} m`,
+      [`${(planCm + 1) * realM} m`, `${(planCm - 1) * realM} m`, `${planCm + realM} m`],
+      diff(i, 3), i);
+  }
+
+  function ratInverseProp(i) {
+    const w1 = 2 + (i % 5), h1 = 6 + 2 * (i % 6), w2 = w1 + 1 + (i % 4);
+    const ans = (w1 * h1) / w2;
+    return mk("Ratio",
+      `${w1} builders take ${h1} hours to build a wall. How long would ${w2} builders take at the same rate?`,
+      `${fmt(ans)} hours`,
+      [`${fmt(h1)} hours`, `${fmt(ans + 1)} hours`, `${fmt(w2 * h1 / w1)} hours`],
+      diff(i, 3), i);
+  }
+
+  function ratChained(i) {
+    const a = 2 + (i % 4), b = a + 1 + (i % 3);
+    const c = 3 + (i % 4), d = c + 1 + (i % 4);
+    const A = a * c, C = b * d, g = gcd(A, C);
+    return mk("Ratio",
+      `Blue to red pens is ${a}:${b} and red to green is ${c}:${d}. What is blue to green in simplest form?`,
+      `${A / g}:${C / g}`,
+      [`${a}:${d}`, `${A}:${C}`, `${b}:${c}`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ SPEED ═══════════════════ */
+
+  function spdFindSpeed(i) {
+    const d = 60 + 30 * (i % 8), t = 1 + (i % 6);
+    const ans = d / t;
+    return mk("Speed",
+      `A car travels ${d} km in ${t} hour${t === 1 ? "" : "s"}. What is its average speed?`,
+      `${fmt(ans)} km/h`,
+      [`${fmt(ans + 10)} km/h`, `${fmt(ans - 10)} km/h`, `${fmt(d * t)} km/h`],
+      diff(i, 4), i);
+  }
+
+  function spdFindDistance(i) {
+    const s = 25 + 7 * (i % 18), t = 1 + (i % 12);
+    return mk("Speed",
+      `A train travels at ${s} km/h for ${t} hour${t === 1 ? "" : "s"}. What distance does it cover?`,
+      `${s * t} km`, [`${s * t + s} km`, `${s * t - s} km`, `${s + t} km`],
+      diff(i, 4), i);
+  }
+
+  function spdFindTime(i) {
+    const s = 8 + 4 * (i % 17), t = 1 + (i % 11);
+    return mk("Speed", `A cyclist covers ${s * t} km at ${s} km/h. How long does it take?`,
+      `${t} h`, [`${t + 1} h`, `${t - 1 || t + 2} h`, `${s + t * s} h`],
+      diff(i, 4), i);
+  }
+
+  function spdMphHoursMin(i) {
+    const mph = 30 + 5 * (i % 10), h = 1 + (i % 4), m = 10 * (i % 6);
+    const total = h + m / 60;
+    const ans = mph * total;
+    return mk("Speed",
+      `A car travels at ${mph} mph. How far will it travel in ${h} hour${h === 1 ? "" : "s"} ${m} minutes?`,
+      `${fmt(ans)} miles`,
+      [`${fmt(mph * h)} miles`, `${fmt(mph * (h + 1))} miles`, `${fmt(ans + mph / 2)} miles`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ MEASUREMENT ═══════════════════ */
+
+  function meaUnitConvert(i) {
+    const kind = i % 4;
+    if (kind === 0) {
+      const cm = 200 + 50 * (i % 10);
+      return mk("Measurement", `Convert ${cm} cm to metres.`, `${cm / 100} m`,
+        [`${cm * 100} m`, `${cm / 10} m`, `${cm / 1000} m`], diff(i, 4), i);
+    } else if (kind === 1) {
+      const g = 1000 + 250 * (i % 8) + 100 * (i % 5);
+      return mk("Measurement", `Convert ${comma(g)} grams to kilograms.`, `${fmt(g / 1000)} kg`,
+        [`${fmt(g * 1000)} kg`, `${fmt(g / 100)} kg`, `${fmt(g / 10)} kg`], diff(i, 4), i);
+    } else if (kind === 2) {
+      const L = 2 + 0.5 * (i % 8);
+      return mk("Measurement", `How many millilitres are in ${fmt(L)} litres?`, `${comma(L * 1000)} ml`,
+        [`${comma(L * 100)} ml`, `${comma(L * 10)} ml`, `${comma(L / 1000)} ml`], diff(i, 4), i);
+    } else {
+      const m = 100 * (1 + (i % 50));
+      return mk("Measurement", `How many metres is ${comma(m * 1000)} mm?`, `${comma(m)} m`,
+        [`${comma(m * 10)} m`, `${comma(m / 10)} m`, `${comma(m * 100)} m`], diff(i, 4), i);
+    }
+  }
+
+  function meaAreaPerim(i) {
+    const w = 4 + (i % 8), h = 3 + (i % 7);
+    const askArea = i % 2 === 0;
+    if (askArea) {
+      return mk("Measurement", `What is the area of a rectangle ${w} cm × ${h} cm?`,
+        `${w * h} cm²`,
+        [`${2 * (w + h)} cm²`, `${w * h + w} cm²`, `${(w + 1) * h} cm²`],
+        diff(i, 4), i);
+    } else {
+      return mk("Measurement", `What is the perimeter of a rectangle ${w} cm × ${h} cm?`,
+        `${2 * (w + h)} cm`,
+        [`${w * h} cm`, `${2 * (w + h) + 2} cm`, `${w + h} cm`],
+        diff(i, 4), i);
+    }
+  }
+
+  function meaVolumeCube(i) {
+    const s = 2 + (i % 19);
+    return mk("Measurement", `What is the volume of a cube with side ${s} cm?`,
+      `${s ** 3} cm³`,
+      [`${6 * s * s} cm³`, `${s * s} cm³`, `${s ** 3 + s} cm³`],
+      diff(i, 4), i);
+  }
+
+  function meaTempDiff(i) {
+    const cold = -3 - (i % 12), warm = 2 + (i % 12);
+    return mk("Measurement",
+      `City A shows ${cold}°C and City B shows ${warm}°C. What is the difference in temperature?`,
+      `${warm - cold}°C`,
+      [`${warm + cold}°C`, `${Math.abs(warm) + Math.abs(cold) - 1}°C`, `${warm - cold - 2}°C`],
+      diff(i, 3), i);
+  }
+
+  function meaInchConvert(i) {
+    const inches = 2 + (i % 23);
+    const askMm = i % 2 === 0;
+    const cm = inches * 2.5, mm = cm * 10;
+    return mk("Measurement",
+      `Given 1 inch = 2.5 cm, what is ${inches} inches in ${askMm ? "millimetres" : "centimetres"}?`,
+      `${fmt(askMm ? mm : cm)} ${askMm ? "mm" : "cm"}`,
+      [`${fmt(askMm ? cm : mm)} ${askMm ? "mm" : "cm"}`, `${fmt(inches * 2)} ${askMm ? "mm" : "cm"}`, `${fmt(inches)} ${askMm ? "mm" : "cm"}`],
+      diff(i, 3), i);
+  }
+
+  function meaMoneyChange(i) {
+    const itemA = 50 + 5 * (i % 12), itemB = 55 + 4 * (i % 9);
+    const nA = 3 + (i % 6), nB = 2 + (i % 5);
+    const noteP = 1000 * (1 + (i % 2));
+    const totalP = nA * itemA + nB * itemB;
+    const ans = (noteP - totalP) / 100;
+    return mk("Measurement",
+      `Buy ${nA} bags of crisps at ${itemA} p each and ${nB} bags of nuts at ${itemB} p each. Change from £${noteP / 100}?`,
+      `£${ans.toFixed(2)}`,
+      [`£${(ans + 0.1).toFixed(2)}`, `£${(ans - 0.1).toFixed(2)}`, `£${(totalP / 100).toFixed(2)}`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ GEOMETRY ═══════════════════ */
+
+  function geoAngleSum(i) {
+    // Use formula (n-2)*180 for any n-gon
+    const n = 3 + (i % 18);                                // 3..20 sides
+    const names = { 3: "a triangle", 4: "a quadrilateral", 5: "a pentagon", 6: "a hexagon",
+                    7: "a heptagon", 8: "an octagon", 9: "a nonagon", 10: "a decagon",
+                    11: "an 11-sided polygon", 12: "a dodecagon", 13: "a 13-sided polygon",
+                    14: "a 14-sided polygon", 15: "a 15-sided polygon", 16: "a 16-sided polygon",
+                    17: "a 17-sided polygon", 18: "an 18-sided polygon", 19: "a 19-sided polygon",
+                    20: "a 20-sided polygon" };
+    const sumDeg = (n - 2) * 180;
+    return mk("Geometry", `What is the sum of interior angles in ${names[n]}?`,
+      `${sumDeg}°`, [`${sumDeg + 180}°`, `${sumDeg - 180}°`, `${sumDeg / 2}°`], diff(i, 4), i);
+  }
+
+  function geoAngleType(i) {
+    const a = 5 + 7 * (i % 50);                            // 5..348°
+    let t;
+    if (a === 90) t = "Right";
+    else if (a === 180) t = "Straight";
+    else if (a < 90) t = "Acute";
+    else if (a < 180) t = "Obtuse";
+    else t = "Reflex";
+    return mk("Geometry", `What type of angle is ${a}°?`, t,
+      ["Acute", "Obtuse", "Right", "Reflex", "Straight"].filter(x => x !== t).slice(0, 3),
+      diff(i, 4), i);
+  }
+
+  function geoShapeAngle(i) {
+    // Interior angle of regular n-gon = (n-2)*180/n
+    const n = 3 + (i % 13);                                // 3..15 sides
+    const names = { 3: "equilateral triangle", 4: "square", 5: "regular pentagon",
+                    6: "regular hexagon", 7: "regular heptagon", 8: "regular octagon",
+                    9: "regular nonagon", 10: "regular decagon", 11: "regular 11-gon",
+                    12: "regular dodecagon", 13: "regular 13-gon", 14: "regular 14-gon",
+                    15: "regular 15-gon" };
+    const val = (n - 2) * 180 / n;
+    return mk("Geometry", `Each interior angle of a ${names[n]} is:`, `${fmt(val)}°`,
+      [`${fmt(val + 30)}°`, `${fmt(val - 30)}°`, `${fmt(360 / n)}°`], diff(i, 4), i);
+  }
+
+  function geoComplementary(i) {
+    const a = 10 + 5 * (i % 32);                           // 10..165°
+    const onStraight = i % 2 === 0;
+    const ans = onStraight ? 180 - a : 360 - a;
+    return mk("Geometry",
+      `Two angles ${onStraight ? "on a straight line" : "around a point"} include one of ${a}°. What is the other?`,
+      `${ans}°`, [`${ans + 10}°`, `${ans - 10}°`, `${90 - a}°`],
+      diff(i, 4), i);
+  }
+
+  function geoTriangleArea(i) {
+    const b = 4 + (i % 9), h = 3 + (i % 8);
+    return mk("Geometry",
+      `What is the area of a triangle with base ${b} cm and height ${h} cm?`,
+      `${fmt((b * h) / 2)} cm²`,
+      [`${b * h} cm²`, `${fmt((b * h) / 2 + 2)} cm²`, `${b + h} cm²`],
+      diff(i, 4), i);
+  }
+
+  function geoLinesSymmetry(i) {
+    const shapes = [
+      { n: "regular pentagon", l: 5 }, { n: "regular hexagon", l: 6 },
+      { n: "equilateral triangle", l: 3 }, { n: "square", l: 4 },
+      { n: "rectangle (not a square)", l: 2 },
+      { n: "parallelogram (not a rectangle or rhombus)", l: 0 },
+      { n: "isosceles triangle (not equilateral)", l: 1 },
+      { n: "regular octagon", l: 8 }, { n: "rhombus (not a square)", l: 2 },
+      { n: "regular heptagon", l: 7 }, { n: "regular nonagon", l: 9 },
+      { n: "regular decagon", l: 10 }, { n: "regular dodecagon", l: 12 },
+      { n: "kite (not a rhombus)", l: 1 }, { n: "scalene triangle", l: 0 },
+      { n: "trapezium (non-isosceles)", l: 0 }, { n: "isosceles trapezium", l: 1 },
+      { n: "regular 11-gon", l: 11 }, { n: "right-angled (non-isosceles) triangle", l: 0 },
+      { n: "regular 14-gon", l: 14 }, { n: "regular 16-gon", l: 16 },
+      { n: "circle", l: -1 }
+    ];
+    const s = shapes[i % shapes.length];
+    const ansText = s.l === -1 ? "infinitely many" : `${s.l}`;
+    return mk("Geometry", `How many lines of symmetry does a ${s.n} have?`,
+      ansText,
+      s.l === -1 ? ["0", "4", "8"] : [`${s.l + 1}`, `${Math.max(s.l - 1, 0)}`, `${s.l + 2}`],
+      diff(i, 4), i);
+  }
+
+  function geoRotSymmetry(i) {
+    const shapes = [
+      { n: "equilateral triangle", o: 3 }, { n: "square", o: 4 },
+      { n: "regular pentagon", o: 5 }, { n: "regular hexagon", o: 6 },
+      { n: "rectangle (not a square)", o: 2 }, { n: "parallelogram", o: 2 },
+      { n: "regular octagon", o: 8 }, { n: "trapezium (non-isosceles)", o: 1 },
+      { n: "regular heptagon", o: 7 }, { n: "regular nonagon", o: 9 },
+      { n: "regular decagon", o: 10 }, { n: "regular dodecagon", o: 12 },
+      { n: "regular 11-gon", o: 11 }, { n: "rhombus (not a square)", o: 2 },
+      { n: "kite (not a rhombus)", o: 1 }, { n: "scalene triangle", o: 1 },
+      { n: "isosceles trapezium", o: 1 }, { n: "regular 14-gon", o: 14 },
+      { n: "regular 16-gon", o: 16 }, { n: "regular 18-gon", o: 18 }
+    ];
+    const s = shapes[i % shapes.length];
+    return mk("Geometry", `What is the order of rotational symmetry of a ${s.n}?`,
+      `${s.o}`, [`${s.o + 1}`, `${Math.max(s.o - 1, 1)}`, `${s.o * 2}`],
+      diff(i, 4), i);
+  }
+
+  function geoPrismFEV(i) {
+    const n = 3 + (i % 13);                                // 3..15-gonal base
+    const names = { 3: "triangular", 4: "rectangular", 5: "pentagonal", 6: "hexagonal",
+                    7: "heptagonal", 8: "octagonal", 9: "nonagonal", 10: "decagonal",
+                    11: "11-gonal", 12: "dodecagonal", 13: "13-gonal", 14: "14-gonal",
+                    15: "15-gonal" };
+    const choose = i % 3;
+    const f = n + 2, e = 3 * n, v = 2 * n;
+    const labels = ["faces", "edges", "vertices"];
+    const ans = [f, e, v][choose];
+    return mk("Geometry", `How many ${labels[choose]} does a ${names[n]} prism have?`,
+      `${ans}`, [`${ans + 1}`, `${ans - 1}`, `${ans + n}`],
+      diff(i, 3), i);
+  }
+
+  function geoCuboidMissingEdge(i) {
+    const a = 2 + (i % 5), b = 3 + (i % 6), x = 2 + (i % 8);
+    return mk("Geometry",
+      `A cuboid has volume ${a * b * x} cm³. Two edges are ${a} cm and ${b} cm. What is the third edge?`,
+      `${x} cm`, [`${x + 1} cm`, `${x - 1} cm`, `${a + b} cm`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ STATISTICS ═══════════════════ */
+
+  function statMean(i) {
+    const n = 4 + (i % 4);
+    const data = Array.from({ length: n }, (_, k) => 2 + ((i * 7 + k * 3 + 1) % 12));
+    const ans = mean(data);
+    const wording = pickWording(i, statMeanWording(data));
+    return mk("Statistics", wording,
+      `${fmt(ans)}`, [`${fmt(ans + 1)}`, `${fmt(ans - 1)}`, `${median(data)}`],
+      diff(i, 4), i);
+  }
+
+  function statMedian(i) {
+    const n = 5 + (i % 3);
+    const data = Array.from({ length: n }, (_, k) => 1 + ((i * 5 + k * 4 + 2) % 14));
+    const ans = median(data);
+    return mk("Statistics", `Find the median of: ${data.join(", ")}.`,
+      `${fmt(ans)}`, [`${fmt(mean(data))}`, `${fmt(ans + 1)}`, `${fmt(ans - 1)}`],
+      diff(i, 4), i);
+  }
+
+  function statMode(i) {
+    const n = 7 + (i % 3);
+    const dup = 2 + ((i * 3) % 8);
+    const data = Array.from({ length: n }, (_, k) =>
+      k === 1 || k === 4 || k === 6 ? dup : 1 + ((i * 5 + k * 2 + 1) % 9));
+    return mk("Statistics", `Find the mode of: ${data.join(", ")}.`,
+      `${dup}`, [`${dup + 1}`, `${dup - 1}`, `${fmt(mean(data))}`],
+      diff(i, 4), i);
+  }
+
+  function statRange(i) {
+    const n = 5 + (i % 4);
+    const data = Array.from({ length: n }, (_, k) => 2 + ((i * 13 + k * 7) % 23));
+    return mk("Statistics", `Find the range of: ${data.join(", ")}.`,
+      `${range(data)}`, [`${range(data) + 1}`, `${range(data) - 1}`, `${Math.max(...data)}`],
+      diff(i, 4), i);
+  }
+
+  function statMissingMean(i) {
+    const n = 4 + (i % 5);
+    const targetMean = 5 + (i % 15);
+    const known = Array.from({ length: n - 1 }, (_, k) => 2 + ((i * 7 + k * 11 + k) % 18));
+    const missing = targetMean * n - sum(known);
+    if (missing <= 0 || missing > 40) return statMissingMean(i + 3);
+    return mk("Statistics",
+      `The mean of ${n} numbers is ${targetMean}. ${n - 1} of them are ${known.join(", ")}. What is the missing number?`,
+      `${missing}`, [`${missing + 1}`, `${Math.max(missing - 1, 1)}`, `${targetMean}`],
+      diff(i, 3), i);
+  }
+
+  function statFreqMidpoint(i) {
+    const widths = [5, 10, 15, 20, 25];
+    const width = widths[i % widths.length];
+    const lo = width * (1 + (i % 10));
+    const hi = lo + width;
+    return mk("Statistics",
+      `In a grouped frequency table, the class ${lo} ≤ x < ${hi} has midpoint:`,
+      `${(lo + hi) / 2}`, [`${lo}`, `${hi}`, `${(lo + hi) / 2 + 5}`],
+      diff(i, 5), i);
+  }
+
+  function statPieAngle(i) {
+    const sectors = [2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 60][i % 18];
+    const ans = 360 / sectors;
+    return mk("Statistics",
+      `A pie chart is divided into ${sectors} equal sectors. What angle is each sector?`,
+      `${ans}°`, [`${ans * 2}°`, `${fmt(ans / 2)}°`, `${360 - ans}°`],
+      diff(i, 5), i);
+  }
+
+  function statPictogram(i) {
+    const each = 2 + (i % 14), symbols = 3 + (i % 11);
+    return mk("Statistics",
+      `A pictogram uses a star for students. ${symbols} stars represent ${each * symbols} students. How many students per star?`,
+      `${each}`, [`${each + 1}`, `${each - 1 || each + 2}`, `${each * symbols}`],
+      diff(i, 5), i);
+  }
+
+  function statMeanWording(data) {
+    return [
+      `Find the mean of: ${data.join(", ")}.`,
+      `Calculate the average (mean) of these numbers: ${data.join(", ")}.`,
+      `What is the mean of ${data.join(", ")}?`,
+      `The numbers ${data.join(", ")} have what mean?`,
+      `Work out the mean of the data set: ${data.join(", ")}.`
+    ];
+  }
+
+  function statCorrelation(i) {
+    const kinds = [
+      { q: "A positive correlation on a scatter graph means:", a: "As x increases, y increases", d: ["As x increases, y decreases", "No relationship", "All points are zero"] },
+      { q: "A negative correlation on a scatter graph means:", a: "As x increases, y decreases", d: ["As x increases, y increases", "No relationship", "All points are zero"] },
+      { q: "If points on a scatter graph are scattered randomly, the correlation is:", a: "None", d: ["Positive", "Negative", "Perfect"] },
+      { q: "A scatter graph with all points on a single rising line shows what correlation?", a: "Perfect positive", d: ["Perfect negative", "None", "Weak positive"] },
+      { q: "A scatter graph with all points on a single falling line shows what correlation?", a: "Perfect negative", d: ["Perfect positive", "None", "Weak negative"] },
+      { q: "Which would you expect to show a positive correlation?", a: "Height and shoe size", d: ["Outdoor temperature and heater use", "Car age and resale value", "Speed and travel time"] },
+      { q: "Which would you expect to show a negative correlation?", a: "Car age and resale value", d: ["Height and shoe size", "Hours studied and test mark", "Number of hours and pay"] },
+      { q: "Which would you expect to show no correlation?", a: "Shoe size and exam mark", d: ["Height and shoe size", "Age and weight in children", "Distance and travel time"] }
+    ];
+    const k = kinds[i % kinds.length];
+    return mk("Statistics", k.q, k.a, k.d, diff(i, 5), i);
+  }
+
+  /* ═══════════════════ PROBABILITY ═══════════════════ */
+
+  function probBagPick(i) {
+    const r = 2 + (i % 6), b = 3 + ((i + 1) % 7);
+    const total = r + b;
+    const askRed = i % 2 === 0;
+    const numerator = askRed ? r : b;
+    return mk("Probability",
+      `A bag has ${r} red and ${b} blue balls. What is the probability of picking ${askRed ? "red" : "blue"}?`,
+      simp(numerator, total),
+      [simp(askRed ? b : r, total), simp(numerator, numerator), simp(numerator + 1, total)],
+      diff(i, 4), i);
+  }
+
+  function probDie(i) {
+    const targets = [
+      { q: "rolling a 4", a: "1/6", d: ["1/3", "1/2", "1/4"] },
+      { q: "rolling a 2", a: "1/6", d: ["1/3", "1/2", "2/6"] },
+      { q: "rolling a 5", a: "1/6", d: ["5/6", "1/2", "1/5"] },
+      { q: "rolling an even number", a: "1/2", d: ["1/3", "1/6", "2/3"] },
+      { q: "rolling an odd number", a: "1/2", d: ["1/3", "2/3", "1/6"] },
+      { q: "rolling a number greater than 4", a: "1/3", d: ["1/2", "2/3", "1/6"] },
+      { q: "rolling a number less than 3", a: "1/3", d: ["1/2", "1/6", "2/3"] },
+      { q: "rolling a number greater than 2", a: "2/3", d: ["1/3", "1/2", "1/6"] },
+      { q: "rolling a number less than 5", a: "2/3", d: ["1/3", "1/2", "5/6"] },
+      { q: "rolling a multiple of 3", a: "1/3", d: ["1/2", "1/6", "2/3"] },
+      { q: "rolling a multiple of 2", a: "1/2", d: ["1/3", "1/6", "2/3"] },
+      { q: "rolling a 1 or a 6", a: "1/3", d: ["1/6", "1/2", "2/3"] },
+      { q: "rolling a 1, 2 or 3", a: "1/2", d: ["1/3", "1/6", "2/3"] },
+      { q: "rolling a prime number", a: "1/2", d: ["1/3", "1/6", "2/3"] },
+      { q: "rolling a square number", a: "1/3", d: ["1/2", "1/6", "2/3"] },
+      { q: "rolling a number ≤ 4", a: "2/3", d: ["1/3", "1/2", "5/6"] },
+      { q: "not rolling a 6", a: "5/6", d: ["1/6", "1/2", "2/3"] },
+      { q: "not rolling a 1", a: "5/6", d: ["1/6", "1/2", "2/3"] }
+    ];
+    const t = targets[i % targets.length];
+    return mk("Probability", `A fair die is rolled. What is the probability of ${t.q}?`,
+      t.a, t.d, diff(i, 5), i);
+  }
+
+  function probCoin(i) {
+    const opts = [
+      { q: "tails", a: "1/2", d: ["1/3", "1/4", "1"] },
+      { q: "heads", a: "1/2", d: ["1/3", "1/4", "0"] },
+      { q: "heads on two flips", a: "1/4", d: ["1/2", "1/3", "1/8"] },
+      { q: "tails on two flips", a: "1/4", d: ["1/2", "1/3", "1/8"] },
+      { q: "exactly one head in two flips", a: "1/2", d: ["1/4", "1/3", "1/8"] },
+      { q: "exactly one tail in two flips", a: "1/2", d: ["1/4", "1/3", "1/8"] },
+      { q: "no heads in two flips", a: "1/4", d: ["1/2", "1/3", "0"] },
+      { q: "at least one head in two flips", a: "3/4", d: ["1/2", "1/4", "1/3"] },
+      { q: "at least one tail in two flips", a: "3/4", d: ["1/2", "1/4", "1/3"] },
+      { q: "three heads in three flips", a: "1/8", d: ["1/4", "1/2", "3/8"] },
+      { q: "exactly two heads in three flips", a: "3/8", d: ["1/4", "1/2", "1/8"] },
+      { q: "no heads in three flips", a: "1/8", d: ["1/4", "1/2", "3/8"] },
+      { q: "at least two heads in three flips", a: "1/2", d: ["3/8", "1/4", "1/8"] }
+    ];
+    const o = opts[i % opts.length];
+    return mk("Probability", `A fair coin is flipped. What is the probability of ${o.q}?`,
+      o.a, o.d, diff(i, 5), i);
+  }
+
+  function probComplement(i) {
+    const granularity = [10, 20, 100][i % 3];
+    const num = 1 + (i % (granularity - 1));
+    const p = +(num / granularity).toFixed(3);
+    const ans = +(1 - p).toFixed(3);
+    const wording = pickWording(i, [
+      `The probability of an event is ${fmt(p)}. What is the probability it does NOT happen?`,
+      `P(A) = ${fmt(p)}. What is P(not A)?`,
+      `If the probability of rain is ${fmt(p)}, what is the probability of no rain?`,
+      `An event has probability ${fmt(p)}. Find the probability it fails to occur.`,
+      `Given P(success) = ${fmt(p)}, what is P(failure)?`,
+      `If P(event) = ${fmt(p)}, the probability of the event not happening is:`
+    ]);
+    return mk("Probability", wording,
+      `${fmt(ans)}`, [`${fmt(p)}`, `${fmt(ans + 0.1)}`, `${fmt(ans - 0.1)}`],
+      diff(i, 5), i);
+  }
+
+  function probExpected(i) {
+    const trials = 20 + 20 * (i % 25);
+    const ps = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.75, 0.8];
+    const p = ps[i % ps.length];
+    const ans = +(trials * p).toFixed(2);
+    return mk("Probability",
+      `In ${trials} trials, P(A) = ${fmt(p)}. How many times would A be expected to occur?`,
+      `${fmt(ans)}`, [`${fmt(ans + 10)}`, `${fmt(Math.max(ans - 10, 0))}`, `${fmt(trials - ans)}`],
+      diff(i, 4), i);
+  }
+
+  function probIndependent(i) {
+    const aPool = [0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+    const bPool = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+    const a = aPool[i % aPool.length];
+    const b = bPool[(i * 3 + 1) % bPool.length];
+    const ans = +(a * b).toFixed(3);
+    return mk("Probability",
+      `P(A) = ${fmt(a)}, P(B) = ${fmt(b)}. If independent, find P(A and B).`,
+      `${fmt(ans)}`, [`${fmt(a + b)}`, `${fmt(ans + 0.05)}`, `${fmt(Math.max(a, b))}`],
+      diff(i, 3), i);
+  }
+
+  /* ═══════════════════ LOGIC ═══════════════════ */
+
+  function logConsecutiveIntSum(i) {
+    const small = 30 + (i % 60);
+    return mk("Logic",
+      `Find two consecutive integers whose sum is ${small + (small + 1)}.`,
+      `${small} and ${small + 1}`,
+      [`${small - 1} and ${small + 2}`, `${small - 2} and ${small + 3}`, `${small + 1} and ${small + 2}`],
+      diff(i), i);
+  }
+
+  function logConsecutiveEvenSum(i) {
+    const m = 2 * (15 + (i % 40));
+    return mk("Logic",
+      `Find three consecutive even integers whose sum is ${3 * m}.`,
+      `${m - 2}, ${m} and ${m + 2}`,
+      [`${m - 4}, ${m - 2} and ${m}`, `${m}, ${m + 2} and ${m + 4}`, `${m - 3}, ${m} and ${m + 3}`],
+      diff(i), i);
+  }
+
+  function logConsecutiveOddPuzzle(i) {
+    const a = 2 * (3 + (i % 50)) + 1;
+    const target = a + 3 * (a + 2);
+    return mk("Logic",
+      `Find two consecutive odd integers such that the smaller plus three times the larger equals ${target}.`,
+      `${a} and ${a + 2}`,
+      [`${a - 2} and ${a}`, `${a + 2} and ${a + 4}`, `${a - 1} and ${a + 1}`],
+      diff(i, 3), i);
+  }
+
+  function logPalindromeYesNoWordings(p) {
+    return [
+      `Is ${p} a palindromic number?`,
+      `Does ${p} read the same forwards and backwards?`,
+      `Is ${p} a palindrome?`,
+      `Would ${p} look the same if its digits were reversed?`,
+      `Is ${p} the same when read in reverse?`,
+      `Is the number ${p} palindromic?`
+    ];
+  }
+  function logPalindromeYesNo(i) {
+    const pals = [
+      11, 22, 33, 44, 55, 66, 77, 88, 99, 101, 111, 121, 131, 141, 151, 161, 171, 181,
+      191, 202, 212, 222, 232, 242, 252, 262, 272, 282, 292, 303, 313, 323, 343, 353,
+      363, 373, 383, 393, 404, 414, 424, 434, 454, 464, 474, 484, 494, 505, 515, 525,
+      535, 545, 555, 565, 575, 585, 595, 606, 616, 626, 1001, 1111, 1221, 1331, 1441, 1551
+    ];
+    const nonPals = [
+      12, 13, 24, 36, 47, 58, 69, 102, 120, 132, 145, 158, 167, 198, 246, 257, 348,
+      357, 468, 479, 481, 562, 673, 784, 895, 916, 1023, 1234, 1357, 2468, 3579
+    ];
+    const isPalin = i % 2 === 0;
+    const n = isPalin ? pals[i % pals.length] : nonPals[i % nonPals.length];
+    const wording = pickWording(i, logPalindromeYesNoWordings(n));
+    return mk("Logic", wording,
+      isPalin ? "Yes" : "No",
+      [isPalin ? "No" : "Yes", "Only with even digits", "Sometimes"],
+      diff(i, 5), i);
+  }
+
+  function logNextPalindrome(i) {
+    const base = 1000 + 123 * (i % 30) + 7 * i;
+    const ans = nextPalindrome(base);
+    return mk("Logic", `What is the first palindrome greater than ${base}?`,
+      `${ans}`, [`${ans + 10}`, `${ans - 10}`, `${ans + 100}`],
+      diff(i, 3), i);
+  }
+
+  function logSquarePalindromesInRange(i) {
+    const sqPals = [1, 4, 9, 121, 484, 676, 10201, 12321, 14641, 40804, 44944, 69696, 94249,
+                    698896, 1002001, 1234321, 4008004, 5221225, 6948496];
+    // Multiple distinct ranges with different hit sets
+    const ranges = [
+      { lo: 1, hi: 100 },     { lo: 100, hi: 1000 },   { lo: 1000, hi: 20000 },
+      { lo: 20000, hi: 100000 }, { lo: 100000, hi: 1000000 }, { lo: 1, hi: 1000 },
+      { lo: 1, hi: 10000 },   { lo: 100, hi: 100000 }, { lo: 10000, hi: 1000000 },
+      { lo: 1, hi: 500 },     { lo: 1, hi: 700 },      { lo: 400, hi: 100000 }
+    ].map(r => ({ ...r, hits: sqPals.filter(x => x >= r.lo && x < r.hi) }))
+     .filter(r => r.hits.length);
+    const r = ranges[i % ranges.length];
+    return mk("Logic",
+      `Which square numbers between ${r.lo.toLocaleString()} and ${r.hi.toLocaleString()} are also palindromes?`,
+      r.hits.join(", "),
+      [r.hits.slice(0, -1).concat([r.hits[r.hits.length - 1] + 1]).join(", "),
+       r.hits.slice(1).concat([r.hits[0] + 23]).join(", "),
+       `${r.hits[0]}, ${r.hits[0] + 100} and ${r.hits[0] + 200}`],
+      diff(i, 3), i);
+  }
+
+  function logDayOfWeek(i) {
+    const startDay = i % 7, offset = 10 + (i % 50);
+    const endDay = (startDay + offset) % 7;
+    return mk("Logic",
+      `If today is ${dayNames[startDay]}, what day is it in ${offset} days?`,
+      dayNames[endDay],
+      [dayNames[(endDay + 1) % 7], dayNames[(endDay + 6) % 7], dayNames[(endDay + 3) % 7]],
+      diff(i, 4), i);
+  }
+
+  function logDayWeeksAgo(i) {
+    const given = i % 7, weeks = 1 + (i % 4), extra = i % 7;
+    const ansIdx = ((given - (weeks * 7 + extra)) % 7 + 7) % 7;
+    return mk("Logic",
+      `If the ${10 + (i % 18)}th of a month is a ${wrapDay(given)}, what day was it ${weeks} week${weeks === 1 ? "" : "s"} and ${extra} day${extra === 1 ? "" : "s"} earlier?`,
+      wrapDay(ansIdx),
+      [wrapDay(ansIdx + 1), wrapDay(ansIdx - 1), wrapDay(ansIdx + 3)],
+      diff(i, 3), i);
+  }
+
+  function logDayShiftAcrossYear(i) {
+    const year = 1980 + (i % 40), given = i % 7;
+    const shift = isLeap(year) ? 2 : 1;
+    const ansIdx = (given + shift) % 7;
+    return mk("Logic",
+      `A date in ${year} fell on a ${wrapDay(given)}. On which day will the same date fall in ${year + 1}?`,
+      wrapDay(ansIdx),
+      [wrapDay((ansIdx + 1) % 7), wrapDay((ansIdx + 6) % 7), wrapDay(given)],
+      diff(i, 3), i);
+  }
+
+  function logLeapYearPick(i) {
+    const leap = [1600, 2000, 1996, 2004, 2024, 2400, 2008, 2016, 2020];
+    const nonLeap = [1700, 1800, 1900, 2100, 2200, 1999, 2001, 2023, 2025];
+    const ans = leap[i % leap.length];
+    const distractors = [
+      nonLeap[i % nonLeap.length],
+      nonLeap[(i + 3) % nonLeap.length],
+      nonLeap[(i + 7) % nonLeap.length]
+    ].filter(y => !isLeap(y));
+    const wording = pickWording(i, [
+      `Which of these years is a leap year?`,
+      `Identify the leap year from these options.`,
+      `Which year below is a leap year?`,
+      `Pick the leap year.`,
+      `Select the leap year from the list.`,
+      `Which of the following years is a leap year?`
+    ]);
+    return mk("Logic", wording, `${ans}`, distractors.map(y => `${y}`), diff(i, 3), i);
+  }
+
+  function logLeapBirthday(i) {
+    const cels = 2 + (i % 12);                            // 2nd .. 13th celebration
+    const recent = 1992 + 4 * (i % 20);                    // wider window of leap years
+    const ans = recent - 4 * (cels - 1);
+    const suf = cels === 1 ? "st" : cels === 2 ? "nd" : cels === 3 ? "rd" : "th";
+    return mk("Logic",
+      `A person born on 29 February celebrated their Feb-29 birthday for the ${cels}${suf} time in ${recent}. In which year were they born?`,
+      `${ans}`, [`${ans - 4}`, `${ans + 4}`, `${recent - cels}`],
+      diff(i, 3), i);
+  }
+
+  function logClockAngleAtHour(i) {
+    // Add quarter-hour minute positions so 12 hours × 4 minute settings = 48 distinct
+    const hour = 1 + (i % 12);
+    const minutePool = [0, 15, 30, 45];
+    const minute = minutePool[Math.floor(i / 12) % minutePool.length];
+    const hourDeg = ((hour % 12) * 30) + (minute * 0.5);
+    const minuteDeg = minute * 6;
+    let raw = Math.abs(hourDeg - minuteDeg);
+    const ans = +Math.min(raw, 360 - raw).toFixed(1);
+    const timeStr = `${hour}:${minute === 0 ? "00" : minute}`;
+    return mk("Logic",
+      `What is the smaller angle between the hour and minute hands of a clock at ${timeStr}?`,
+      `${fmt(ans)}°`,
+      [`${fmt((ans + 30) % 360)}°`, `${fmt((ans + 60) % 360)}°`, `${fmt((360 - ans) % 360 || 180)}°`],
+      diff(i, 3), i);
+  }
+
+  function logClockMirror(i) {
+    const askActual = i % 2 === 0;
+    const h = 1 + (i % 11), m = 5 * (i % 12);
+    const flipped = mirrorClock(h, m);
+    if (askActual) {
+      return mk("Logic",
+        `When viewed in a mirror, a clock appears to show ${fmtTime(h, m)}. What is the actual time?`,
+        fmtTime(flipped.hour, flipped.minute),
+        [fmtTime(h, m), fmtTime((flipped.hour % 12) + 1, flipped.minute), fmtTime(flipped.hour, (flipped.minute + 5) % 60)],
+        diff(i, 3), i);
+    } else {
+      return mk("Logic",
+        `A clock shows ${fmtTime(h, m)}. What time appears in its mirror image?`,
+        fmtTime(flipped.hour, flipped.minute),
+        [fmtTime(h, m), fmtTime((flipped.hour % 12) + 1, flipped.minute), fmtTime(flipped.hour, (flipped.minute + 15) % 60)],
+        diff(i, 3), i);
+    }
+  }
+
+  function logSumAndDiff(i) {
+    const a = 10 + 5 * (i % 8), b = 2 + 3 * (i % 7);
+    const big = a + b, small = a - b;
+    if (small <= 0) return logSumAndDiff(i + 1);
+    return mk("Logic",
+      `The sum of two numbers is ${big + small} and their difference is ${big - small}. What are the two numbers?`,
+      `${small} and ${big}`,
+      [`${big} and ${big + 1}`, `${small - 1} and ${big + 1}`, `${big + small} and 0`],
+      diff(i, 3), i);
+  }
+
+  function logArithmagonProduct(i) {
+    const a = 2 + (i % 5), b = 3 + (i % 4), c = 4 + (i % 6);
+    return mk("Logic",
+      `In a multiplication arithmagon, the side products are ab = ${a * b}, bc = ${b * c}, ac = ${a * c}. What is a?`,
+      `${a}`, [`${b}`, `${c}`, `${a + 1}`],
+      diff(i, 2), i);
+  }
+
+  function logAdditionPyramid(i) {
+    const w = 5 + (i % 30), x = 5 + ((i * 2) % 25), y = 5 + ((i * 3) % 28);
+    const top = w + 2 * x + y;
+    return mk("Logic",
+      `In an addition pyramid, each block equals the sum of the two below. Bottom row is ${w}, ${x}, ${y}. What is the top block?`,
+      `${top}`, [`${w + x + y}`, `${w + 2 * y + x}`, `${top + 10}`],
+      diff(i, 3), i);
+  }
+
+  function logLetterPuzzle(i) {
+    const extra = 4 + (i % 9), base = 18 + (i % 12);
+    return mk("Logic",
+      `If C + A + T + S = ${base} and C + A + T + S + S = ${base + extra}, what is C + A + T?`,
+      `${base - extra}`,
+      [`${base}`, `${extra}`, `${base - extra + extra}`],
+      diff(i, 3), i);
+  }
+
+  function logMagicSquareRow(i) {
+    const target = 60 + 5 * (i % 12);
+    const a = 5 + (i % 20), b = 5 + ((i * 3) % 25);
+    const blank = target - a - b;
+    if (blank <= 0 || blank === a || blank === b) return logMagicSquareRow(i + 1);
+    return mk("Logic",
+      `In a 3×3 magic square each row sums to ${target}. One row contains ${a}, ${b} and a blank. What is the blank?`,
+      `${blank}`, [`${target - a}`, `${target - b}`, `${blank + 5}`],
+      diff(i, 3), i);
+  }
+
+  function logDigitSumOfSum(i) {
+    const a = 100 + 137 * (i % 9), b = 23 + 41 * (i % 7);
+    const total = a + b;
+    const ds = `${total}`.split("").reduce((s, d) => s + Number(d), 0);
+    return mk("Logic",
+      `What is the digit sum of ${comma(a)} + ${comma(b)}?`,
+      `${ds}`, [`${ds + 1}`, `${ds - 1}`, `${ds + 9}`],
+      diff(i, 4), i);
+  }
+
+  /* ═══════════════════ DRIVER ═══════════════════ */
+
+  const generators = {
+    Numbers: [numPlaceValue, numPlaceValueDiff, numRounding, numRoundingBounds, numIsPrime,
+              numLCM, numHCF, numHCFofFour, numPowers, numFactorCount, numPrimeFactorCount,
+              numArithmetic, numWordProblem, numBusLCM, numSmallestEvenFromDigits,
+              numCubeMissing, numPrimeSumSquare, numFourConsecOdd],
+    Decimals: [decAdd, decSubtract, decMultiply, decDivide, decCompare, decRound, decToFrac,
+               decHalfway, decMultFactReuse, decPriceChange],
+    Fractions: [fracAdd, fracSubtract, fracMultiply, fracDivide, fracSimplify,
+                fracImproperToMixed, fracOfX, fracMixedMultiply],
+    Percentages: [pctOf, pctFracToPct, pctDecToPct, pctSalePrice, pctIncrease,
+                  pctSimpleInterest, pctReverse, pctChained],
+    BIDMAS: [bidSimple, bidBrackets, bidPowers, bidMixed, bidNegative, bidTempChange],
+    Algebra: [algSubLinear, algSubMulti, algSubQuadratic, algSolve1Step, algSolve2Step,
+              algSolveBothSides, algSimplifyTerms, algCustomOp, algWeightPair, algTriangleAngles],
+    Sequences: [seqArithNext, seqArithNth, seqArithNthFormula, seqFibLike, seqGeomNext, seqBallPattern],
+    Ratio: [ratSimplify, ratSplit, ratWordTotal, ratDifference, ratRecipe,
+            ratMapScale, ratInverseProp, ratChained],
+    Speed: [spdFindSpeed, spdFindDistance, spdFindTime, spdMphHoursMin],
+    Measurement: [meaUnitConvert, meaAreaPerim, meaVolumeCube, meaTempDiff,
+                  meaInchConvert, meaMoneyChange],
+    Geometry: [geoAngleSum, geoAngleType, geoShapeAngle, geoComplementary, geoTriangleArea,
+               geoLinesSymmetry, geoRotSymmetry, geoPrismFEV, geoCuboidMissingEdge],
+    Statistics: [statMean, statMedian, statMode, statRange, statMissingMean,
+                 statFreqMidpoint, statPieAngle, statPictogram, statCorrelation],
+    Probability: [probBagPick, probDie, probCoin, probComplement, probExpected, probIndependent],
+    Logic: [logConsecutiveIntSum, logConsecutiveEvenSum, logConsecutiveOddPuzzle,
+            logPalindromeYesNo, logNextPalindrome, logSquarePalindromesInRange,
+            logDayOfWeek, logDayWeeksAgo, logDayShiftAcrossYear, logLeapYearPick, logLeapBirthday,
+            logClockAngleAtHour, logClockMirror, logSumAndDiff, logArithmagonProduct,
+            logAdditionPyramid, logLetterPuzzle, logMagicSquareRow, logDigitSumOfSum]
+  };
+
+  // Single scale knob — produces ~110 generators × N variations questions.
+  const VARIATIONS_PER_TEMPLATE = 50;
+
+  Object.entries(generators).forEach(([topic, gens]) => {
+    gens.forEach((gen, gIdx) => {
+      for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
+        try {
+          const q = gen(v + gIdx * 13);
+          if (q) QUESTIONS.push(q);
+        } catch (e) { /* skip bad seed */ }
+      }
+    });
+  });
+})();
