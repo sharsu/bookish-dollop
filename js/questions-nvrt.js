@@ -3117,6 +3117,184 @@
     );
   }
 
+  function genCodeMapping4Letter(seed) {
+    // Hard: 4 properties (outer, inner, accent, accent2) → 4-letter codes.
+    const outerShapes = ["circle", "square", "hexagon", "pentagon"];
+    const innerShapes = ["triangle", "diamond", "circle", "star"];
+    const accentTypes = ["none", "dot", "line", "cross"];
+    const accent2Types = ["none", "dot", "square", "tri"];
+    const alphabetSets = [
+      [["P", "Q", "R", "S"], ["T", "U", "V", "W"], ["F", "G", "H", "J"], ["L", "M", "N", "K"]],
+      [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["I", "J", "K", "L"], ["M", "N", "P", "Q"]],
+      [["M", "N", "L", "K"], ["X", "Y", "Z", "V"], ["T", "U", "W", "R"], ["A", "B", "C", "D"]],
+      [["J", "K", "L", "M"], ["N", "P", "Q", "R"], ["S", "T", "V", "W"], ["F", "G", "H", "X"]]
+    ];
+    const [outerLetters, innerLetters, accentLetters, accent2Letters] = pick(alphabetSets, seed, 1);
+
+    const codeFor = (props) =>
+      outerLetters[outerShapes.indexOf(props.outer)] +
+      innerLetters[innerShapes.indexOf(props.inner)] +
+      accentLetters[accentTypes.indexOf(props.accent)] +
+      accent2Letters[accent2Types.indexOf(props.accent2)];
+
+    const target = {
+      outer: outerShapes[pickIndex(4, seed, 2)],
+      inner: innerShapes[pickIndex(4, seed, 3)],
+      accent: accentTypes[pickIndex(4, seed, 4)],
+      accent2: accent2Types[pickIndex(4, seed, 5)]
+    };
+    const correctCode = codeFor(target);
+
+    const examples = [];
+    const usedKeys = new Set([`${target.outer}:${target.inner}:${target.accent}:${target.accent2}`]);
+    let salt = 10;
+    while (examples.length < 4 && salt < 80) {
+      const ex = {
+        outer: outerShapes[pickIndex(4, seed, salt)],
+        inner: innerShapes[pickIndex(4, seed, salt + 1)],
+        accent: accentTypes[pickIndex(4, seed, salt + 2)],
+        accent2: accent2Types[pickIndex(4, seed, salt + 3)]
+      };
+      const key = `${ex.outer}:${ex.inner}:${ex.accent}:${ex.accent2}`;
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key);
+        examples.push({ ...ex, code: codeFor(ex) });
+      }
+      salt += 4;
+    }
+    while (examples.length < 4) {
+      const ex = {
+        outer: outerShapes[examples.length % 4],
+        inner: innerShapes[(examples.length + 1) % 4],
+        accent: accentTypes[(examples.length + 2) % 4],
+        accent2: accent2Types[(examples.length + 3) % 4]
+      };
+      examples.push({ ...ex, code: codeFor(ex) });
+    }
+
+    const targetIdx = {
+      outer: outerShapes.indexOf(target.outer),
+      inner: innerShapes.indexOf(target.inner),
+      accent: accentTypes.indexOf(target.accent),
+      accent2: accent2Types.indexOf(target.accent2)
+    };
+    const distractorCodes = [
+      outerLetters[(targetIdx.outer + 1) % 4] + innerLetters[targetIdx.inner] + accentLetters[targetIdx.accent] + accent2Letters[targetIdx.accent2],
+      outerLetters[targetIdx.outer] + innerLetters[(targetIdx.inner + 1) % 4] + accentLetters[targetIdx.accent] + accent2Letters[targetIdx.accent2],
+      outerLetters[targetIdx.outer] + innerLetters[targetIdx.inner] + accentLetters[(targetIdx.accent + 1) % 4] + accent2Letters[targetIdx.accent2],
+      outerLetters[targetIdx.outer] + innerLetters[targetIdx.inner] + accentLetters[targetIdx.accent] + accent2Letters[(targetIdx.accent2 + 1) % 4]
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctCode : distractorCodes[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Code Mapping",
+      "Each figure has a 4-letter code. Work out the code for the figure marked with '?'.",
+      answer,
+      3,                                                   // Hard — 4 independent properties to track
+      codeMapping3LetterSvg(examples, target, options),
+      "Generated original NVRT 4-letter code-mapping puzzle."
+    );
+  }
+
+  function genCodeMapping4LetterSuperHard(seed) {
+    // Super Hard: 4-letter codes where every distractor differs from the
+    // correct code in EXACTLY ONE letter, AND the wrong letter at that
+    // position appears in one of the example codes. Each distractor therefore
+    // looks like a familiar code pattern — the student has to verify every
+    // letter against the figure's properties, not just visual familiarity.
+    const outerShapes = ["circle", "square", "hexagon", "pentagon"];
+    const innerShapes = ["triangle", "diamond", "circle", "star"];
+    const accentTypes = ["none", "dot", "line", "cross"];
+    const accent2Types = ["none", "dot", "square", "tri"];
+    const alphabetSets = [
+      [["P", "Q", "R", "S"], ["T", "U", "V", "W"], ["F", "G", "H", "J"], ["L", "M", "N", "K"]],
+      [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["I", "J", "K", "L"], ["M", "N", "P", "Q"]],
+      [["M", "N", "L", "K"], ["X", "Y", "Z", "V"], ["T", "U", "W", "R"], ["A", "B", "C", "D"]],
+      [["J", "K", "L", "M"], ["N", "P", "Q", "R"], ["S", "T", "V", "W"], ["F", "G", "H", "X"]]
+    ];
+    const [outerLetters, innerLetters, accentLetters, accent2Letters] = pick(alphabetSets, seed, 1);
+    const lettersAt = [outerLetters, innerLetters, accentLetters, accent2Letters];
+
+    const codeFor = (props) =>
+      outerLetters[outerShapes.indexOf(props.outer)] +
+      innerLetters[innerShapes.indexOf(props.inner)] +
+      accentLetters[accentTypes.indexOf(props.accent)] +
+      accent2Letters[accent2Types.indexOf(props.accent2)];
+
+    const target = {
+      outer: outerShapes[pickIndex(4, seed, 2)],
+      inner: innerShapes[pickIndex(4, seed, 3)],
+      accent: accentTypes[pickIndex(4, seed, 4)],
+      accent2: accent2Types[pickIndex(4, seed, 5)]
+    };
+    const correctCode = codeFor(target);
+
+    const examples = [];
+    const usedKeys = new Set([`${target.outer}:${target.inner}:${target.accent}:${target.accent2}`]);
+    let salt = 10;
+    while (examples.length < 4 && salt < 80) {
+      const ex = {
+        outer: outerShapes[pickIndex(4, seed, salt)],
+        inner: innerShapes[pickIndex(4, seed, salt + 1)],
+        accent: accentTypes[pickIndex(4, seed, salt + 2)],
+        accent2: accent2Types[pickIndex(4, seed, salt + 3)]
+      };
+      const key = `${ex.outer}:${ex.inner}:${ex.accent}:${ex.accent2}`;
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key);
+        examples.push({ ...ex, code: codeFor(ex) });
+      }
+      salt += 4;
+    }
+    while (examples.length < 4) {
+      const ex = {
+        outer: outerShapes[examples.length % 4],
+        inner: innerShapes[(examples.length + 1) % 4],
+        accent: accentTypes[(examples.length + 2) % 4],
+        accent2: accent2Types[(examples.length + 3) % 4]
+      };
+      examples.push({ ...ex, code: codeFor(ex) });
+    }
+
+    // Build distractors: each differs from correct in exactly one letter,
+    // with the wrong letter chosen from those that appear at that position in
+    // the example codes (familiar-looking wrong answer).
+    const correctChars = correctCode.split("");
+    const distractorCodes = [];
+    for (let p = 0; p < 4; p++) {
+      const exampleLettersAtP = Array.from(new Set(examples.map(ex => ex.code[p]))).filter(l => l !== correctChars[p]);
+      let wrong;
+      if (exampleLettersAtP.length > 0) {
+        wrong = exampleLettersAtP[pickIndex(exampleLettersAtP.length, seed, 50 + p)];
+      } else {
+        // Fallback: cycle the index in this position's alphabet
+        const propIdx = [outerShapes.indexOf(target.outer), innerShapes.indexOf(target.inner), accentTypes.indexOf(target.accent), accent2Types.indexOf(target.accent2)][p];
+        wrong = lettersAt[p][(propIdx + 1) % 4];
+      }
+      const arr = correctChars.slice();
+      arr[p] = wrong;
+      distractorCodes.push(arr.join(""));
+    }
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctCode : distractorCodes[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Code Mapping",
+      "Each figure has a 4-letter code. Work out the code for the figure marked with '?'. Every wrong option differs by just one letter, so check each position carefully.",
+      answer,
+      4,                                                   // Super Hard — all distractors off by 1 letter, each wrong letter looks familiar
+      codeMapping3LetterSvg(examples, target, options),
+      "Generated original NVRT 4-letter code-mapping puzzle with near-twin distractors."
+    );
+  }
+
   /* ═══════════════ MORE GENERATORS: Cube Count, Hole Punch, Complete Square, Most Similar ═══════════════ */
 
   // ─── Cube Counting (isometric stack) ───
@@ -4255,6 +4433,8 @@
   const FIND_LIKE_SUPER_COUNT = 75;
   const MOST_SIMILAR_COMPOUND_COUNT = 180;
   const CODE_MAPPING_3_COUNT = 150;
+  const CODE_MAPPING_4_COUNT = 75;
+  const CODE_MAPPING_SUPER_COUNT = 75;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -4284,6 +4464,8 @@
   for (let i = 0; i < FIND_LIKE_HARD_COUNT; i++) generated.push(genFindLikeHard(i + 17500));
   for (let i = 0; i < FIND_LIKE_SUPER_COUNT; i++) generated.push(genFindLikeSuperHard(i + 17750));
   for (let i = 0; i < CODE_MAPPING_3_COUNT; i++) generated.push(genCodeMapping3Letter(i + 18000));
+  for (let i = 0; i < CODE_MAPPING_4_COUNT; i++) generated.push(genCodeMapping4Letter(i + 18500));
+  for (let i = 0; i < CODE_MAPPING_SUPER_COUNT; i++) generated.push(genCodeMapping4LetterSuperHard(i + 18750));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
