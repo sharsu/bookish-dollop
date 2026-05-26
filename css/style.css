@@ -454,6 +454,27 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
   min-height: 400px;
 }
 
+/* NVRT mode: hide the rough-work pane, let the question fill the row */
+.quiz-main.nvrt-mode .quiz-right-side {
+  display: none;
+}
+.quiz-main.nvrt-mode .quiz-left-side {
+  flex: 1;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.quiz-main.nvrt-mode .question-card {
+  padding: 28px 32px;
+}
+.quiz-main.nvrt-mode .question-media {
+  display: flex;
+  justify-content: center;
+}
+.quiz-main.nvrt-mode .question-media img {
+  max-width: 100%;
+  height: auto;
+}
+
 .btn-icon-small {
   padding: 5px 10px;
   background: #f3f4f6;

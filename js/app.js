@@ -1610,6 +1610,11 @@ class ExamApp {
     // Quiz screen - use "hidden" attribute
     if (name === "quiz") {
       this.quizScreen.removeAttribute("hidden");
+      const quizMain = this.quizScreen.querySelector(".quiz-main");
+      if (quizMain) {
+        const isNvrt = normalizeTestType(this.selectedTestType) === "nvrt";
+        quizMain.classList.toggle("nvrt-mode", isNvrt);
+      }
       console.log("✓ Quiz screen shown");
     } else {
       this.quizScreen.setAttribute("hidden", "");
