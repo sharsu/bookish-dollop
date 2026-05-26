@@ -452,7 +452,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       0,
-      2,
+      1,
       reflectionSvg(
         [[0, 0], [0, 1], [1, 1], [1, 2]],
         [
@@ -469,7 +469,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       2,
-      2,
+      1,
       reflectionSvg(
         [[0, 0], [1, 0], [1, 1], [2, 1]],
         [
@@ -486,7 +486,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       1,
-      3,
+      1,
       reflectionSvg(
         [[0, 0], [1, 0], [0, 1], [0, 2]],
         [
@@ -503,7 +503,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       4,
-      3,
+      1,
       reflectionSvg(
         [[1, 0], [0, 1], [1, 1], [0, 2]],
         [
@@ -520,7 +520,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       3,
-      4,
+      1,
       reflectionSvg(
         [[0, 1], [1, 1], [2, 1], [0, 2]],
         [
@@ -1576,7 +1576,7 @@
       "NVRT Reflection",
       "Which option shows the mirror image?",
       placed.answer,
-      diffLevel(seed, 5),
+      1,
       reflectionSvg(source, placed.options, axis),
       "Generated original reflection NVRT puzzle."
     );
