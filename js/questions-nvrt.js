@@ -802,7 +802,9 @@
 
   function patternKey(pattern) {
     if (pattern.lines) {
-      return `l:${(pattern.lines.segments || []).map(s => `${s.x1.toFixed(1)},${s.y1.toFixed(1)}-${s.x2.toFixed(1)},${s.y2.toFixed(1)}:${s.arrowStart || ""}:${s.arrowEnd || ""}`).join("|")}`;
+      const segPart = (pattern.lines.segments || []).map(s => `${s.x1.toFixed(1)},${s.y1.toFixed(1)}-${s.x2.toFixed(1)},${s.y2.toFixed(1)}:${s.arrowStart || ""}:${s.arrowEnd || ""}`).join("|");
+      const markPart = (pattern.lines.marks || []).map(m => `${m.kind}@${m.x.toFixed(1)},${m.y.toFixed(1)}:${m.size || 3}:${m.hollow ? "h" : "s"}`).join("|");
+      return `l:${segPart};m:${markPart}`;
     }
     if (pattern.stacked) {
       const s = pattern.stacked;
@@ -815,7 +817,12 @@
 
   function clonePattern(pattern) {
     if (pattern.lines) {
-      return { lines: { segments: (pattern.lines.segments || []).map(s => ({ ...s })) } };
+      return {
+        lines: {
+          segments: (pattern.lines.segments || []).map(s => ({ ...s })),
+          marks: (pattern.lines.marks || []).map(m => ({ ...m }))
+        }
+      };
     }
     if (pattern.stacked) {
       return { stacked: { ...pattern.stacked, top: { ...pattern.stacked.top }, bottom: { ...pattern.stacked.bottom } } };
@@ -1037,11 +1044,34 @@
     return "";
   }
 
+  function marksMarkup(marks, scale, ox, oy) {
+    return (marks || []).map(m => {
+      const cx = ox + m.x * scale;
+      const cy = oy + m.y * scale;
+      const sz = (m.size || 3) * scale;
+      const fillVal = m.hollow ? "#ffffff" : ink;
+      if (m.kind === "square") {
+        return `<rect x="${(cx - sz).toFixed(1)}" y="${(cy - sz).toFixed(1)}" width="${(sz * 2).toFixed(1)}" height="${(sz * 2).toFixed(1)}" fill="${fillVal}" stroke="${ink}" stroke-width="1.5"/>`;
+      }
+      if (m.kind === "circle") {
+        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${sz.toFixed(1)}" fill="${fillVal}" stroke="${ink}" stroke-width="1.5"/>`;
+      }
+      if (m.kind === "cross") {
+        return `<line x1="${(cx - sz).toFixed(1)}" y1="${(cy - sz).toFixed(1)}" x2="${(cx + sz).toFixed(1)}" y2="${(cy + sz).toFixed(1)}" stroke="${ink}" stroke-width="1.5"/><line x1="${(cx - sz).toFixed(1)}" y1="${(cy + sz).toFixed(1)}" x2="${(cx + sz).toFixed(1)}" y2="${(cy - sz).toFixed(1)}" stroke="${ink}" stroke-width="1.5"/>`;
+      }
+      if (m.kind === "tri") {
+        const h = sz * Math.sqrt(3);
+        return `<polygon points="${cx.toFixed(1)},${(cy - h * 0.6).toFixed(1)} ${(cx + sz).toFixed(1)},${(cy + h * 0.4).toFixed(1)} ${(cx - sz).toFixed(1)},${(cy + h * 0.4).toFixed(1)}" fill="${fillVal}" stroke="${ink}" stroke-width="1.5"/>`;
+      }
+      return "";
+    }).join("");
+  }
+
   function linesMarkup(linePattern, opts = {}) {
     const ox = opts.ox || 0;
     const oy = opts.oy || 0;
     const scale = opts.scale || 1;
-    return (linePattern.segments || []).map(seg => {
+    const segs = (linePattern.segments || []).map(seg => {
       const x1 = ox + seg.x1 * scale;
       const y1 = oy + seg.y1 * scale;
       const x2 = ox + seg.x2 * scale;
@@ -1052,6 +1082,7 @@
       if (seg.arrowStart) svg += arrowHeadSvg(seg.arrowStart, x1, y1, angle + Math.PI);
       return svg;
     }).join("");
+    return segs + marksMarkup(linePattern.marks, scale, ox, oy);
   }
 
   function stackedFigureMarkup(props, opts = {}) {
@@ -1650,45 +1681,95 @@
       : (variant % 2 === 0 ? "vertical" : "horizontal");
 
     if (variant === 4) {
-      // Line/arrow figure reflection — medium difficulty. Templates use 2–4
-      // line segments with mixed arrowhead kinds; distractors break one rule
-      // each (no reflection, wrong axis, 180° rotation, arrow kind changed).
+      // Line/arrow figure reflection. Templates use line segments with mixed
+      // arrowhead kinds, optional marks (small filled squares, circles, X
+      // marks, triangles), and difficulty derived from template complexity.
+      // Distractors each break exactly one rule: not reflected, wrong axis,
+      // 180° rotation, or correct reflection with one arrow kind swapped.
       const arrowKinds = ["solid", "open", "bar", "dot"];
       const templates = [
-        [
+        // 0 — L-shape with two arrows (Easy)
+        { segments: [
           { x1: 14, y1: 50, x2: 14, y2: 14, aE: 0 },
           { x1: 14, y1: 14, x2: 46, y2: 14, aE: 1 }
-        ],
-        [
+        ] },
+        // 1 — Y-branch with three arrows (Medium)
+        { segments: [
           { x1: 26, y1: 52, x2: 26, y2: 26, aS: 0 },
           { x1: 26, y1: 26, x2: 10, y2: 10, aE: 1 },
           { x1: 26, y1: 26, x2: 46, y2: 16, aE: 2 }
-        ],
-        [
+        ] },
+        // 2 — Z-pattern with three arrows (Medium)
+        { segments: [
           { x1: 10, y1: 12, x2: 46, y2: 12, aE: 0 },
           { x1: 46, y1: 12, x2: 10, y2: 46, aE: 1 },
           { x1: 10, y1: 46, x2: 42, y2: 46, aE: 2 }
-        ],
-        [
+        ] },
+        // 3 — Asymmetric flag (Medium)
+        { segments: [
           { x1: 16, y1: 52, x2: 16, y2: 10, aE: 0 },
           { x1: 16, y1: 14, x2: 40, y2: 14, aE: 1 },
           { x1: 16, y1: 28, x2: 34, y2: 28, aE: 2 }
-        ],
-        [
+        ] },
+        // 4 — Mixed cross (Easy)
+        { segments: [
           { x1: 12, y1: 30, x2: 46, y2: 30, aS: 0, aE: 1 },
           { x1: 30, y1: 10, x2: 30, y2: 50, aS: 2 }
-        ]
+        ] },
+        // 5 — Stepped path with parallel hatch lines (Hard)
+        { segments: [
+          { x1: 8, y1: 50, x2: 8, y2: 34 },
+          { x1: 8, y1: 34, x2: 22, y2: 34 },
+          { x1: 22, y1: 34, x2: 22, y2: 20 },
+          { x1: 22, y1: 20, x2: 42, y2: 20 },
+          { x1: 42, y1: 20, x2: 42, y2: 8, aE: 0 },
+          { x1: 28, y1: 44, x2: 34, y2: 38 },
+          { x1: 30, y1: 48, x2: 36, y2: 42 },
+          { x1: 32, y1: 52, x2: 38, y2: 46 }
+        ] },
+        // 6 — Bracket with filled circle accent (Hard)
+        { segments: [
+          { x1: 12, y1: 10, x2: 22, y2: 10 },
+          { x1: 12, y1: 10, x2: 12, y2: 50 },
+          { x1: 12, y1: 50, x2: 22, y2: 50 }
+        ], marks: [
+          { x: 34, y: 20, kind: "circle", size: 4 },
+          { x: 44, y: 36, kind: "square", size: 3 }
+        ] },
+        // 7 — Zig-zag with two accent marks (Hard)
+        { segments: [
+          { x1: 8, y1: 14, x2: 20, y2: 14 },
+          { x1: 20, y1: 14, x2: 20, y2: 28 },
+          { x1: 20, y1: 28, x2: 34, y2: 28 },
+          { x1: 34, y1: 28, x2: 34, y2: 42 },
+          { x1: 34, y1: 42, x2: 48, y2: 42, aE: 0 }
+        ], marks: [
+          { x: 44, y: 16, kind: "square", size: 3 },
+          { x: 12, y: 38, kind: "tri", size: 3 }
+        ] },
+        // 8 — Closed polygon outline with internal cross mark (Hard)
+        { segments: [
+          { x1: 14, y1: 10, x2: 38, y2: 10 },
+          { x1: 38, y1: 10, x2: 46, y2: 26 },
+          { x1: 46, y1: 26, x2: 38, y2: 44 },
+          { x1: 14, y1: 44, x2: 38, y2: 44 },
+          { x1: 14, y1: 10, x2: 14, y2: 44 }
+        ], marks: [
+          { x: 28, y: 27, kind: "cross", size: 5 },
+          { x: 20, y: 18, kind: "circle", size: 2 }
+        ] }
       ];
 
       const tpl = templates[pickIndex(templates.length, seed, 30)];
       const arrowBase = pickIndex(arrowKinds.length, seed, 31);
       const arrowMap = [0, 1, 2, 3].map(k => arrowKinds[(arrowBase + k) % arrowKinds.length]);
 
-      const buildSegs = (template) => template.map(s => ({
+      const buildSegs = (template) => (template.segments || []).map(s => ({
         x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2,
         arrowStart: s.aS != null ? arrowMap[s.aS] : undefined,
         arrowEnd: s.aE != null ? arrowMap[s.aE] : undefined
       }));
+      const buildMarks = (template) => (template.marks || []).map(m => ({ ...m }));
 
       const reflectSeg = (s) => axis === "vertical"
         ? { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
@@ -1698,28 +1779,50 @@
         ? { x1: s.x1, y1: 60 - s.y1, x2: s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
         : { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd };
 
-      const sourceSegs = buildSegs(tpl);
-      const source = { lines: { segments: sourceSegs } };
-      const correct = { lines: { segments: sourceSegs.map(reflectSeg) } };
+      const reflectMark = (m) => axis === "vertical" ? { ...m, x: 60 - m.x } : { ...m, y: 60 - m.y };
+      const rotate180Mark = (m) => ({ ...m, x: 60 - m.x, y: 60 - m.y });
+      const reflectOppositeMark = (m) => axis === "vertical" ? { ...m, y: 60 - m.y } : { ...m, x: 60 - m.x };
 
-      // Distractor — correctly reflected, but one arrow kind swapped
-      const swapIdx = pickIndex(sourceSegs.length, seed, 32);
-      const swappedSegs = sourceSegs.map(reflectSeg).map((s, i) => {
-        if (i !== swapIdx) return { ...s };
-        const cur = s.arrowEnd || s.arrowStart || arrowKinds[0];
+      const sourceSegs = buildSegs(tpl);
+      const sourceMarks = buildMarks(tpl);
+      const source = { lines: { segments: sourceSegs, marks: sourceMarks } };
+      const correct = { lines: { segments: sourceSegs.map(reflectSeg), marks: sourceMarks.map(reflectMark) } };
+
+      // Distractor — correctly reflected, but one arrow kind swapped (only if there's an arrow to swap)
+      const arrowSegIndices = sourceSegs.map((s, i) => (s.arrowEnd || s.arrowStart) ? i : -1).filter(i => i >= 0);
+      let swappedSegs = sourceSegs.map(reflectSeg).map(s => ({ ...s }));
+      if (arrowSegIndices.length > 0) {
+        const swapIdx = arrowSegIndices[pickIndex(arrowSegIndices.length, seed, 32)];
+        const target = swappedSegs[swapIdx];
+        const cur = target.arrowEnd || target.arrowStart;
         const wrong = arrowKinds[(arrowKinds.indexOf(cur) + 1 + pickIndex(arrowKinds.length - 1, seed, 33)) % arrowKinds.length];
-        return { ...s, arrowEnd: s.arrowEnd ? wrong : undefined, arrowStart: s.arrowStart ? wrong : undefined };
-      });
+        if (target.arrowEnd) target.arrowEnd = wrong; else target.arrowStart = wrong;
+      } else if (sourceMarks.length > 0) {
+        // No arrows — perturb a mark kind instead
+        const swapIdx = pickIndex(sourceMarks.length, seed, 32);
+        const markKinds = ["circle", "square", "cross", "tri"];
+        const swappedMarks = sourceMarks.map(reflectMark).map((m, i) => {
+          if (i !== swapIdx) return m;
+          const wrong = markKinds[(markKinds.indexOf(m.kind) + 1 + pickIndex(markKinds.length - 1, seed, 33)) % markKinds.length];
+          return { ...m, kind: wrong };
+        });
+        swappedSegs = sourceSegs.map(reflectSeg).map(s => ({ ...s }));
+        var swappedMarksDistractor = swappedMarks;
+      }
 
       const distractors = [
-        { lines: { segments: sourceSegs.map(s => ({ ...s })) } },                  // not reflected
-        { lines: { segments: sourceSegs.map(reflectOppositeSeg) } },               // reflected about wrong axis
-        { lines: { segments: sourceSegs.map(rotate180Seg) } },                     // rotated 180° instead of reflected
-        { lines: { segments: swappedSegs } }                                       // correct reflection but arrow kind changed
+        { lines: { segments: sourceSegs.map(s => ({ ...s })), marks: sourceMarks.map(m => ({ ...m })) } },             // not reflected
+        { lines: { segments: sourceSegs.map(reflectOppositeSeg), marks: sourceMarks.map(reflectOppositeMark) } },      // reflected about wrong axis
+        { lines: { segments: sourceSegs.map(rotate180Seg), marks: sourceMarks.map(rotate180Mark) } },                  // rotated 180° instead of reflected
+        { lines: {                                                                                                      // correct reflection but one detail swapped
+          segments: swappedSegs,
+          marks: typeof swappedMarksDistractor !== "undefined" ? swappedMarksDistractor : sourceMarks.map(reflectMark)
+        } }
       ];
 
       const placed = placeOptions(correct, distractors, seed);
-      const lineDifficulty = tpl.length <= 2 ? 1 : 2;                                // Easy if only 2 segments to track, Medium otherwise
+      const totalComplexity = sourceSegs.length + (sourceMarks.length * 2);
+      const lineDifficulty = totalComplexity <= 2 ? 1 : totalComplexity <= 4 ? 2 : 3;
       return makeQuestion(
         "NVRT Reflection",
         "Which option shows the mirror image of the figure on the left?",
