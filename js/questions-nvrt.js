@@ -2241,8 +2241,13 @@
     const cy = y + h / 2;
     const outerSize = Math.min(w, h) * 0.32;
     const innerSize = Math.min(w, h) * 0.13;
-    const outer = shapeMarkup({ kind: props.outer, col: 0, row: 0, size: outerSize, hollow: true }, 0, cx, cy);
-    const inner = shapeMarkup({ kind: props.inner, col: 0, row: 0, size: innerSize, hollow: false }, 0, cx, cy);
+    const outerHollow = props.outerHollow !== undefined ? props.outerHollow : true;
+    const outer = shapeMarkup({ kind: props.outer, col: 0, row: 0, size: outerSize, hollow: outerHollow }, 0, cx, cy);
+    let inner = "";
+    if (props.inner && props.inner !== "none") {
+      // Inner uses opposite fill so it's visible inside the outer
+      inner = shapeMarkup({ kind: props.inner, col: 0, row: 0, size: innerSize, hollow: !outerHollow }, 0, cx, cy);
+    }
     let accentMark = "";
     if (props.accent === "dot") {
       accentMark = `<circle cx="${x + w - 8}" cy="${y + 8}" r="3" fill="${ink}"/>`;
@@ -2252,6 +2257,17 @@
       accentMark = `<line x1="${x + w - 12}" y1="${y + 4}" x2="${x + w - 4}" y2="${y + 12}" stroke="${ink}" stroke-width="2"/><line x1="${x + w - 12}" y1="${y + 12}" x2="${x + w - 4}" y2="${y + 4}" stroke="${ink}" stroke-width="2"/>`;
     }
     return outer + inner + accentMark;
+  }
+
+  // Pick from any pool, excluding given values
+  function pickDistinctFromPool(pool, seed, salt, excluded) {
+    let val = pool[pickIndex(pool.length, seed, salt)];
+    let offset = 1;
+    while ((excluded || []).includes(val) && offset < pool.length + 4) {
+      val = pool[pickIndex(pool.length, seed, salt + offset)];
+      offset++;
+    }
+    return val;
   }
 
   function codeMapping3LetterSvg(examples, target, options) {
@@ -2662,28 +2678,33 @@
 
   /* ═══════════════ Find the Figure Like the First Two ═══════════════ */
 
+  const COMPOUND_OUTER_POOL = ["circle", "square", "hexagon", "pentagon", "triangle", "star"];
+  const COMPOUND_INNER_POOL = ["triangle", "diamond", "circle", "star", "cross"];
+  const COMPOUND_ACCENT_POOL = ["none", "dot", "line", "cross"];
+  const FIND_LIKE_RULE_LABELS = ["outer", "inner", "fill", "accent"];
+
   function findLikeFirstTwoSvg(ref1, ref2, options) {
     const PANEL_W = 70, PANEL_H = 70;
     const PANEL_Y = 24;
     const refBoxes = `
       <g transform="translate(20 ${PANEL_Y})">
         <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-        ${tokenPattern(ref1, { cell: 17, ox: 12, oy: 12 })}
+        ${compoundFigureSvg(ref1, 0, 0, PANEL_W, PANEL_H)}
       </g>
       <g transform="translate(100 ${PANEL_Y})">
         <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-        ${tokenPattern(ref2, { cell: 17, ox: 12, oy: 12 })}
+        ${compoundFigureSvg(ref2, 0, 0, PANEL_W, PANEL_H)}
       </g>
       <line x1="186" y1="${PANEL_Y + 8}" x2="186" y2="${PANEL_Y + PANEL_H - 8}" stroke="${accent}" stroke-width="2"/>`;
 
     const OPT_START = 198;
     const OPT_SPACING = 90;
-    const optionBoxes = options.map((tokens, index) => {
+    const optionBoxes = options.map((props, index) => {
       const ox = OPT_START + index * OPT_SPACING;
       return `
         <g transform="translate(${ox} ${PANEL_Y})">
           <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-          ${tokenPattern(tokens, { cell: 17, ox: 12, oy: 12 })}
+          ${compoundFigureSvg(props, 0, 0, PANEL_W, PANEL_H)}
         </g>
         <text x="${ox + PANEL_W / 2}" y="${PANEL_Y + PANEL_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
     }).join("");
@@ -2691,69 +2712,45 @@
     return baseSvg(660, 130, refBoxes + optionBoxes);
   }
 
+  // Build a compound figure that obeys the rule (rule's property is fixed; others vary)
+  function buildCompoundWithRule(seed, ruleType, shared, varSalt, excludedRuleVals) {
+    // For non-rule properties, pick freely (excluding nothing)
+    // For the rule property, use the shared value (NEW figures match the rule)
+    return {
+      outer: ruleType === 0 ? shared.outer : pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 10, excludedRuleVals?.outer),
+      inner: ruleType === 1 ? shared.inner : pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 11, excludedRuleVals?.inner),
+      outerHollow: ruleType === 2 ? shared.outerHollow : pickIndex(2, seed, varSalt + 12) === 0,
+      accent: ruleType === 3 ? shared.accent : pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 13, excludedRuleVals?.accent)
+    };
+  }
+
+  // Build a distractor that VIOLATES the rule (rule's property is NOT shared; others vary)
+  function buildCompoundDistractor(seed, ruleType, shared, varSalt) {
+    return {
+      outer: ruleType === 0 ? pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 50, [shared.outer]) : pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 10),
+      inner: ruleType === 1 ? pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 51, [shared.inner]) : pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 11),
+      outerHollow: ruleType === 2 ? !shared.outerHollow : pickIndex(2, seed, varSalt + 12) === 0,
+      accent: ruleType === 3 ? pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 53, [shared.accent]) : pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 13)
+    };
+  }
+
   function genFindLikeFirstTwo(seed) {
-    const ruleType = pickIndex(3, seed, 1);                // 0=shape, 1=count, 2=fill
-    const sharedShape = pick(shapes, seed, 2);
-    const sharedCount = 2 + pickIndex(3, seed, 3);         // 2..4
-    const sharedHollow = pickIndex(2, seed, 4) === 0;
+    const ruleType = pickIndex(4, seed, 1);                // 0=outer, 1=inner, 2=fill, 3=accent
+    const shared = {
+      outer: pick(COMPOUND_OUTER_POOL, seed, 2),
+      inner: pick(COMPOUND_INNER_POOL, seed, 3),
+      outerHollow: pickIndex(2, seed, 4) === 0,
+      accent: pick(COMPOUND_ACCENT_POOL, seed, 5)
+    };
 
-    const layouts = [
-      [[0, 0], [1, 0], [2, 0]], [[0, 0], [1, 1], [2, 2]],
-      [[1, 0], [0, 1], [2, 1]], [[0, 0], [0, 2], [2, 2]],
-      [[0, 1], [1, 1], [2, 1]], [[1, 0], [1, 1], [1, 2]],
-      [[0, 0], [2, 0], [1, 1], [0, 2]], [[0, 0], [1, 1], [2, 2], [0, 2]],
-      [[0, 0], [2, 2]], [[1, 0], [1, 2]], [[0, 0], [1, 0]], [[0, 1], [1, 1]]
-    ];
+    const ref1 = buildCompoundWithRule(seed, ruleType, shared, 100);
+    const ref2 = buildCompoundWithRule(seed, ruleType, shared, 200);
+    const correct = buildCompoundWithRule(seed, ruleType, shared, 300);
 
-    const makeTokens = (layout, count, kind, hollow) =>
-      layout.slice(0, Math.min(count, layout.length)).map(([c, r]) => ({ row: r, col: c, kind, hollow }));
-
-    // Build a figure that obeys the rule, with other properties freely chosen
-    function buildWithRule(layoutSeed, otherCountSeed, otherShapeSeed, otherHollowSeed, excludedShapes) {
-      const layout = pick(layouts, seed, layoutSeed);
-      let shape, count, hollow;
-      if (ruleType === 0) {
-        shape = sharedShape;
-        count = 2 + pickIndex(3, seed, otherCountSeed);
-        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
-      } else if (ruleType === 1) {
-        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
-        count = sharedCount;
-        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
-      } else {
-        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
-        count = 2 + pickIndex(3, seed, otherCountSeed);
-        hollow = sharedHollow;
-      }
-      return makeTokens(layout, count, shape, hollow);
-    }
-
-    const ref1 = buildWithRule(5, 6, 7, 8);
-    const ref2 = buildWithRule(9, 10, 11, 12, [ref1[0].kind]);
-    const correct = buildWithRule(13, 14, 15, 16, [ref1[0].kind, ref2[0].kind]);
-
-    // Distractors break the rule
     const distractors = [];
-    for (let k = 0; k < 6 && distractors.length < 4; k++) {
-      const layout = pick(layouts, seed, 20 + k * 2);
-      let shape, count, hollow;
-      if (ruleType === 0) {
-        shape = pickDistinctFrom(seed, 21 + k, [sharedShape]);
-        count = 2 + pickIndex(3, seed, 22 + k);
-        hollow = (k % 2 === 0);
-      } else if (ruleType === 1) {
-        const wrongCounts = [2, 3, 4, 5].filter(c => c !== sharedCount);
-        count = wrongCounts[k % wrongCounts.length];
-        shape = pick(shapes, seed, 21 + k);
-        hollow = (k % 2 === 0);
-      } else {
-        shape = pick(shapes, seed, 21 + k);
-        count = 2 + pickIndex(3, seed, 22 + k);
-        hollow = !sharedHollow;
-      }
-      distractors.push(makeTokens(layout, count, shape, hollow));
+    for (let k = 0; k < 4; k++) {
+      distractors.push(buildCompoundDistractor(seed, ruleType, shared, 400 + k * 80));
     }
-    while (distractors.length < 4) distractors.push([{ row: 1, col: 1, kind: shapes[distractors.length % shapes.length], hollow: false }]);
 
     const answer = pickIndex(5, seed, 99);
     const options = [];
@@ -2762,11 +2759,11 @@
 
     return makeQuestion(
       "NVRT Find Like First Two",
-      "The first two figures share a property. Pick the figure on the right that shares the same property.",
+      "The first two figures share a property (same outer shape, inner shape, fill, or accent). Pick the figure on the right that shares the same property.",
       answer,
       2,
       findLikeFirstTwoSvg(ref1, ref2, options),
-      "Generated original NVRT 'find-like-first-two' puzzle."
+      "Generated original NVRT 'find-like-first-two' puzzle with compound figures."
     );
   }
 
@@ -2776,22 +2773,22 @@
     const PANEL_W = 60, PANEL_H = 60;
     const PANEL_Y = 24;
     const REF_SPACING = 68;
-    const refBoxes = refs.map((tokens, idx) => `
+    const refBoxes = refs.map((props, idx) => `
       <g transform="translate(${20 + idx * REF_SPACING} ${PANEL_Y})">
         <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-        ${tokenPattern(tokens, { cell: 14, ox: 11, oy: 11 })}
+        ${compoundFigureSvg(props, 0, 0, PANEL_W, PANEL_H)}
       </g>`).join("");
     const dividerX = 20 + 3 * REF_SPACING - 4;
     const divider = `<line x1="${dividerX}" y1="${PANEL_Y + 8}" x2="${dividerX}" y2="${PANEL_Y + PANEL_H - 8}" stroke="${accent}" stroke-width="2"/>`;
 
     const OPT_START = dividerX + 14;
     const OPT_SPACING = 76;
-    const optionBoxes = options.map((tokens, index) => {
+    const optionBoxes = options.map((props, index) => {
       const ox = OPT_START + index * OPT_SPACING;
       return `
         <g transform="translate(${ox} ${PANEL_Y})">
           <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-          ${tokenPattern(tokens, { cell: 14, ox: 11, oy: 11 })}
+          ${compoundFigureSvg(props, 0, 0, PANEL_W, PANEL_H)}
         </g>
         <text x="${ox + PANEL_W / 2}" y="${PANEL_Y + PANEL_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
     }).join("");
@@ -2800,67 +2797,23 @@
   }
 
   function genFindLikeFirstThree(seed) {
-    const ruleType = pickIndex(3, seed, 1);                // 0=shape, 1=count, 2=fill
-    const sharedShape = pick(shapes, seed, 2);
-    const sharedCount = 2 + pickIndex(3, seed, 3);
-    const sharedHollow = pickIndex(2, seed, 4) === 0;
+    const ruleType = pickIndex(4, seed, 1);
+    const shared = {
+      outer: pick(COMPOUND_OUTER_POOL, seed, 2),
+      inner: pick(COMPOUND_INNER_POOL, seed, 3),
+      outerHollow: pickIndex(2, seed, 4) === 0,
+      accent: pick(COMPOUND_ACCENT_POOL, seed, 5)
+    };
 
-    const layouts = [
-      [[0, 0], [1, 0], [2, 0]], [[0, 0], [1, 1], [2, 2]],
-      [[1, 0], [0, 1], [2, 1]], [[0, 0], [0, 2], [2, 2]],
-      [[0, 1], [1, 1], [2, 1]], [[1, 0], [1, 1], [1, 2]],
-      [[0, 0], [2, 0], [1, 1], [0, 2]], [[0, 0], [1, 1], [2, 2], [0, 2]],
-      [[0, 0], [2, 2]], [[1, 0], [1, 2]], [[0, 0], [1, 0]], [[0, 1], [1, 1]]
-    ];
-
-    const makeTokens = (layout, count, kind, hollow) =>
-      layout.slice(0, Math.min(count, layout.length)).map(([c, r]) => ({ row: r, col: c, kind, hollow }));
-
-    function buildWithRule(layoutSeed, otherCountSeed, otherShapeSeed, otherHollowSeed, excludedShapes) {
-      const layout = pick(layouts, seed, layoutSeed);
-      let shape, count, hollow;
-      if (ruleType === 0) {
-        shape = sharedShape;
-        count = 2 + pickIndex(3, seed, otherCountSeed);
-        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
-      } else if (ruleType === 1) {
-        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
-        count = sharedCount;
-        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
-      } else {
-        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
-        count = 2 + pickIndex(3, seed, otherCountSeed);
-        hollow = sharedHollow;
-      }
-      return makeTokens(layout, count, shape, hollow);
-    }
-
-    const ref1 = buildWithRule(5, 6, 7, 8);
-    const ref2 = buildWithRule(9, 10, 11, 12, [ref1[0].kind]);
-    const ref3 = buildWithRule(13, 14, 15, 16, [ref1[0].kind, ref2[0].kind]);
-    const correct = buildWithRule(17, 18, 19, 20, [ref1[0].kind, ref2[0].kind, ref3[0].kind]);
+    const ref1 = buildCompoundWithRule(seed, ruleType, shared, 100);
+    const ref2 = buildCompoundWithRule(seed, ruleType, shared, 200);
+    const ref3 = buildCompoundWithRule(seed, ruleType, shared, 300);
+    const correct = buildCompoundWithRule(seed, ruleType, shared, 400);
 
     const distractors = [];
-    for (let k = 0; k < 6 && distractors.length < 4; k++) {
-      const layout = pick(layouts, seed, 30 + k * 2);
-      let shape, count, hollow;
-      if (ruleType === 0) {
-        shape = pickDistinctFrom(seed, 31 + k, [sharedShape]);
-        count = 2 + pickIndex(3, seed, 32 + k);
-        hollow = (k % 2 === 0);
-      } else if (ruleType === 1) {
-        const wrongCounts = [2, 3, 4, 5].filter(c => c !== sharedCount);
-        count = wrongCounts[k % wrongCounts.length];
-        shape = pick(shapes, seed, 31 + k);
-        hollow = (k % 2 === 0);
-      } else {
-        shape = pick(shapes, seed, 31 + k);
-        count = 2 + pickIndex(3, seed, 32 + k);
-        hollow = !sharedHollow;
-      }
-      distractors.push(makeTokens(layout, count, shape, hollow));
+    for (let k = 0; k < 4; k++) {
+      distractors.push(buildCompoundDistractor(seed, ruleType, shared, 500 + k * 80));
     }
-    while (distractors.length < 4) distractors.push([{ row: 1, col: 1, kind: shapes[distractors.length % shapes.length], hollow: false }]);
 
     const answer = pickIndex(5, seed, 99);
     const options = [];
@@ -2869,11 +2822,11 @@
 
     return makeQuestion(
       "NVRT Find Like First Three",
-      "The first three figures share a property. Pick the figure on the right that shares the same property.",
+      "The first three figures share a property (same outer shape, inner shape, fill, or accent). Pick the figure on the right that shares the same property.",
       answer,
       2,
       findLikeFirstThreeSvg([ref1, ref2, ref3], options),
-      "Generated original NVRT 'find-like-first-three' puzzle."
+      "Generated original NVRT 'find-like-first-three' puzzle with compound figures."
     );
   }
 
