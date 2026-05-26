@@ -2307,7 +2307,7 @@
       "NVRT Cube Net",
       wording,
       answer,
-      diffLevel(seed, 15),
+      2,                                                   // Medium — net validity is a single spatial check
       cubeNetSvg(panels),
       "Generated original NVRT cube-net puzzle."
     );
@@ -3165,7 +3165,7 @@
     for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
 
     return makeQuestion(
-      "NVRT Cube Net Matching",
+      "NVRT Cube Net",
       "Work out which of these cubes can be made from the net.",
       answer,
       3,                                                   // Hard — requires 3D spatial reasoning
