@@ -2703,6 +2703,19 @@
     [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [2, 2]]    // open C-shape
   ];
 
+  // Obviously-wrong shapes used for the Easy variant: too few / too many squares,
+  // or six squares with a disconnected component. Students only need to check the
+  // square count and that everything joins up — no mental folding required.
+  const obviouslyInvalidNetShapes = [
+    [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1]],                                   // 5 squares — too few
+    [[0, 0], [1, 0], [2, 0], [3, 0]],                                           // 4 squares — too few
+    [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]],                   // 7 squares — too many
+    [[0, 0], [1, 0], [3, 0], [4, 0], [0, 1], [4, 1]],                           // 6 squares but disconnected
+    [[0, 0], [1, 0], [0, 1], [3, 1], [4, 1], [3, 2]],                           // 6 squares, two disconnected groups
+    [[0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2]],                           // 6 squares in two disconnected columns
+    [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]]                            // 1x6 strip — six in a line, not a valid cube net
+  ];
+
   function cubeNetSvg(panels) {
     const panelBoxes = panels.map((pattern, index) => panel(
       18 + index * 122, 28, labels[index],
@@ -2757,6 +2770,45 @@
       2,                                                   // Medium — net validity is a single spatial check
       cubeNetSvg(panels),
       "Generated original NVRT cube-net puzzle."
+    );
+  }
+
+  function genCubeNetEasy(seed) {
+    // Easy: distractors are obviously-wrong shapes (wrong square count, or six
+    // squares with a disconnected component). The student counts squares and
+    // checks connectivity — no mental folding required.
+    const answer = pickIndex(5, seed, 2);
+    const validStart = pickIndex(validCubeNets.length, seed, 3);
+    const invalidStart = pickIndex(obviouslyInvalidNetShapes.length, seed, 4);
+
+    const panels = [];
+    let validUsed = 0;
+    let invalidUsed = 0;
+    for (let i = 0; i < 5; i++) {
+      if (i === answer) {
+        panels.push({ cells: validCubeNets[(validStart + validUsed) % validCubeNets.length] });
+        validUsed++;
+      } else {
+        panels.push({ cells: obviouslyInvalidNetShapes[(invalidStart + invalidUsed) % obviouslyInvalidNetShapes.length] });
+        invalidUsed++;
+      }
+    }
+
+    const wordings = [
+      "Which of these shapes is a valid cube net (six squares joined edge-to-edge)?",
+      "Which shape has exactly six connected squares that could fold into a cube?",
+      "Pick the shape that is a valid cube net.",
+      "Which of these could be folded into a cube?"
+    ];
+    const wording = pickWording(seed, wordings);
+
+    return makeQuestion(
+      "NVRT Cube Net",
+      wording,
+      answer,
+      1,                                                   // Easy — square count + connectivity check
+      cubeNetSvg(panels),
+      "Generated original NVRT cube-net easy puzzle (count + connectivity)."
     );
   }
 
@@ -3842,6 +3894,45 @@
     );
   }
 
+  function genCubeNetMatchingSuperHard(seed) {
+    // Super Hard: same net-matching layout as the Hard variant, but distractors
+    // use *adjacent* face swaps instead of opposite-face swaps. The student
+    // can't dismiss a wrong cube by checking opposite pairs — every visible
+    // face is plausibly adjacent on the cube, so each option must be folded
+    // mentally.
+    const symbols = shuffledSymbols(seed, 6);
+    const netSymbols = {
+      top: symbols[0],
+      left: symbols[1],
+      front: symbols[2],
+      right: symbols[3],
+      back: symbols[4],
+      down: symbols[5]
+    };
+    const correct = { top: netSymbols.top, front: netSymbols.front, right: netSymbols.right };
+    const distractors = [
+      // Substitute the visible face with an adjacent face from the net
+      { top: netSymbols.left, front: netSymbols.front, right: netSymbols.right },     // top ← adjacent face (left)
+      { top: netSymbols.top, front: netSymbols.right, right: netSymbols.front },      // swap front↔right (adjacent faces)
+      { top: netSymbols.back, front: netSymbols.front, right: netSymbols.right },     // top ← adjacent face (back)
+      { top: netSymbols.right, front: netSymbols.top, right: netSymbols.front }       // 3-way cycle of three adjacent faces
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Cube Net",
+      "Work out which cube can be made from the net. Watch every visible face — the wrong cubes substitute adjacent faces, not opposites.",
+      answer,
+      4,                                                                                // Super Hard — adjacency must be verified, not just opposites
+      cubeNetMatchingSvg(netSymbols, options),
+      "Generated original NVRT cube-net-matching super-hard puzzle (adjacent-face distractors)."
+    );
+  }
+
   /* ═══════════════ Changing Creatures (CEM-style analogy with themed figures) ═══════════════ */
 
   function creatureMarkup(props, x, y, w = 50, h = 60) {
@@ -4146,6 +4237,8 @@
   // Tune counts here to scale individual generator types.
   const HIDDEN_SHAPE_COUNT = 150;
   const CUBE_NET_COUNT = 150;
+  const CUBE_NET_EASY_COUNT = 75;
+  const CUBE_NET_SUPER_COUNT = 75;
   const MATRIX_COUNT = 150;
   const CODE_MAPPING_COUNT = 150;
   const CUBE_COUNTING_COUNT = 120;
@@ -4173,6 +4266,7 @@
   for (let i = 0; i < 120; i++) generated.push(genSeries(i + 5000));
   for (let i = 0; i < HIDDEN_SHAPE_COUNT; i++) generated.push(genHiddenShape(i + 6000));
   for (let i = 0; i < CUBE_NET_COUNT; i++) generated.push(genCubeNet(i + 7000));
+  for (let i = 0; i < CUBE_NET_EASY_COUNT; i++) generated.push(genCubeNetEasy(i + 7500));
   for (let i = 0; i < MATRIX_COUNT; i++) generated.push(genMatrix3x3(i + 8000));
   for (let i = 0; i < CODE_MAPPING_COUNT; i++) generated.push(genCodeMapping(i + 9000));
   for (let i = 0; i < CUBE_COUNTING_COUNT; i++) generated.push(genCubeCounting(i + 10000));
@@ -4184,6 +4278,7 @@
   for (let i = 0; i < CHANGING_BUGS_HARD_COUNT; i++) generated.push(genChangingBugsHard(i + 14500));
   for (let i = 0; i < CHANGING_BUGS_SUPER_COUNT; i++) generated.push(genChangingBugsSuperHard(i + 14750));
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
+  for (let i = 0; i < CUBE_NET_SUPER_COUNT; i++) generated.push(genCubeNetMatchingSuperHard(i + 15500));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
   for (let i = 0; i < FIND_LIKE_THREE_COUNT; i++) generated.push(genFindLikeFirstThree(i + 17000));
   for (let i = 0; i < FIND_LIKE_HARD_COUNT; i++) generated.push(genFindLikeHard(i + 17500));
