@@ -3841,6 +3841,144 @@
     );
   }
 
+  // Apply a sequence of transformations in order.
+  function applyBugTransforms(props, transList) {
+    let result = { ...props };
+    transList.forEach(t => { result = applyBugTransform(result, t); });
+    return result;
+  }
+
+  // Build distractor set with deduplication against the correct answer.
+  function bugDistractors(propsCorrect, candidates, propsC, marksArr, shapesArr) {
+    const correctKey = `${propsCorrect.shape}|${propsCorrect.hollow}|${propsCorrect.mark}`;
+    const seen = new Set([correctKey]);
+    const distractors = [];
+    for (const cand of candidates) {
+      const key = `${cand.shape}|${cand.hollow}|${cand.mark}`;
+      if (!seen.has(key)) { seen.add(key); distractors.push(cand); }
+      if (distractors.length === 4) break;
+    }
+    let pad = 0;
+    while (distractors.length < 4 && pad < 16) {
+      const cand = {
+        shape: shapesArr[(shapesArr.indexOf(propsC.shape) + 1 + pad) % shapesArr.length],
+        hollow: (pad % 2 === 0) ? propsC.hollow : !propsC.hollow,
+        mark: marksArr[(marksArr.indexOf(propsC.mark) + 1 + pad) % marksArr.length]
+      };
+      const key = `${cand.shape}|${cand.hollow}|${cand.mark}`;
+      if (!seen.has(key)) { seen.add(key); distractors.push(cand); }
+      pad++;
+    }
+    return distractors;
+  }
+
+  function genChangingBugsHard(seed) {
+    // Two simultaneous transformations acting on different properties so they
+    // don't conflict. Distractors each apply only ONE of the two correctly.
+    const shapesArr = ["oval", "hexagon", "rect"];
+    const marksArr = ["none", "dot", "line", "cross"];
+    const pairs = [
+      ["flipHollow", "changeShape"],                       // hollow + shape
+      ["flipHollow", "addMark"],                           // hollow + mark
+      ["flipHollow", "cycleMark"],                         // hollow + mark
+      ["changeShape", "addMark"],                          // shape + mark
+      ["changeShape", "cycleMark"]                         // shape + mark
+    ];
+    const pair = pick(pairs, seed, 1);
+
+    const propsA = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 2)],
+      hollow: pickIndex(2, seed, 3) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 4)]
+    };
+    const propsB = applyBugTransforms(propsA, pair);
+
+    let propsC = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 5)],
+      hollow: pickIndex(2, seed, 6) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 7)]
+    };
+    if (propsC.shape === propsA.shape && propsC.hollow === propsA.hollow && propsC.mark === propsA.mark) {
+      propsC.shape = shapesArr[(shapesArr.indexOf(propsC.shape) + 1) % shapesArr.length];
+    }
+
+    const propsCorrect = applyBugTransforms(propsC, pair);
+    const candidates = [
+      applyBugTransforms(propsC, [pair[0]]),               // only first transformation
+      applyBugTransforms(propsC, [pair[1]]),               // only second transformation
+      { ...propsC },                                        // neither transformation
+      applyBugTransforms(propsC, [pair[0], pair[0]])       // double-apply first (wrong magnitude)
+    ];
+
+    const distractors = bugDistractors(propsCorrect, candidates, propsC, marksArr, shapesArr);
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? propsCorrect : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Changing Creatures",
+      "Look at how the first creature changes to become the second — TWO properties change at once. Apply the same two changes to the third creature.",
+      answer,
+      3,                                                    // Hard — must spot two simultaneous rules
+      changingBugsSvg(propsA, propsB, propsC, options),
+      "Generated original NVRT changing-creatures puzzle with two simultaneous transformations."
+    );
+  }
+
+  function genChangingBugsSuperHard(seed) {
+    // Three simultaneous transformations covering all three creature properties
+    // (shape, hollow, mark). Distractors apply exactly two of the three correctly,
+    // so each wrong answer is a one-step-off near-twin of the correct.
+    const shapesArr = ["oval", "hexagon", "rect"];
+    const marksArr = ["none", "dot", "line", "cross"];
+    const triples = [
+      ["flipHollow", "changeShape", "addMark"],
+      ["flipHollow", "changeShape", "cycleMark"]
+    ];
+    const triple = pick(triples, seed, 1);
+
+    const propsA = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 2)],
+      hollow: pickIndex(2, seed, 3) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 4)]
+    };
+    const propsB = applyBugTransforms(propsA, triple);
+
+    let propsC = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 5)],
+      hollow: pickIndex(2, seed, 6) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 7)]
+    };
+    if (propsC.shape === propsA.shape && propsC.hollow === propsA.hollow && propsC.mark === propsA.mark) {
+      propsC.shape = shapesArr[(shapesArr.indexOf(propsC.shape) + 1) % shapesArr.length];
+    }
+
+    const propsCorrect = applyBugTransforms(propsC, triple);
+    // Each candidate applies a different 2-of-3 subset, so it misses exactly one rule.
+    const candidates = [
+      applyBugTransforms(propsC, [triple[0], triple[1]]),
+      applyBugTransforms(propsC, [triple[0], triple[2]]),
+      applyBugTransforms(propsC, [triple[1], triple[2]]),
+      applyBugTransforms(propsC, [triple[0]])              // only one of three
+    ];
+
+    const distractors = bugDistractors(propsCorrect, candidates, propsC, marksArr, shapesArr);
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? propsCorrect : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Changing Creatures",
+      "Look at how the first creature changes to become the second — ALL THREE properties (shape, fill, mark) change at once. Apply the same three changes to the third creature.",
+      answer,
+      4,                                                    // Super Hard — three simultaneous rules; distractors miss only one
+      changingBugsSvg(propsA, propsB, propsC, options),
+      "Generated original NVRT changing-creatures puzzle with three simultaneous transformations."
+    );
+  }
+
   /* ═══════════════ DRIVER ═══════════════ */
   // Tune counts here to scale individual generator types.
   const HIDDEN_SHAPE_COUNT = 150;
@@ -3852,6 +3990,8 @@
   const COMPLETE_SQUARE_COUNT = 120;
   const MOST_SIMILAR_COUNT = 120;
   const CHANGING_BUGS_COUNT = 150;
+  const CHANGING_BUGS_HARD_COUNT = 75;
+  const CHANGING_BUGS_SUPER_COUNT = 75;
   const CUBE_NET_MATCHING_COUNT = 150;
   const FIND_LIKE_COUNT = 150;
   const FIND_LIKE_THREE_COUNT = 150;
@@ -3877,6 +4017,8 @@
   for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
   for (let i = 0; i < MOST_SIMILAR_COMPOUND_COUNT; i++) generated.push(genMostSimilarCompound(i + 13500));
   for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
+  for (let i = 0; i < CHANGING_BUGS_HARD_COUNT; i++) generated.push(genChangingBugsHard(i + 14500));
+  for (let i = 0; i < CHANGING_BUGS_SUPER_COUNT; i++) generated.push(genChangingBugsSuperHard(i + 14750));
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
   for (let i = 0; i < FIND_LIKE_THREE_COUNT; i++) generated.push(genFindLikeFirstThree(i + 17000));
