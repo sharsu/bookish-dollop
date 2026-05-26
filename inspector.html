@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Question Inspector — Exam Prep</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f4f6fb;
+      color: #1f2640;
+    }
+    header.inspector-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #ffffff;
+      border-bottom: 1px solid #d6dbe8;
+      padding: 14px 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .inspector-title {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin: 0 0 12px;
+    }
+    .inspector-title h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #2a3568;
+    }
+    .inspector-title .count {
+      color: #6b7596;
+      font-size: 0.95rem;
+    }
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter label {
+      font-size: 0.75rem;
+      color: #6b7596;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .filter select,
+    .filter input {
+      padding: 7px 10px;
+      border: 1px solid #c5cbdc;
+      border-radius: 7px;
+      background: #ffffff;
+      font-size: 0.95rem;
+      min-width: 140px;
+    }
+    .filter input { min-width: 220px; }
+    button.btn {
+      padding: 8px 14px;
+      border: 1px solid #c5cbdc;
+      border-radius: 7px;
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button.btn:hover { background: #f0f3fb; }
+    button.btn.primary {
+      background: #4456c8;
+      color: #ffffff;
+      border-color: #4456c8;
+    }
+    button.btn.primary:hover { background: #364aac; }
+
+    main.results {
+      padding: 20px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      color: #4a5478;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #d6dbe8;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.topic {
+      background: #e6ecff;
+      color: #2a3568;
+    }
+    .badge.diff-1 { background: #e2f6e6; color: #1b6a35; }
+    .badge.diff-2 { background: #fff2d6; color: #8a5a08; }
+    .badge.diff-3 { background: #ffe1d3; color: #a83b16; }
+    .badge.diff-4 { background: #f4d4ff; color: #6b1b8a; }
+    .id-label { color: #8a93b3; font-size: 0.8rem; }
+    .question-text {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #2a3568;
+      line-height: 1.4;
+    }
+    .question-media {
+      margin: 4px 0;
+      display: flex;
+      justify-content: center;
+      background: #fafbff;
+      border: 1px solid #e6e9f3;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .question-media img {
+      max-width: 100%;
+      height: auto;
+    }
+    .options {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .options li {
+      padding: 6px 10px;
+      border: 1px solid #dfe3ee;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #f8f9fd;
+    }
+    .options li.correct {
+      background: #e0f5e6;
+      border-color: #6ec087;
+      color: #1b6a35;
+      font-weight: 700;
+    }
+    .options li .letter {
+      font-weight: 700;
+      margin-right: 6px;
+      color: #6b7596;
+    }
+    .options li.correct .letter { color: #1b6a35; }
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: #6b7596;
+      font-size: 1rem;
+    }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      .filter input { min-width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="inspector-bar">
+    <div class="inspector-title">
+      <h1>Question Inspector</h1>
+      <span class="count" id="result-count">Loading…</span>
+    </div>
+    <div class="filters">
+      <div class="filter">
+        <label for="subject-filter">Subject</label>
+        <select id="subject-filter">
+          <option value="all">All</option>
+          <option value="maths">Maths</option>
+          <option value="nvrt">NVRT</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label for="topic-filter">Topic / group</label>
+        <select id="topic-filter">
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label for="difficulty-filter">Difficulty</label>
+        <select id="difficulty-filter">
+          <option value="all">All</option>
+          <option value="1">1 — Easy</option>
+          <option value="2">2 — Medium</option>
+          <option value="3">3 — Hard</option>
+          <option value="4">4 — Super Hard</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label for="search-filter">Search</label>
+        <input id="search-filter" type="search" placeholder="Search question text…">
+      </div>
+      <div class="filter">
+        <label>&nbsp;</label>
+        <button id="reset-btn" class="btn">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="results">
+    <div class="pagination">
+      <div id="pagination-summary">—</div>
+      <div>
+        <button id="prev-page" class="btn">← Prev</button>
+        <button id="next-page" class="btn">Next →</button>
+      </div>
+    </div>
+    <div id="result-grid" class="grid"></div>
+    <div id="empty-msg" class="empty" hidden>No questions match the current filters.</div>
+  </main>
+
+  <!-- Same scripts the main app uses to populate the banks -->
+  <script src="js/questions.js"></script>
+  <script src="js/questions-counting-principle.js"></script>
+  <script src="js/questions-nvrt.js"></script>
+
+  <script>
+  (function () {
+    const PAGE_SIZE = 30;
+    const mathsBank = (typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS)) ? QUESTIONS : [];
+    const nvrtBank = (typeof NVRT_QUESTIONS !== "undefined" && Array.isArray(NVRT_QUESTIONS)) ? NVRT_QUESTIONS : [];
+
+    const tagged = [
+      ...mathsBank.map(q => ({ ...q, _subject: "maths" })),
+      ...nvrtBank.map(q => ({ ...q, _subject: "nvrt" }))
+    ];
+
+    const topicsBySubject = {
+      maths: uniqueSorted(mathsBank.map(q => q.topic)),
+      nvrt: uniqueSorted(nvrtBank.map(q => q.topic)),
+      all: uniqueSorted(tagged.map(q => q.topic))
+    };
+
+    const els = {
+      subject: document.getElementById("subject-filter"),
+      topic: document.getElementById("topic-filter"),
+      difficulty: document.getElementById("difficulty-filter"),
+      search: document.getElementById("search-filter"),
+      reset: document.getElementById("reset-btn"),
+      grid: document.getElementById("result-grid"),
+      empty: document.getElementById("empty-msg"),
+      count: document.getElementById("result-count"),
+      summary: document.getElementById("pagination-summary"),
+      prev: document.getElementById("prev-page"),
+      next: document.getElementById("next-page")
+    };
+
+    let page = 0;
+
+    function uniqueSorted(arr) {
+      return Array.from(new Set(arr.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    }
+
+    function rebuildTopicOptions() {
+      const subject = els.subject.value;
+      const topics = topicsBySubject[subject] || [];
+      const currentSelection = els.topic.value;
+      els.topic.innerHTML = '<option value="all">All</option>' +
+        topics.map(t => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join("");
+      if (topics.includes(currentSelection)) {
+        els.topic.value = currentSelection;
+      } else {
+        els.topic.value = "all";
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    function applyFilters() {
+      const subject = els.subject.value;
+      const topic = els.topic.value;
+      const difficulty = els.difficulty.value;
+      const search = els.search.value.trim().toLowerCase();
+
+      const matches = tagged.filter(q => {
+        if (subject !== "all" && q._subject !== subject) return false;
+        if (topic !== "all" && q.topic !== topic) return false;
+        if (difficulty !== "all" && String(q.difficulty) !== difficulty) return false;
+        if (search) {
+          const hay = `${q.question || ""} ${q.topic || ""}`.toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        return true;
+      });
+
+      els.count.textContent = `${matches.length.toLocaleString()} of ${tagged.length.toLocaleString()} questions`;
+
+      const totalPages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+      if (page >= totalPages) page = totalPages - 1;
+      if (page < 0) page = 0;
+
+      const start = page * PAGE_SIZE;
+      const slice = matches.slice(start, start + PAGE_SIZE);
+
+      els.summary.textContent = matches.length
+        ? `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, matches.length)} (page ${page + 1} of ${totalPages})`
+        : "No results";
+      els.prev.disabled = page === 0;
+      els.next.disabled = page >= totalPages - 1;
+
+      renderGrid(slice);
+      els.empty.hidden = matches.length > 0;
+    }
+
+    function renderGrid(items) {
+      els.grid.innerHTML = items.map(renderCard).join("");
+    }
+
+    function renderCard(q) {
+      const letters = ["A", "B", "C", "D", "E"];
+      const optsHtml = (q.options || []).map((opt, i) => {
+        const isCorrect = i === q.answer;
+        return `<li class="${isCorrect ? "correct" : ""}"><span class="letter">${letters[i] || "?"}</span>${escapeHtml(opt)}</li>`;
+      }).join("");
+
+      const diffNum = Number(q.difficulty) || 0;
+      const diffLabel = ["?", "Easy", "Medium", "Hard", "Super Hard"][diffNum] || "?";
+
+      const media = q.questionImage
+        ? `<div class="question-media"><img src="${escapeAttr(q.questionImage)}" alt="${escapeAttr(q.questionImageAlt || "Question figure")}"></div>`
+        : "";
+
+      return `
+        <div class="card">
+          <div class="card-head">
+            <span class="badge topic">${escapeHtml(q.topic || "—")}</span>
+            <span class="badge diff-${diffNum}">${escapeHtml(diffLabel)}</span>
+            <span class="id-label">#${q.id} · ${q._subject.toUpperCase()}</span>
+          </div>
+          <p class="question-text">${escapeHtml(q.question || "")}</p>
+          ${media}
+          <ol class="options">${optsHtml}</ol>
+        </div>`;
+    }
+
+    els.subject.addEventListener("change", () => { rebuildTopicOptions(); page = 0; applyFilters(); });
+    els.topic.addEventListener("change", () => { page = 0; applyFilters(); });
+    els.difficulty.addEventListener("change", () => { page = 0; applyFilters(); });
+    els.search.addEventListener("input", () => { page = 0; applyFilters(); });
+    els.reset.addEventListener("click", () => {
+      els.subject.value = "all";
+      rebuildTopicOptions();
+      els.difficulty.value = "all";
+      els.search.value = "";
+      page = 0;
+      applyFilters();
+    });
+    els.prev.addEventListener("click", () => { page = Math.max(0, page - 1); applyFilters(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+    els.next.addEventListener("click", () => { page = page + 1; applyFilters(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+
+    rebuildTopicOptions();
+    applyFilters();
+  })();
+  </script>
+
+</body>
+</html>
