@@ -2526,6 +2526,116 @@
     );
   }
 
+  /* ═══════════════ Find the Figure Like the First Two ═══════════════ */
+
+  function findLikeFirstTwoSvg(ref1, ref2, options) {
+    const PANEL_W = 70, PANEL_H = 70;
+    const PANEL_Y = 24;
+    const refBoxes = `
+      <g transform="translate(20 ${PANEL_Y})">
+        <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${tokenPattern(ref1, { cell: 17, ox: 12, oy: 12 })}
+      </g>
+      <g transform="translate(100 ${PANEL_Y})">
+        <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${tokenPattern(ref2, { cell: 17, ox: 12, oy: 12 })}
+      </g>
+      <line x1="186" y1="${PANEL_Y + 8}" x2="186" y2="${PANEL_Y + PANEL_H - 8}" stroke="${accent}" stroke-width="2"/>`;
+
+    const OPT_START = 198;
+    const OPT_SPACING = 90;
+    const optionBoxes = options.map((tokens, index) => {
+      const ox = OPT_START + index * OPT_SPACING;
+      return `
+        <g transform="translate(${ox} ${PANEL_Y})">
+          <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+          ${tokenPattern(tokens, { cell: 17, ox: 12, oy: 12 })}
+        </g>
+        <text x="${ox + PANEL_W / 2}" y="${PANEL_Y + PANEL_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
+    }).join("");
+
+    return baseSvg(660, 130, refBoxes + optionBoxes);
+  }
+
+  function genFindLikeFirstTwo(seed) {
+    const ruleType = pickIndex(3, seed, 1);                // 0=shape, 1=count, 2=fill
+    const sharedShape = pick(shapes, seed, 2);
+    const sharedCount = 2 + pickIndex(3, seed, 3);         // 2..4
+    const sharedHollow = pickIndex(2, seed, 4) === 0;
+
+    const layouts = [
+      [[0, 0], [1, 0], [2, 0]], [[0, 0], [1, 1], [2, 2]],
+      [[1, 0], [0, 1], [2, 1]], [[0, 0], [0, 2], [2, 2]],
+      [[0, 1], [1, 1], [2, 1]], [[1, 0], [1, 1], [1, 2]],
+      [[0, 0], [2, 0], [1, 1], [0, 2]], [[0, 0], [1, 1], [2, 2], [0, 2]],
+      [[0, 0], [2, 2]], [[1, 0], [1, 2]], [[0, 0], [1, 0]], [[0, 1], [1, 1]]
+    ];
+
+    const makeTokens = (layout, count, kind, hollow) =>
+      layout.slice(0, Math.min(count, layout.length)).map(([c, r]) => ({ row: r, col: c, kind, hollow }));
+
+    // Build a figure that obeys the rule, with other properties freely chosen
+    function buildWithRule(layoutSeed, otherCountSeed, otherShapeSeed, otherHollowSeed, excludedShapes) {
+      const layout = pick(layouts, seed, layoutSeed);
+      let shape, count, hollow;
+      if (ruleType === 0) {
+        shape = sharedShape;
+        count = 2 + pickIndex(3, seed, otherCountSeed);
+        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
+      } else if (ruleType === 1) {
+        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
+        count = sharedCount;
+        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
+      } else {
+        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
+        count = 2 + pickIndex(3, seed, otherCountSeed);
+        hollow = sharedHollow;
+      }
+      return makeTokens(layout, count, shape, hollow);
+    }
+
+    const ref1 = buildWithRule(5, 6, 7, 8);
+    const ref2 = buildWithRule(9, 10, 11, 12, [ref1[0].kind]);
+    const correct = buildWithRule(13, 14, 15, 16, [ref1[0].kind, ref2[0].kind]);
+
+    // Distractors break the rule
+    const distractors = [];
+    for (let k = 0; k < 6 && distractors.length < 4; k++) {
+      const layout = pick(layouts, seed, 20 + k * 2);
+      let shape, count, hollow;
+      if (ruleType === 0) {
+        shape = pickDistinctFrom(seed, 21 + k, [sharedShape]);
+        count = 2 + pickIndex(3, seed, 22 + k);
+        hollow = (k % 2 === 0);
+      } else if (ruleType === 1) {
+        const wrongCounts = [2, 3, 4, 5].filter(c => c !== sharedCount);
+        count = wrongCounts[k % wrongCounts.length];
+        shape = pick(shapes, seed, 21 + k);
+        hollow = (k % 2 === 0);
+      } else {
+        shape = pick(shapes, seed, 21 + k);
+        count = 2 + pickIndex(3, seed, 22 + k);
+        hollow = !sharedHollow;
+      }
+      distractors.push(makeTokens(layout, count, shape, hollow));
+    }
+    while (distractors.length < 4) distractors.push([{ row: 1, col: 1, kind: shapes[distractors.length % shapes.length], hollow: false }]);
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Find Like First Two",
+      "The first two figures share a property. Pick the figure on the right that shares the same property.",
+      answer,
+      2,
+      findLikeFirstTwoSvg(ref1, ref2, options),
+      "Generated original NVRT 'find-like-first-two' puzzle."
+    );
+  }
+
   /* ═══════════════ Cube Net Matching: which 3D cube comes from this 2D net ═══════════════ */
 
   function shuffledSymbols(seed, count) {
@@ -2797,6 +2907,7 @@
   const MOST_SIMILAR_COUNT = 120;
   const CHANGING_BUGS_COUNT = 150;
   const CUBE_NET_MATCHING_COUNT = 150;
+  const FIND_LIKE_COUNT = 150;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -2815,6 +2926,7 @@
   for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
   for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
+  for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
