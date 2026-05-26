@@ -3005,10 +3005,10 @@
     for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
 
     return makeQuestion(
-      "NVRT Find Like First Two",
+      "NVRT Find Like",
       "The first two figures share a property (same outer shape, inner shape, fill, or accent). Pick the figure on the right that shares the same property.",
       answer,
-      2,
+      1,                                                   // Easy — only two reference figures to compare
       findLikeFirstTwoSvg(ref1, ref2, options),
       "Generated original NVRT 'find-like-first-two' puzzle with compound figures."
     );
@@ -3068,10 +3068,10 @@
     for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
 
     return makeQuestion(
-      "NVRT Find Like First Three",
+      "NVRT Find Like",
       "The first three figures share a property (same outer shape, inner shape, fill, or accent). Pick the figure on the right that shares the same property.",
       answer,
-      2,
+      2,                                                   // Medium — three references narrow the rule
       findLikeFirstThreeSvg([ref1, ref2, ref3], options),
       "Generated original NVRT 'find-like-first-three' puzzle with compound figures."
     );
