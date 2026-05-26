@@ -1790,7 +1790,7 @@
   }
 
   function genSeries(seed) {
-    const variant = pickIndex(4, seed, 140);
+    const variant = pickIndex(7, seed, 140);
     let sequence;
     let correct;
     let distractors;
@@ -1857,7 +1857,7 @@
         { tokens: makeRingTokens(outer, outer, accent, [order[3]], { hollowIndices: [] }) },
         { tokens: makeRingTokens(outer, center, accent, [order[(start + 2) % 4]], { hollowIndices: [0, 2] }) }
       ];
-    } else {
+    } else if (variant === 3) {
       const shapeA = pick(shapes, seed, 153);
       const shapeB = pickDistinctShape(seed, 154, shapeA);
       const diagonals = [[0, 3], [1, 2]];
@@ -1880,14 +1880,93 @@
         { tokens: makeLayoutTokens(cornerLayout, shapeB, shapeB, [], { hollowIndices: [0, 1] }) },
         { tokens: [...makeLayoutTokens(cornerLayout, shapeB, shapeB, [], { hollowIndices: diagonals[(diagStart + 1) % 2] }), { row: 1, col: 1, kind: shapeA, hollow: false }] }
       ];
+    } else if (variant === 4) {
+      // Position cycling: an accent shape moves clockwise around the 8-cell perimeter
+      // (step size 1 or 2 cells per frame) while a base shape sits in the centre.
+      const perimeter = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [1, 2], [0, 2], [0, 1]];
+      const startIdx = pickIndex(8, seed, 156);
+      const stepSize = pick([1, 2], seed, 157);
+      const baseShape = pick(shapes, seed, 158);
+      const accentShape = pickDistinctShape(seed, 159, baseShape);
+      const baseHollow = pickIndex(2, seed, 160) === 0;
+      const posAt = (n) => perimeter[((startIdx + n * stepSize) % 8 + 8) % 8];
+      const frame = (n, accentHollow = false) => ({
+        tokens: [
+          { row: 1, col: 1, kind: baseShape, hollow: baseHollow },
+          { col: posAt(n)[0], row: posAt(n)[1], kind: accentShape, hollow: accentHollow }
+        ]
+      });
+      sequence = [0, 1, 2].map(n => frame(n));
+      correct = frame(3);
+      distractors = [
+        frame(2),                                        // didn't advance
+        frame(4),                                        // skipped one
+        frame(3, true),                                  // right position, wrong fill
+        frame(-3)                                        // reverse direction
+      ];
+    } else if (variant === 5) {
+      // Cumulative count with alternating fill on each added shape.
+      const order = pick([
+        cornerLayout,
+        [[1, 0], [0, 1], [2, 1], [1, 2]],
+        [[0, 0], [1, 1], [2, 2], [0, 2]]
+      ], seed, 161);
+      const shape = pick(shapes, seed, 162);
+      const startHollow = pickIndex(2, seed, 163) === 0;
+      const frame = (count) => ({
+        tokens: order.slice(0, count).map(([col, row], i) => ({
+          row, col, kind: shape,
+          hollow: startHollow ? (i % 2 === 0) : (i % 2 === 1)
+        }))
+      });
+      sequence = [1, 2, 3].map(frame);
+      correct = frame(4);
+      const altShape = pickDistinctShape(seed, 164, shape);
+      distractors = [
+        frame(3),                                                                  // missing fourth
+        { tokens: correct.tokens.map(t => ({ ...t, hollow: !t.hollow })) },        // fills inverted
+        { tokens: correct.tokens.map(t => ({ ...t, hollow: startHollow })) },      // all same fill
+        { tokens: correct.tokens.map((t, i) => i === 3 ? { ...t, kind: altShape } : t) } // wrong shape on new one
+      ];
+    } else {
+      // Two-stream rule: a triangle in the top centre rotates 90° per step while
+      // counter shapes accumulate one corner per step.
+      const counterPositions = [[0, 2], [2, 2], [2, 0], [0, 0]];
+      const counterShape = pickDistinctShape(seed, 165, "triangle");
+      const rotDir = pickIndex(2, seed, 166) === 0 ? 1 : -1;
+      const rotAt = (step) => ((step * 90 * rotDir) % 360 + 360) % 360;
+      const frame = (step, opts = {}) => {
+        const useStep = opts.rotStep != null ? opts.rotStep : step;
+        const useCount = opts.count != null ? opts.count : step + 1;
+        const fillHollow = opts.allHollow === true;
+        return {
+          tokens: [
+            { row: 0, col: 1, kind: "triangle", hollow: false, rotate: rotAt(useStep) },
+            ...counterPositions.slice(0, useCount).map(([col, row]) => ({
+              row, col, kind: counterShape, hollow: fillHollow
+            }))
+          ]
+        };
+      };
+      sequence = [0, 1, 2].map(s => frame(s));
+      correct = frame(3);
+      distractors = [
+        frame(3, { count: 3 }),                  // rotation right, count wrong
+        frame(3, { rotStep: 2 }),                // count right, rotation wrong
+        frame(3, { rotStep: 0, count: 4 }),      // both wrong
+        frame(3, { allHollow: true })            // right structure, wrong fill
+      ];
     }
+
+    const difficultyByVariant = [2, 1, 2, 2, 3, 3, 4];
+    const difficulty = difficultyByVariant[variant];
 
     const placed = placeOptions(correct, distractors, seed);
     return makeQuestion(
       "NVRT Series",
       "Which picture comes next in the sequence?",
       placed.answer,
-      diffLevel(seed, 11),
+      difficulty,
       seriesSvg(sequence, placed.options),
       "Generated original NVRT sequence puzzle."
     );
