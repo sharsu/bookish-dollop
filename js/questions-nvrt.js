@@ -2636,6 +2636,113 @@
     );
   }
 
+  /* ═══════════════ Find the Figure Like the First Three ═══════════════ */
+
+  function findLikeFirstThreeSvg(refs, options) {
+    const PANEL_W = 60, PANEL_H = 60;
+    const PANEL_Y = 24;
+    const REF_SPACING = 68;
+    const refBoxes = refs.map((tokens, idx) => `
+      <g transform="translate(${20 + idx * REF_SPACING} ${PANEL_Y})">
+        <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${tokenPattern(tokens, { cell: 14, ox: 11, oy: 11 })}
+      </g>`).join("");
+    const dividerX = 20 + 3 * REF_SPACING - 4;
+    const divider = `<line x1="${dividerX}" y1="${PANEL_Y + 8}" x2="${dividerX}" y2="${PANEL_Y + PANEL_H - 8}" stroke="${accent}" stroke-width="2"/>`;
+
+    const OPT_START = dividerX + 14;
+    const OPT_SPACING = 76;
+    const optionBoxes = options.map((tokens, index) => {
+      const ox = OPT_START + index * OPT_SPACING;
+      return `
+        <g transform="translate(${ox} ${PANEL_Y})">
+          <rect width="${PANEL_W}" height="${PANEL_H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+          ${tokenPattern(tokens, { cell: 14, ox: 11, oy: 11 })}
+        </g>
+        <text x="${ox + PANEL_W / 2}" y="${PANEL_Y + PANEL_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
+    }).join("");
+
+    return baseSvg(680, 120, refBoxes + divider + optionBoxes);
+  }
+
+  function genFindLikeFirstThree(seed) {
+    const ruleType = pickIndex(3, seed, 1);                // 0=shape, 1=count, 2=fill
+    const sharedShape = pick(shapes, seed, 2);
+    const sharedCount = 2 + pickIndex(3, seed, 3);
+    const sharedHollow = pickIndex(2, seed, 4) === 0;
+
+    const layouts = [
+      [[0, 0], [1, 0], [2, 0]], [[0, 0], [1, 1], [2, 2]],
+      [[1, 0], [0, 1], [2, 1]], [[0, 0], [0, 2], [2, 2]],
+      [[0, 1], [1, 1], [2, 1]], [[1, 0], [1, 1], [1, 2]],
+      [[0, 0], [2, 0], [1, 1], [0, 2]], [[0, 0], [1, 1], [2, 2], [0, 2]],
+      [[0, 0], [2, 2]], [[1, 0], [1, 2]], [[0, 0], [1, 0]], [[0, 1], [1, 1]]
+    ];
+
+    const makeTokens = (layout, count, kind, hollow) =>
+      layout.slice(0, Math.min(count, layout.length)).map(([c, r]) => ({ row: r, col: c, kind, hollow }));
+
+    function buildWithRule(layoutSeed, otherCountSeed, otherShapeSeed, otherHollowSeed, excludedShapes) {
+      const layout = pick(layouts, seed, layoutSeed);
+      let shape, count, hollow;
+      if (ruleType === 0) {
+        shape = sharedShape;
+        count = 2 + pickIndex(3, seed, otherCountSeed);
+        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
+      } else if (ruleType === 1) {
+        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
+        count = sharedCount;
+        hollow = pickIndex(2, seed, otherHollowSeed) === 0;
+      } else {
+        shape = pickDistinctFrom(seed, otherShapeSeed, excludedShapes || []);
+        count = 2 + pickIndex(3, seed, otherCountSeed);
+        hollow = sharedHollow;
+      }
+      return makeTokens(layout, count, shape, hollow);
+    }
+
+    const ref1 = buildWithRule(5, 6, 7, 8);
+    const ref2 = buildWithRule(9, 10, 11, 12, [ref1[0].kind]);
+    const ref3 = buildWithRule(13, 14, 15, 16, [ref1[0].kind, ref2[0].kind]);
+    const correct = buildWithRule(17, 18, 19, 20, [ref1[0].kind, ref2[0].kind, ref3[0].kind]);
+
+    const distractors = [];
+    for (let k = 0; k < 6 && distractors.length < 4; k++) {
+      const layout = pick(layouts, seed, 30 + k * 2);
+      let shape, count, hollow;
+      if (ruleType === 0) {
+        shape = pickDistinctFrom(seed, 31 + k, [sharedShape]);
+        count = 2 + pickIndex(3, seed, 32 + k);
+        hollow = (k % 2 === 0);
+      } else if (ruleType === 1) {
+        const wrongCounts = [2, 3, 4, 5].filter(c => c !== sharedCount);
+        count = wrongCounts[k % wrongCounts.length];
+        shape = pick(shapes, seed, 31 + k);
+        hollow = (k % 2 === 0);
+      } else {
+        shape = pick(shapes, seed, 31 + k);
+        count = 2 + pickIndex(3, seed, 32 + k);
+        hollow = !sharedHollow;
+      }
+      distractors.push(makeTokens(layout, count, shape, hollow));
+    }
+    while (distractors.length < 4) distractors.push([{ row: 1, col: 1, kind: shapes[distractors.length % shapes.length], hollow: false }]);
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Find Like First Three",
+      "The first three figures share a property. Pick the figure on the right that shares the same property.",
+      answer,
+      2,
+      findLikeFirstThreeSvg([ref1, ref2, ref3], options),
+      "Generated original NVRT 'find-like-first-three' puzzle."
+    );
+  }
+
   /* ═══════════════ Cube Net Matching: which 3D cube comes from this 2D net ═══════════════ */
 
   function shuffledSymbols(seed, count) {
@@ -2908,6 +3015,7 @@
   const CHANGING_BUGS_COUNT = 150;
   const CUBE_NET_MATCHING_COUNT = 150;
   const FIND_LIKE_COUNT = 150;
+  const FIND_LIKE_THREE_COUNT = 150;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -2927,6 +3035,7 @@
   for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
+  for (let i = 0; i < FIND_LIKE_THREE_COUNT; i++) generated.push(genFindLikeFirstThree(i + 17000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
