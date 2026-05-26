@@ -677,6 +677,7 @@
   };
   const pickIndex = (length, seed, salt = 0) => hashInt(seed, salt) % length;
   const pick = (list, seed, salt = 0) => list[pickIndex(list.length, seed, salt)];
+  const pickWording = (seed, variants) => variants[Math.floor(seed / 3) % variants.length];
   const diffLevel = (seed, offset = 0) => {
     const n = (seed + offset) % 10;
     return n < 1 ? 1 : n < 5 ? 2 : n < 8 ? 3 : 4;
@@ -2037,11 +2038,27 @@
       }
     }
 
+    const validWordings = [
+      "Which of these nets can be folded into a cube?",
+      "Which net can be folded into a cube?",
+      "Which of these is a valid cube net?",
+      "Which net would fold to form a cube?",
+      "Select the net that folds into a cube.",
+      "Which of the following nets makes a cube?"
+    ];
+    const invalidWordings = [
+      "Which of these nets cannot be folded into a cube?",
+      "Which net cannot be folded into a cube?",
+      "Which of these is NOT a valid cube net?",
+      "Which net would NOT fold to form a cube?",
+      "Select the net that does NOT fold into a cube.",
+      "Which of the following nets does NOT make a cube?"
+    ];
+    const wording = pickWording(seed, askValid ? validWordings : invalidWordings);
+
     return makeQuestion(
       "NVRT Cube Net",
-      askValid
-        ? "Which of these nets can be folded into a cube?"
-        : "Which of these nets cannot be folded into a cube?",
+      wording,
       answer,
       diffLevel(seed, 15),
       cubeNetSvg(panels),
