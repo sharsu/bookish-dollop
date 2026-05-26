@@ -1055,24 +1055,24 @@
   function groupMembershipSvg(examples, options) {
     const exampleBoxes = examples.map((pattern, index) => panel(
       62 + index * 106,
-      52,
+      46,
       "",
-      patternMarkup(pattern, { cell: 23, ox: 18, oy: 17 }),
+      patternMarkup(pattern, { cell: 20, ox: 12, oy: 12 }),
       84,
       84
     )).join("");
     const optionBoxes = options.map((pattern, index) => panel(
       26 + index * 122,
-      164,
+      172,
       labels[index],
-      patternMarkup(pattern, { cell: 19, ox: 13, oy: 12 }),
+      patternMarkup(pattern, { cell: 17, ox: 11, oy: 11 }),
       72,
       72
     )).join("");
 
-    return baseSvg(660, 270, `
-      <text x="24" y="22" text-anchor="start" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">These belong to one group</text>
-      <text x="24" y="158" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Which option belongs with the group?</text>
+    return baseSvg(660, 282, `
+      <text x="24" y="24" text-anchor="start" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">These belong to one group</text>
+      <text x="24" y="152" text-anchor="start" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">Which option belongs with the group?</text>
       ${exampleBoxes}
       ${optionBoxes}`);
   }
