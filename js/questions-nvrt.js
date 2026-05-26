@@ -2787,7 +2787,15 @@
     } else if (props.accent === "cross") {
       accentMark = `<line x1="${x + w - 12}" y1="${y + 4}" x2="${x + w - 4}" y2="${y + 12}" stroke="${ink}" stroke-width="2"/><line x1="${x + w - 12}" y1="${y + 12}" x2="${x + w - 4}" y2="${y + 4}" stroke="${ink}" stroke-width="2"/>`;
     }
-    return outer + inner + accentMark;
+    let accent2Mark = "";
+    if (props.accent2 === "dot") {
+      accent2Mark = `<circle cx="${x + 8}" cy="${y + h - 8}" r="3" fill="${ink}"/>`;
+    } else if (props.accent2 === "square") {
+      accent2Mark = `<rect x="${x + 4}" y="${y + h - 12}" width="8" height="8" fill="${ink}"/>`;
+    } else if (props.accent2 === "tri") {
+      accent2Mark = `<polygon points="${x + 8},${y + h - 12} ${x + 12},${y + h - 4} ${x + 4},${y + h - 4}" fill="${ink}"/>`;
+    }
+    return outer + inner + accentMark + accent2Mark;
   }
 
   // Pick from any pool, excluding given values
@@ -3152,58 +3160,148 @@
     return baseSvg(640, 160, `${targetBox}${optionBoxes}`);
   }
 
+  function mostSimilarCompoundSvg(targetProps, optionsProps) {
+    const targetBox = `
+      <g transform="translate(20 28)">
+        <rect width="84" height="84" rx="14" fill="#ffffff" stroke="${accent}" stroke-width="2.5"/>
+        ${compoundFigureSvg(targetProps, 0, 0, 84, 84)}
+        <text x="42" y="104" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">Target</text>
+      </g>`;
+    const optionBoxes = optionsProps.map((props, index) => `
+      <g transform="translate(${124 + index * 102} 28)">
+        <rect width="88" height="88" rx="14" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${compoundFigureSvg(props, 0, 0, 88, 88)}
+        <text x="44" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">${labels[index]}</text>
+      </g>`).join("");
+    return baseSvg(640, 160, `${targetBox}${optionBoxes}`);
+  }
+
   function genMostSimilarPair(seed) {
-    const shape = pick(shapes, seed, 1);
-    const otherShape = pickDistinctShape(seed, 2, shape);
-    const count = 2 + pickIndex(3, seed, 3);
-    const hollow = pickIndex(2, seed, 4) === 0;
+    const variant = seed % 4;
 
-    const layouts = [
-      [[0, 0], [1, 0], [2, 0], [2, 1]],
-      [[0, 0], [1, 1], [2, 2]],
-      [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
-      [[1, 0], [0, 1], [1, 1], [2, 1]],
-      [[0, 0], [0, 1], [1, 1], [1, 2]],
-      [[1, 0], [1, 1], [1, 2]],
-      [[0, 1], [1, 1], [2, 1]],
-      [[0, 0], [1, 1]],
-      [[0, 0], [2, 2]],
-      [[0, 0], [1, 0], [0, 1]],
-      [[2, 0], [2, 1], [2, 2]]
-    ];
+    if (variant === 0) {
+      // Easy — single shape kind, count, and fill across token grids.
+      const shape = pick(shapes, seed, 1);
+      const otherShape = pickDistinctShape(seed, 2, shape);
+      const count = 2 + pickIndex(3, seed, 3);
+      const hollow = pickIndex(2, seed, 4) === 0;
 
-    const altCount = count === 2 ? count + 1 : count - 1;
-    // Pre-filter: pick from layouts that have AT LEAST as many cells as the count we need,
-    // so slicing always produces exactly `count` (or `altCount`) cells. This avoids the
-    // bug where a long-count target was paired with a short-layout option showing fewer cells.
-    const layoutsForCount = layouts.filter(l => l.length >= count);
-    const layoutsForAlt = layouts.filter(l => l.length >= altCount);
+      const layouts = [
+        [[0, 0], [1, 0], [2, 0], [2, 1]],
+        [[0, 0], [1, 1], [2, 2]],
+        [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+        [[1, 0], [0, 1], [1, 1], [2, 1]],
+        [[0, 0], [0, 1], [1, 1], [1, 2]],
+        [[1, 0], [1, 1], [1, 2]],
+        [[0, 1], [1, 1], [2, 1]],
+        [[0, 0], [1, 1]],
+        [[0, 0], [2, 2]],
+        [[0, 0], [1, 0], [0, 1]],
+        [[2, 0], [2, 1], [2, 2]]
+      ];
 
-    const layoutTokens = (lt, k, h, n) =>
-      lt.slice(0, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
+      const altCount = count === 2 ? count + 1 : count - 1;
+      const layoutsForCount = layouts.filter(l => l.length >= count);
+      const layoutsForAlt = layouts.filter(l => l.length >= altCount);
 
-    const targetTokens = layoutTokens(pick(layoutsForCount, seed, 5), shape, hollow, count);
-    const correctTokens = layoutTokens(pick(layoutsForCount, seed, 50), shape, hollow, count);
+      const layoutTokens = (lt, k, h, n) =>
+        lt.slice(0, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
 
-    const distractors = [
-      layoutTokens(pick(layoutsForCount, seed, 51), otherShape, hollow, count),
-      layoutTokens(pick(layoutsForAlt, seed, 52), shape, hollow, altCount),
-      layoutTokens(pick(layoutsForCount, seed, 53), shape, !hollow, count),
-      layoutTokens(pick(layoutsForAlt, seed, 54), otherShape, !hollow, altCount)
-    ];
+      const targetTokens = layoutTokens(pick(layoutsForCount, seed, 5), shape, hollow, count);
+      const correctTokens = layoutTokens(pick(layoutsForCount, seed, 50), shape, hollow, count);
+
+      const distractors = [
+        layoutTokens(pick(layoutsForCount, seed, 51), otherShape, hollow, count),
+        layoutTokens(pick(layoutsForAlt, seed, 52), shape, hollow, altCount),
+        layoutTokens(pick(layoutsForCount, seed, 53), shape, !hollow, count),
+        layoutTokens(pick(layoutsForAlt, seed, 54), otherShape, !hollow, altCount)
+      ];
+
+      const answer = pickIndex(5, seed, 99);
+      const options = [];
+      let dIdx = 0;
+      for (let i = 0; i < 5; i++) options.push(i === answer ? correctTokens : distractors[dIdx++]);
+
+      return makeQuestion(
+        "NVRT Most Similar",
+        "Which option is most similar to the target figure (same shape, same number, same fill)?",
+        answer,
+        1,
+        mostSimilarSvg(targetTokens, options),
+        "Generated original NVRT most-similar puzzle."
+      );
+    }
+
+    // Variants 1-3: compound figure matching (outer + inner + outerHollow + accent + accent2)
+    const outers = COMPOUND_OUTER_POOL;
+    const inners = COMPOUND_INNER_POOL;
+    const accents = ["dot", "line", "cross"];
+    const accent2s = ["dot", "square", "tri"];
+
+    const pickOther = (pool, current, salt) => {
+      const idx = pool.indexOf(current);
+      if (idx < 0) return pool[pickIndex(pool.length, seed, salt)];
+      const offset = 1 + pickIndex(pool.length - 1, seed, salt);
+      return pool[(idx + offset) % pool.length];
+    };
+
+    const target = {
+      outer: outers[pickIndex(outers.length, seed, 10)],
+      inner: inners[pickIndex(inners.length, seed, 11)],
+      outerHollow: pickIndex(2, seed, 12) === 0,
+      accent: variant >= 2 ? accents[pickIndex(accents.length, seed, 13)] : "none",
+      accent2: variant === 3 ? accent2s[pickIndex(accent2s.length, seed, 14)] : undefined
+    };
+
+    let distractors;
+    let question;
+    if (variant === 1) {
+      // Medium — three properties to match (outer, inner, outerHollow).
+      distractors = [
+        { ...target, outer: pickOther(outers, target.outer, 20) },
+        { ...target, inner: pickOther(inners, target.inner, 21) },
+        { ...target, outerHollow: !target.outerHollow },
+        { ...target, outer: pickOther(outers, target.outer, 22), inner: pickOther(inners, target.inner, 23) }
+      ];
+      question = "Which option is most similar to the target figure (match outer shape, inner shape, and fill)?";
+    } else if (variant === 2) {
+      // Hard — four properties (adds accent).
+      distractors = [
+        { ...target, outer: pickOther(outers, target.outer, 20) },
+        { ...target, inner: pickOther(inners, target.inner, 21) },
+        { ...target, outerHollow: !target.outerHollow },
+        { ...target, accent: pickOther(accents, target.accent, 22) }
+      ];
+      question = "Which option is most similar to the target figure (match outer, inner, fill, AND accent)?";
+    } else {
+      // Super Hard — five properties (adds accent2); each distractor breaks exactly one.
+      const props = ["outer", "inner", "outerHollow", "accent", "accent2"];
+      const startIdx = pickIndex(props.length, seed, 15);
+      const order = [0, 1, 2, 3].map(k => props[(startIdx + k) % props.length]);
+      distractors = order.map((prop, i) => {
+        const d = { ...target };
+        if (prop === "outer") d.outer = pickOther(outers, target.outer, 20 + i);
+        else if (prop === "inner") d.inner = pickOther(inners, target.inner, 24 + i);
+        else if (prop === "outerHollow") d.outerHollow = !target.outerHollow;
+        else if (prop === "accent") d.accent = pickOther(accents, target.accent, 28 + i);
+        else if (prop === "accent2") d.accent2 = pickOther(accent2s, target.accent2, 32 + i);
+        return d;
+      });
+      question = "Which option is most similar to the target figure? Check every detail — outer, inner, fill, and BOTH accents.";
+    }
 
     const answer = pickIndex(5, seed, 99);
     const options = [];
     let dIdx = 0;
-    for (let i = 0; i < 5; i++) options.push(i === answer ? correctTokens : distractors[dIdx++]);
+    for (let i = 0; i < 5; i++) options.push(i === answer ? { ...target } : distractors[dIdx++]);
 
     return makeQuestion(
       "NVRT Most Similar",
-      "Which option is most similar to the target figure (same shape, same number, same fill)?",
+      question,
       answer,
-      1,                                                   // Single-step matching → Easy
-      mostSimilarSvg(targetTokens, options),
-      "Generated original NVRT most-similar puzzle."
+      variant + 1,                                                    // 1=Easy, 2=Medium, 3=Hard, 4=Super Hard
+      mostSimilarCompoundSvg(target, options),
+      "Generated original NVRT most-similar puzzle with compound figure."
     );
   }
 
