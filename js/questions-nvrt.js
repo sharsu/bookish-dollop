@@ -215,8 +215,8 @@
     )).join("");
 
     return baseSvg(640, 252, `
-      <text x="142" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Find the missing box</text>
-      <text x="453" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Choose one option</text>
+      <text x="24" y="20" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Find the missing box</text>
+      <text x="282" y="44" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Choose one option</text>
       ${gridBoxes}
       ${optionBoxes}`);
   }
@@ -1015,8 +1015,8 @@
       panel(150, 28, "", renderPattern(cells[1], { cell: 21, ox: 18, oy: 18 }), 90, 90),
       panel(42, 136, "", renderPattern(cells[2], { cell: 21, ox: 18, oy: 18 }), 90, 90),
       questionMarkBox(150, 136, 90, 90),
-      `<text x="142" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Find the missing box</text>`,
-      `<text x="453" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Choose one option</text>`,
+      `<text x="24" y="20" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Find the missing box</text>`,
+      `<text x="282" y="44" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Choose one option</text>`,
       ...options.map((pattern, index) => panel(282 + index * 68, 78, labels[index], renderPattern(pattern, { cell: 17, ox: 11, oy: 11 }), 56, 56))
     ].join("");
 
@@ -1067,8 +1067,8 @@
     )).join("");
 
     return baseSvg(660, 270, `
-      <text x="170" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">These belong to one group</text>
-      <text x="330" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Which option belongs with the group?</text>
+      <text x="24" y="22" text-anchor="start" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">These belong to one group</text>
+      <text x="24" y="158" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Which option belongs with the group?</text>
       ${exampleBoxes}
       ${optionBoxes}`);
   }
@@ -1095,8 +1095,8 @@
     )).join("");
 
     return baseSvg(660, 286, `
-      <text x="184" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">Look at the sequence</text>
-      <text x="330" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Which picture comes next?</text>
+      <text x="24" y="22" text-anchor="start" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${ink}">Look at the sequence</text>
+      <text x="24" y="166" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Which picture comes next?</text>
       ${sequenceBoxes}
       ${arrows}
       ${questionMarkBox(390, 52, 82, 82)}
