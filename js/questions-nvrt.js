@@ -801,18 +801,38 @@
   }
 
   function patternKey(pattern) {
+    if (pattern.stacked) {
+      const s = pattern.stacked;
+      return `s:${s.frame}|${s.top?.kind}:${s.top?.hollow ? "h" : "s"}|${s.bottom?.kind}:${s.bottom?.hollow ? "h" : "s"}|${s.accent || "none"}`;
+    }
     return pattern.tokens
       ? `t:${tokenKey(pattern.tokens)}`
       : `c:${normalizeCells(pattern.cells).map(([col, row]) => `${col}:${row}`).join("|")}`;
   }
 
   function clonePattern(pattern) {
+    if (pattern.stacked) {
+      return { stacked: { ...pattern.stacked, top: { ...pattern.stacked.top }, bottom: { ...pattern.stacked.bottom } } };
+    }
     return pattern.tokens
       ? { tokens: pattern.tokens.map(token => ({ ...token })) }
       : { cells: normalizeCells(pattern.cells) };
   }
 
   function mutatePattern(pattern, seed) {
+    if (pattern.stacked) {
+      const s = pattern.stacked;
+      const which = pickIndex(3, seed, 21);
+      const mutated = { ...s, top: { ...s.top }, bottom: { ...s.bottom } };
+      if (which === 0) {
+        mutated.frame = pickDistinctShape(seed, 22, s.frame);
+      } else if (which === 1) {
+        mutated.top.hollow = !mutated.top.hollow;
+      } else {
+        mutated.bottom.hollow = !mutated.bottom.hollow;
+      }
+      return { stacked: mutated };
+    }
     if (pattern.tokens) {
       const tokens = pattern.tokens.map(token => ({ ...token }));
       const index = pickIndex(tokens.length, seed, 21);
@@ -965,7 +985,37 @@
     )).join("");
   }
 
+  function stackedFigureMarkup(props, opts = {}) {
+    const cell = opts.cell || 18;
+    const ox = opts.ox || 16;
+    const oy = opts.oy || 16;
+    const cx = ox + cell;
+    const cy = oy + cell;
+    const frameSize = Math.round(cell * 1.4);
+    const itemSize = Math.max(5, Math.round(cell * 0.38));
+    const stackOffset = Math.round(frameSize * 0.48);
+    let svg = "";
+    if (props.frame) {
+      svg += shapeMarkup({ kind: props.frame, col: 0, row: 0, size: frameSize, hollow: true }, 0, cx, cy);
+    }
+    if (props.top) {
+      svg += shapeMarkup({ kind: props.top.kind, col: 0, row: 0, size: itemSize, hollow: !!props.top.hollow }, 0, cx, cy - stackOffset);
+    }
+    if (props.bottom) {
+      svg += shapeMarkup({ kind: props.bottom.kind, col: 0, row: 0, size: itemSize, hollow: !!props.bottom.hollow }, 0, cx, cy + stackOffset);
+    }
+    if (props.accent === "up") {
+      const ay = cy - frameSize - 5;
+      svg += `<polygon points="${cx},${ay - 5} ${cx - 4},${ay + 1} ${cx + 4},${ay + 1}" fill="${ink}"/><line x1="${cx}" y1="${ay + 1}" x2="${cx}" y2="${ay + 8}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (props.accent === "down") {
+      const ay = cy + frameSize + 5;
+      svg += `<polygon points="${cx},${ay + 5} ${cx - 4},${ay - 1} ${cx + 4},${ay - 1}" fill="${ink}"/><line x1="${cx}" y1="${ay - 1}" x2="${cx}" y2="${ay - 8}" stroke="${ink}" stroke-width="2"/>`;
+    }
+    return svg;
+  }
+
   function patternMarkup(pattern, opts = {}) {
+    if (pattern.stacked) return stackedFigureMarkup(pattern.stacked, opts);
     return pattern.tokens ? tokenPattern(pattern.tokens, opts) : cellPattern(pattern.cells, opts);
   }
 
@@ -1533,7 +1583,7 @@
   }
 
   function genAnalogy(seed) {
-    const variant = pickIndex(6, seed, 160);
+    const variant = pickIndex(8, seed, 160);
     let a; let b; let c; let correct; let distractors;
     const pairLayouts = [
       [[0, 1], [2, 1]],
@@ -1663,7 +1713,7 @@
         { tokens: makeRingTokens(accent, center, outer, [nextC], { hollowIndices: [2] }) },
         { tokens: makeRingTokens(accent, outer, center, [nextC, outerIndices[startC]], { hollowIndices: [] }) }
       ];
-    } else {
+    } else if (variant === 5) {
       const lr = pick(shapes, seed, 190);
       const tb = pickDistinctShape(seed, 191, lr);
       const center = pickDistinctFrom(seed, 192, [lr, tb]);
@@ -1680,14 +1730,132 @@
         { tokens: makeCrossPairTokens(q, r, p, { hollowIndices: [4] }) },
         { tokens: makeCrossPairTokens(p, q, r, { hollowIndices: [0, 3] }) }
       ];
+    } else if (variant === 6) {
+      // Super hard: A→B applies TWO independent rules simultaneously —
+      //   (1) 90° rotation of the pattern (CW or CCW) and
+      //   (2) every shape substitutes for the next one in a 3-shape cycle.
+      // C→? must apply the same two rules. Distractors apply only one rule.
+      const cyclePool = ["circle", "square", "triangle", "diamond"];
+      const cs = pickIndex(cyclePool.length, seed, 196);
+      const shapeCycle = [
+        cyclePool[cs % cyclePool.length],
+        cyclePool[(cs + 1) % cyclePool.length],
+        cyclePool[(cs + 2) % cyclePool.length]
+      ];
+      const subShape = (s) => {
+        const idx = shapeCycle.indexOf(s);
+        return idx === -1 ? s : shapeCycle[(idx + 1) % shapeCycle.length];
+      };
+      const reverseSub = (s) => {
+        const idx = shapeCycle.indexOf(s);
+        return idx === -1 ? s : shapeCycle[(idx + 2) % shapeCycle.length];
+      };
+      const rotStep = pick([1, 3], seed, 197);
+      const layoutChoices = [
+        [[0, 0], [1, 1], [2, 2]],
+        [[0, 2], [1, 1], [2, 0]],
+        [[1, 0], [0, 1], [2, 1]],
+        [[0, 1], [1, 0], [1, 2]],
+        [[0, 0], [1, 0], [2, 0]]
+      ];
+      const layoutA = pick(layoutChoices, seed, 198);
+      const layoutC = pick(layoutChoices, seed, 199);
+
+      const rotCR = (col, row, turns) => {
+        const steps = ((turns % 4) + 4) % 4;
+        let cc = col, rr = row;
+        for (let i = 0; i < steps; i++) {
+          const nc = 2 - rr;
+          const nr = cc;
+          cc = nc; rr = nr;
+        }
+        return [cc, rr];
+      };
+      const buildFig = (layout, kindAt) =>
+        layout.map(([col, row], i) => ({ row, col, kind: kindAt(i), hollow: false }));
+      const applyBoth = (tokens) => tokens.map(t => {
+        const [cc, rr] = rotCR(t.col, t.row, rotStep);
+        return { row: rr, col: cc, kind: subShape(t.kind), hollow: t.hollow };
+      });
+      const rotateOnly = (tokens) => tokens.map(t => {
+        const [cc, rr] = rotCR(t.col, t.row, rotStep);
+        return { row: rr, col: cc, kind: t.kind, hollow: t.hollow };
+      });
+      const subOnly = (tokens) => tokens.map(t => ({ ...t, kind: subShape(t.kind) }));
+
+      const aTokens = buildFig(layoutA, i => shapeCycle[i % shapeCycle.length]);
+      const cTokens = buildFig(layoutC, i => shapeCycle[(i + 1) % shapeCycle.length]);
+      a = { tokens: aTokens };
+      b = { tokens: applyBoth(aTokens) };
+      c = { tokens: cTokens };
+      correct = { tokens: applyBoth(cTokens) };
+      distractors = [
+        { tokens: rotateOnly(cTokens) },                                                  // rotation only
+        { tokens: subOnly(cTokens) },                                                     // substitution only
+        { tokens: rotateOnly(cTokens).map(t => ({ ...t, kind: reverseSub(t.kind) })) },   // wrong substitution direction
+        { tokens: cTokens.map(t => {                                                      // wrong rotation direction
+          const [cc, rr] = rotCR(t.col, t.row, rotStep === 1 ? 3 : 1);
+          return { row: rr, col: cc, kind: subShape(t.kind), hollow: t.hollow };
+        }) }
+      ];
+    } else {
+      // Super hard: stacked compound figures with three independent component rules.
+      //   Each figure has an outer frame and two inner items (top + bottom) stacked vertically.
+      //   A → B applies the SAME three rules to every figure:
+      //     R1 — Frame shape advances one step in a 3-shape frame cycle
+      //     R2 — Top inner shape advances one step in a 3-shape top cycle, AND its fill flips
+      //     R3 — Bottom inner item keeps its shape but its fill flips
+      //   C → ? must apply the same three rules. Each distractor breaks exactly one rule.
+      const framePool = ["square", "circle", "hexagon", "pentagon"];
+      const topPool = ["triangle", "diamond", "halfcircle", "star"];
+      const bottomPool = ["square", "diamond", "circle", "triangle"];
+
+      const frameStartA = pickIndex(framePool.length, seed, 200);
+      const topStartA = pickIndex(topPool.length, seed, 201);
+      const bottomKindA = bottomPool[pickIndex(bottomPool.length, seed, 202)];
+      const aTopHollow = pickIndex(2, seed, 203) === 0;
+      const aBottomHollow = pickIndex(2, seed, 204) === 0;
+
+      const frameStartC = (frameStartA + 1 + pickIndex(framePool.length - 1, seed, 205)) % framePool.length;
+      const topStartC = (topStartA + 1 + pickIndex(topPool.length - 1, seed, 206)) % topPool.length;
+      let bottomKindC = bottomPool[(bottomPool.indexOf(bottomKindA) + 1 + pickIndex(bottomPool.length - 1, seed, 207)) % bottomPool.length];
+      if (bottomKindC === bottomKindA) bottomKindC = bottomPool[(bottomPool.indexOf(bottomKindA) + 2) % bottomPool.length];
+      const cTopHollow = pickIndex(2, seed, 208) === 0;
+      const cBottomHollow = pickIndex(2, seed, 209) === 0;
+
+      const accent = pick(["up", "down", "none"], seed, 210);
+
+      const buildStacked = (frameIdx, topIdx, topHollow, bottomKind, bottomHollow) => ({
+        stacked: {
+          frame: framePool[((frameIdx % framePool.length) + framePool.length) % framePool.length],
+          top: { kind: topPool[((topIdx % topPool.length) + topPool.length) % topPool.length], hollow: topHollow },
+          bottom: { kind: bottomKind, hollow: bottomHollow },
+          accent
+        }
+      });
+
+      a = buildStacked(frameStartA, topStartA, aTopHollow, bottomKindA, aBottomHollow);
+      b = buildStacked(frameStartA + 1, topStartA + 1, !aTopHollow, bottomKindA, !aBottomHollow);
+      c = buildStacked(frameStartC, topStartC, cTopHollow, bottomKindC, cBottomHollow);
+      correct = buildStacked(frameStartC + 1, topStartC + 1, !cTopHollow, bottomKindC, !cBottomHollow);
+
+      distractors = [
+        buildStacked(frameStartC, topStartC + 1, !cTopHollow, bottomKindC, !cBottomHollow),         // R1 broken — frame not advanced
+        buildStacked(frameStartC + 1, topStartC, !cTopHollow, bottomKindC, !cBottomHollow),         // R2 (shape) broken — top shape not advanced
+        buildStacked(frameStartC + 1, topStartC + 1, cTopHollow, bottomKindC, !cBottomHollow),      // R2 (fill) broken — top fill not flipped
+        buildStacked(frameStartC + 1, topStartC + 1, !cTopHollow, bottomKindC, cBottomHollow)       // R3 broken — bottom fill not flipped
+      ];
     }
+
+    const difficultyByVariant = [1, 2, 2, 2, 3, 3, 4, 4];
+    const difficulty = difficultyByVariant[variant];
 
     const placed = placeOptions(correct, distractors, seed);
     return makeQuestion(
       "NVRT Analogy",
       "A changes to B. Which option should replace the missing picture?",
       placed.answer,
-      diffLevel(seed, 7),
+      difficulty,
       analogySvg(a, b, c, placed.options),
       "Generated original NVRT analogy puzzle."
     );
