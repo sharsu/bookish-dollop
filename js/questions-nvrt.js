@@ -801,6 +801,9 @@
   }
 
   function patternKey(pattern) {
+    if (pattern.lines) {
+      return `l:${(pattern.lines.segments || []).map(s => `${s.x1.toFixed(1)},${s.y1.toFixed(1)}-${s.x2.toFixed(1)},${s.y2.toFixed(1)}:${s.arrowStart || ""}:${s.arrowEnd || ""}`).join("|")}`;
+    }
     if (pattern.stacked) {
       const s = pattern.stacked;
       return `s:${s.frame}|${s.top?.kind}:${s.top?.hollow ? "h" : "s"}|${s.bottom?.kind}:${s.bottom?.hollow ? "h" : "s"}|${s.accent || "none"}`;
@@ -811,6 +814,9 @@
   }
 
   function clonePattern(pattern) {
+    if (pattern.lines) {
+      return { lines: { segments: (pattern.lines.segments || []).map(s => ({ ...s })) } };
+    }
     if (pattern.stacked) {
       return { stacked: { ...pattern.stacked, top: { ...pattern.stacked.top }, bottom: { ...pattern.stacked.bottom } } };
     }
@@ -820,6 +826,16 @@
   }
 
   function mutatePattern(pattern, seed) {
+    if (pattern.lines) {
+      const segs = (pattern.lines.segments || []).map(s => ({ ...s }));
+      const arrowKinds = ["solid", "open", "bar", "dot"];
+      const idx = pickIndex(segs.length, seed, 21);
+      const target = segs[idx];
+      const currentArrow = target.arrowEnd || target.arrowStart || "solid";
+      const next = arrowKinds[(arrowKinds.indexOf(currentArrow) + 1 + (pickIndex(arrowKinds.length - 1, seed, 22))) % arrowKinds.length];
+      if (target.arrowEnd) target.arrowEnd = next; else target.arrowStart = next;
+      return { lines: { segments: segs } };
+    }
     if (pattern.stacked) {
       const s = pattern.stacked;
       const which = pickIndex(3, seed, 21);
@@ -985,6 +1001,59 @@
     )).join("");
   }
 
+  function arrowHeadSvg(kind, x, y, angle) {
+    if (!kind || kind === "none") return "";
+    const size = 6;
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const perpC = Math.cos(angle + Math.PI / 2);
+    const perpS = Math.sin(angle + Math.PI / 2);
+    const baseX = x - size * c;
+    const baseY = y - size * s;
+    if (kind === "solid" || kind === "open") {
+      const p1x = baseX + size * 0.55 * perpC;
+      const p1y = baseY + size * 0.55 * perpS;
+      const p2x = baseX - size * 0.55 * perpC;
+      const p2y = baseY - size * 0.55 * perpS;
+      const fillVal = kind === "solid" ? ink : "#ffffff";
+      return `<polygon points="${x.toFixed(1)},${y.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}" fill="${fillVal}" stroke="${ink}" stroke-width="1.5"/>`;
+    }
+    if (kind === "bar") {
+      const p1x = x + size * 0.7 * perpC;
+      const p1y = y + size * 0.7 * perpS;
+      const p2x = x - size * 0.7 * perpC;
+      const p2y = y - size * 0.7 * perpS;
+      return `<line x1="${p1x.toFixed(1)}" y1="${p1y.toFixed(1)}" x2="${p2x.toFixed(1)}" y2="${p2y.toFixed(1)}" stroke="${ink}" stroke-width="2"/>`;
+    }
+    if (kind === "dot") {
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${ink}"/>`;
+    }
+    if (kind === "vee") {
+      const p1x = baseX + size * 0.7 * perpC;
+      const p1y = baseY + size * 0.7 * perpS;
+      const p2x = baseX - size * 0.7 * perpC;
+      const p2y = baseY - size * 0.7 * perpS;
+      return `<polyline points="${p1x.toFixed(1)},${p1y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}" fill="none" stroke="${ink}" stroke-width="2"/>`;
+    }
+    return "";
+  }
+
+  function linesMarkup(linePattern, opts = {}) {
+    const ox = opts.ox || 0;
+    const oy = opts.oy || 0;
+    const scale = opts.scale || 1;
+    return (linePattern.segments || []).map(seg => {
+      const x1 = ox + seg.x1 * scale;
+      const y1 = oy + seg.y1 * scale;
+      const x2 = ox + seg.x2 * scale;
+      const y2 = oy + seg.y2 * scale;
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      let svg = `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${ink}" stroke-width="2"/>`;
+      if (seg.arrowEnd) svg += arrowHeadSvg(seg.arrowEnd, x2, y2, angle);
+      if (seg.arrowStart) svg += arrowHeadSvg(seg.arrowStart, x1, y1, angle + Math.PI);
+      return svg;
+    }).join("");
+  }
+
   function stackedFigureMarkup(props, opts = {}) {
     const cell = opts.cell || 18;
     const ox = opts.ox || 16;
@@ -1015,6 +1084,7 @@
   }
 
   function patternMarkup(pattern, opts = {}) {
+    if (pattern.lines) return linesMarkup(pattern.lines, opts);
     if (pattern.stacked) return stackedFigureMarkup(pattern.stacked, opts);
     return pattern.tokens ? tokenPattern(pattern.tokens, opts) : cellPattern(pattern.cells, opts);
   }
@@ -1072,6 +1142,34 @@
     ].join("");
 
     return baseSvg(640, 252, body);
+  }
+
+  function reflectionLinesSvg(sourcePattern, options, axis = "vertical") {
+    const mirrorLine = axis === "vertical"
+      ? `<line x1="85" y1="10" x2="85" y2="98" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`
+      : `<line x1="18" y1="70" x2="114" y2="70" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`;
+    const labelPos = axis === "vertical"
+      ? `<text x="133" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Mirror line</text>`
+      : `<text x="170" y="102" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Mirror line</text>`;
+    const sourceOpts = axis === "vertical"
+      ? { ox: 14, oy: 22, scale: 1.05 }
+      : { ox: 14, oy: 8, scale: 1.0 };
+    const optionOpts = { ox: 4, oy: 4, scale: 1.0 };
+    const sourceBody = linesMarkup(sourcePattern.lines, sourceOpts);
+    const sourceBlock = `
+      <g transform="translate(48 28)">
+        <rect width="132" height="108" rx="16" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${sourceBody}
+        ${mirrorLine}
+      </g>
+      ${labelPos}`;
+    const optionBoxes = options.map((pattern, index) => `
+      <g transform="translate(${214 + index * 82} 44)">
+        <rect width="68" height="68" rx="14" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${linesMarkup(pattern.lines, optionOpts)}
+        <text x="34" y="86" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">${labels[index]}</text>
+      </g>`).join("");
+    return baseSvg(640, 180, `${sourceBlock}${optionBoxes}`);
   }
 
   function reflectionSvg(sourcePattern, options, axis = "vertical") {
@@ -1546,10 +1644,92 @@
   }
 
   function genReflection(seed) {
-    const variant = seed % 4;
-    const axis = variant % 2 === 0 ? "vertical" : "horizontal";
-    let source;
+    const variant = seed % 5;
+    const axis = variant === 4
+      ? (pickIndex(2, seed, 38) === 0 ? "vertical" : "horizontal")
+      : (variant % 2 === 0 ? "vertical" : "horizontal");
 
+    if (variant === 4) {
+      // Line/arrow figure reflection — medium difficulty. Templates use 2–4
+      // line segments with mixed arrowhead kinds; distractors break one rule
+      // each (no reflection, wrong axis, 180° rotation, arrow kind changed).
+      const arrowKinds = ["solid", "open", "bar", "dot"];
+      const templates = [
+        [
+          { x1: 14, y1: 50, x2: 14, y2: 14, aE: 0 },
+          { x1: 14, y1: 14, x2: 46, y2: 14, aE: 1 }
+        ],
+        [
+          { x1: 26, y1: 52, x2: 26, y2: 26, aS: 0 },
+          { x1: 26, y1: 26, x2: 10, y2: 10, aE: 1 },
+          { x1: 26, y1: 26, x2: 46, y2: 16, aE: 2 }
+        ],
+        [
+          { x1: 10, y1: 12, x2: 46, y2: 12, aE: 0 },
+          { x1: 46, y1: 12, x2: 10, y2: 46, aE: 1 },
+          { x1: 10, y1: 46, x2: 42, y2: 46, aE: 2 }
+        ],
+        [
+          { x1: 16, y1: 52, x2: 16, y2: 10, aE: 0 },
+          { x1: 16, y1: 14, x2: 40, y2: 14, aE: 1 },
+          { x1: 16, y1: 28, x2: 34, y2: 28, aE: 2 }
+        ],
+        [
+          { x1: 12, y1: 30, x2: 46, y2: 30, aS: 0, aE: 1 },
+          { x1: 30, y1: 10, x2: 30, y2: 50, aS: 2 }
+        ]
+      ];
+
+      const tpl = templates[pickIndex(templates.length, seed, 30)];
+      const arrowBase = pickIndex(arrowKinds.length, seed, 31);
+      const arrowMap = [0, 1, 2, 3].map(k => arrowKinds[(arrowBase + k) % arrowKinds.length]);
+
+      const buildSegs = (template) => template.map(s => ({
+        x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2,
+        arrowStart: s.aS != null ? arrowMap[s.aS] : undefined,
+        arrowEnd: s.aE != null ? arrowMap[s.aE] : undefined
+      }));
+
+      const reflectSeg = (s) => axis === "vertical"
+        ? { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
+        : { x1: s.x1, y1: 60 - s.y1, x2: s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd };
+      const rotate180Seg = (s) => ({ x1: 60 - s.x1, y1: 60 - s.y1, x2: 60 - s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd });
+      const reflectOppositeSeg = (s) => axis === "vertical"
+        ? { x1: s.x1, y1: 60 - s.y1, x2: s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
+        : { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd };
+
+      const sourceSegs = buildSegs(tpl);
+      const source = { lines: { segments: sourceSegs } };
+      const correct = { lines: { segments: sourceSegs.map(reflectSeg) } };
+
+      // Distractor — correctly reflected, but one arrow kind swapped
+      const swapIdx = pickIndex(sourceSegs.length, seed, 32);
+      const swappedSegs = sourceSegs.map(reflectSeg).map((s, i) => {
+        if (i !== swapIdx) return { ...s };
+        const cur = s.arrowEnd || s.arrowStart || arrowKinds[0];
+        const wrong = arrowKinds[(arrowKinds.indexOf(cur) + 1 + pickIndex(arrowKinds.length - 1, seed, 33)) % arrowKinds.length];
+        return { ...s, arrowEnd: s.arrowEnd ? wrong : undefined, arrowStart: s.arrowStart ? wrong : undefined };
+      });
+
+      const distractors = [
+        { lines: { segments: sourceSegs.map(s => ({ ...s })) } },                  // not reflected
+        { lines: { segments: sourceSegs.map(reflectOppositeSeg) } },               // reflected about wrong axis
+        { lines: { segments: sourceSegs.map(rotate180Seg) } },                     // rotated 180° instead of reflected
+        { lines: { segments: swappedSegs } }                                       // correct reflection but arrow kind changed
+      ];
+
+      const placed = placeOptions(correct, distractors, seed);
+      return makeQuestion(
+        "NVRT Reflection",
+        "Which option shows the mirror image of the figure on the left?",
+        placed.answer,
+        2,                                                                          // Medium — arrowhead direction reverses under reflection
+        reflectionLinesSvg(source, placed.options, axis),
+        "Generated original NVRT reflection puzzle with line and arrow figure."
+      );
+    }
+
+    let source;
     if (variant < 2) {
       let cells = rotateCells(pick(reflectionLayouts, seed, 30), pickIndex(4, seed, 31));
       if (pickIndex(3, seed, 32) === 0) {
