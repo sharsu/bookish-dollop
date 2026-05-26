@@ -2526,6 +2526,103 @@
     );
   }
 
+  /* ═══════════════ Cube Net Matching: which 3D cube comes from this 2D net ═══════════════ */
+
+  function shuffledSymbols(seed, count) {
+    const pool = ["circle", "square", "diamond", "triangle", "pentagon", "hexagon", "star", "cross", "halfcircle"];
+    const out = [];
+    let salt = 0;
+    while (out.length < count && salt < 40) {
+      const k = pool[pickIndex(pool.length, seed, salt)];
+      if (!out.includes(k)) out.push(k);
+      salt++;
+    }
+    return out;
+  }
+
+  function drawSymbolAt(kind, cx, cy, size) {
+    return shapeMarkup({ kind, col: 0, row: 0, size }, 0, cx, cy);
+  }
+
+  function netCellSvg(symbol, x, y, side, symbolSize) {
+    return `<rect x="${x}" y="${y}" width="${side}" height="${side}" fill="#ffffff" stroke="${ink}" stroke-width="1.5"/>${drawSymbolAt(symbol, x + side / 2, y + side / 2, symbolSize)}`;
+  }
+
+  function cubeFacesWithSymbolsSvg(topSym, frontSym, rightSym, cx, cy, edge) {
+    const dx = edge * Math.sqrt(3) / 2;
+    const dy = edge / 2;
+    const top = `<polygon points="${cx},${cy - dy} ${cx + dx},${cy} ${cx},${cy + dy} ${cx - dx},${cy}" fill="#f8fafc" stroke="${ink}" stroke-width="1.5"/>`;
+    const left = `<polygon points="${cx - dx},${cy} ${cx},${cy + dy} ${cx},${cy + dy + edge} ${cx - dx},${cy + edge}" fill="#e2e8f0" stroke="${ink}" stroke-width="1.5"/>`;
+    const right = `<polygon points="${cx + dx},${cy} ${cx},${cy + dy} ${cx},${cy + dy + edge} ${cx + dx},${cy + edge}" fill="#cbd5e1" stroke="${ink}" stroke-width="1.5"/>`;
+    const sz = 5;
+    const topSymbol = drawSymbolAt(topSym, cx, cy, sz);
+    const leftSymbol = drawSymbolAt(frontSym, cx - dx / 2, cy + dy / 2 + edge / 2, sz);
+    const rightSymbol = drawSymbolAt(rightSym, cx + dx / 2, cy + dy / 2 + edge / 2, sz);
+    return top + left + right + topSymbol + leftSymbol + rightSymbol;
+  }
+
+  function cubeNetMatchingSvg(netSymbols, options) {
+    const NET_X = 24, NET_Y = 24, NET_CELL = 22;
+    // Cross net: top(1,0), left(0,1), front(1,1), right(2,1), back(3,1), down(1,2)
+    const netBody = [
+      netCellSvg(netSymbols.top, NET_X + 1 * NET_CELL, NET_Y + 0 * NET_CELL, NET_CELL, 7),
+      netCellSvg(netSymbols.left, NET_X + 0 * NET_CELL, NET_Y + 1 * NET_CELL, NET_CELL, 7),
+      netCellSvg(netSymbols.front, NET_X + 1 * NET_CELL, NET_Y + 1 * NET_CELL, NET_CELL, 7),
+      netCellSvg(netSymbols.right, NET_X + 2 * NET_CELL, NET_Y + 1 * NET_CELL, NET_CELL, 7),
+      netCellSvg(netSymbols.back, NET_X + 3 * NET_CELL, NET_Y + 1 * NET_CELL, NET_CELL, 7),
+      netCellSvg(netSymbols.down, NET_X + 1 * NET_CELL, NET_Y + 2 * NET_CELL, NET_CELL, 7)
+    ].join("");
+
+    const CUBE_SPACING = 92;
+    const CUBE_START = 168;
+    const CUBE_CY = 56;
+    const EDGE = 20;
+    const optionBoxes = options.map((opt, index) => {
+      const cubeX = CUBE_START + index * CUBE_SPACING;
+      const cube = cubeFacesWithSymbolsSvg(opt.top, opt.front, opt.right, cubeX, CUBE_CY, EDGE);
+      const label = `<text x="${cubeX}" y="${CUBE_CY + EDGE + EDGE / 2 + 22}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
+      return cube + label;
+    }).join("");
+
+    return baseSvg(660, 130, netBody + optionBoxes);
+  }
+
+  function genCubeNetMatching(seed) {
+    const symbols = shuffledSymbols(seed, 6);
+    const netSymbols = {
+      top: symbols[0],
+      left: symbols[1],
+      front: symbols[2],
+      right: symbols[3],
+      back: symbols[4],
+      down: symbols[5]
+    };
+    // Correct cube shows top, front, right faces from the net
+    const correct = { top: netSymbols.top, front: netSymbols.front, right: netSymbols.right };
+    // Distractors substitute an opposite face — physically impossible on a folded cube
+    // opposites: top↔down, front↔back, right↔left
+    const distractors = [
+      { top: netSymbols.down, front: netSymbols.front, right: netSymbols.right },     // wrong top
+      { top: netSymbols.top, front: netSymbols.back, right: netSymbols.right },       // wrong front
+      { top: netSymbols.top, front: netSymbols.front, right: netSymbols.left },       // wrong right
+      { top: netSymbols.down, front: netSymbols.back, right: netSymbols.left }        // all three swapped
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Cube Net Matching",
+      "Work out which of these cubes can be made from the net.",
+      answer,
+      3,                                                   // Hard — requires 3D spatial reasoning
+      cubeNetMatchingSvg(netSymbols, options),
+      "Generated original NVRT cube-net-matching puzzle."
+    );
+  }
+
   /* ═══════════════ Changing Creatures (CEM-style analogy with themed figures) ═══════════════ */
 
   function creatureMarkup(props, x, y, w = 50, h = 60) {
@@ -2699,6 +2796,7 @@
   const COMPLETE_SQUARE_COUNT = 120;
   const MOST_SIMILAR_COUNT = 120;
   const CHANGING_BUGS_COUNT = 150;
+  const CUBE_NET_MATCHING_COUNT = 150;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -2716,6 +2814,7 @@
   for (let i = 0; i < COMPLETE_SQUARE_COUNT; i++) generated.push(genCompleteSquare(i + 12000));
   for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
   for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
+  for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
