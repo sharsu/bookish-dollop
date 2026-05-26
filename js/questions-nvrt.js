@@ -3459,6 +3459,130 @@
     );
   }
 
+  /* ═══════════════ Find Like — Hard / Super Hard (multi-property shared rule) ═══════════════ */
+
+  // Build a compound figure conforming to a SET of shared rules: for each rule index in `rules`,
+  // the figure copies that property from `shared`; the remaining properties vary freely.
+  function buildCompoundWithRules(seed, rules, shared, varSalt) {
+    return {
+      outer: rules.includes(0) ? shared.outer : pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 10, [shared.outer]),
+      inner: rules.includes(1) ? shared.inner : pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 11, [shared.inner]),
+      outerHollow: rules.includes(2) ? shared.outerHollow : pickIndex(2, seed, varSalt + 12) === 0,
+      accent: rules.includes(3) ? shared.accent : pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 13, [shared.accent])
+    };
+  }
+
+  // Build a distractor that matches a SUBSET of the shared rules but breaks the rest of them.
+  // `matchedRules` ⊂ `rules` are the rule indices the distractor must satisfy; the remaining
+  // rules in `rules \ matchedRules` must be deliberately violated so the figure has the exact
+  // right "near miss" profile.
+  function buildCompoundPartialMatch(seed, rules, matchedRules, shared, varSalt) {
+    const out = {};
+    [0, 1, 2, 3].forEach(propIdx => {
+      const propName = ["outer", "inner", "outerHollow", "accent"][propIdx];
+      const inRules = rules.includes(propIdx);
+      const mustMatch = matchedRules.includes(propIdx);
+      if (inRules && mustMatch) {
+        out[propName] = shared[propName];
+      } else if (inRules && !mustMatch) {
+        if (propIdx === 0) out.outer = pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 20 + propIdx, [shared.outer]);
+        else if (propIdx === 1) out.inner = pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 20 + propIdx, [shared.inner]);
+        else if (propIdx === 2) out.outerHollow = !shared.outerHollow;
+        else out.accent = pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 20 + propIdx, [shared.accent]);
+      } else {
+        if (propIdx === 0) out.outer = pickDistinctFromPool(COMPOUND_OUTER_POOL, seed, varSalt + 30 + propIdx);
+        else if (propIdx === 1) out.inner = pickDistinctFromPool(COMPOUND_INNER_POOL, seed, varSalt + 30 + propIdx);
+        else if (propIdx === 2) out.outerHollow = pickIndex(2, seed, varSalt + 30 + propIdx) === 0;
+        else out.accent = pickDistinctFromPool(COMPOUND_ACCENT_POOL, seed, varSalt + 30 + propIdx);
+      }
+    });
+    return out;
+  }
+
+  function genFindLikeHard(seed) {
+    // Two of the four properties are the shared rule. Distractors satisfy
+    // EXACTLY one of the two rules — the student can't get the answer by
+    // checking just a single property.
+    const r1 = pickIndex(4, seed, 1);
+    const r2 = (r1 + 1 + pickIndex(3, seed, 2)) % 4;
+    const rules = [r1, r2];
+    const shared = {
+      outer: pick(COMPOUND_OUTER_POOL, seed, 3),
+      inner: pick(COMPOUND_INNER_POOL, seed, 4),
+      outerHollow: pickIndex(2, seed, 5) === 0,
+      accent: pick(COMPOUND_ACCENT_POOL, seed, 6)
+    };
+
+    const ref1 = buildCompoundWithRules(seed, rules, shared, 100);
+    const ref2 = buildCompoundWithRules(seed, rules, shared, 200);
+    const ref3 = buildCompoundWithRules(seed, rules, shared, 300);
+    const correct = buildCompoundWithRules(seed, rules, shared, 400);
+
+    const distractors = [
+      buildCompoundPartialMatch(seed, rules, [r1], shared, 500),
+      buildCompoundPartialMatch(seed, rules, [r1], shared, 600),
+      buildCompoundPartialMatch(seed, rules, [r2], shared, 700),
+      buildCompoundPartialMatch(seed, rules, [r2], shared, 800)
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Find Like",
+      "The first three figures share TWO properties from {outer, inner, fill, accent}. Pick the figure that shares both.",
+      answer,
+      3,                                                   // Hard — must identify two simultaneous rules
+      findLikeFirstThreeSvg([ref1, ref2, ref3], options),
+      "Generated original NVRT find-like puzzle with two shared properties."
+    );
+  }
+
+  function genFindLikeSuperHard(seed) {
+    // Three of the four properties are the shared rule (only one property
+    // varies freely). Distractors satisfy EXACTLY two of the three rules,
+    // so each is a very close near-twin of the correct answer.
+    const nonRule = pickIndex(4, seed, 1);
+    const rules = [0, 1, 2, 3].filter(r => r !== nonRule);
+    const shared = {
+      outer: pick(COMPOUND_OUTER_POOL, seed, 3),
+      inner: pick(COMPOUND_INNER_POOL, seed, 4),
+      outerHollow: pickIndex(2, seed, 5) === 0,
+      accent: pick(COMPOUND_ACCENT_POOL, seed, 6)
+    };
+
+    const ref1 = buildCompoundWithRules(seed, rules, shared, 100);
+    const ref2 = buildCompoundWithRules(seed, rules, shared, 200);
+    const ref3 = buildCompoundWithRules(seed, rules, shared, 300);
+    const correct = buildCompoundWithRules(seed, rules, shared, 400);
+
+    // 4 distractors, each breaks one rule (matches the other two).
+    // Two distractors break the same rule (different broken values) so the
+    // student can't eliminate a property after checking one option.
+    const distractors = [
+      buildCompoundPartialMatch(seed, rules, [rules[1], rules[2]], shared, 500),       // breaks rules[0]
+      buildCompoundPartialMatch(seed, rules, [rules[0], rules[2]], shared, 600),       // breaks rules[1]
+      buildCompoundPartialMatch(seed, rules, [rules[0], rules[1]], shared, 700),       // breaks rules[2]
+      buildCompoundPartialMatch(seed, rules, [rules[1], rules[2]], shared, 800)        // breaks rules[0] again
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Find Like",
+      "The first three figures share THREE properties from {outer, inner, fill, accent}. Pick the figure that shares all three.",
+      answer,
+      4,                                                   // Super Hard — three simultaneous rules; distractors miss only one
+      findLikeFirstThreeSvg([ref1, ref2, ref3], options),
+      "Generated original NVRT find-like puzzle with three shared properties."
+    );
+  }
+
   /* ═══════════════ Cube Net Matching: which 3D cube comes from this 2D net ═══════════════ */
 
   function shuffledSymbols(seed, count) {
@@ -3730,8 +3854,10 @@
   const MOST_SIMILAR_COUNT = 120;
   const CHANGING_BUGS_COUNT = 150;
   const CUBE_NET_MATCHING_COUNT = 150;
-  const FIND_LIKE_COUNT = 150;
-  const FIND_LIKE_THREE_COUNT = 150;
+  const FIND_LIKE_COUNT = 75;
+  const FIND_LIKE_THREE_COUNT = 75;
+  const FIND_LIKE_HARD_COUNT = 75;
+  const FIND_LIKE_SUPER_COUNT = 75;
   const CODE_MAPPING_3_COUNT = 150;
 
   const generated = [];
@@ -3753,6 +3879,8 @@
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
   for (let i = 0; i < FIND_LIKE_THREE_COUNT; i++) generated.push(genFindLikeFirstThree(i + 17000));
+  for (let i = 0; i < FIND_LIKE_HARD_COUNT; i++) generated.push(genFindLikeHard(i + 17500));
+  for (let i = 0; i < FIND_LIKE_SUPER_COUNT; i++) generated.push(genFindLikeSuperHard(i + 17750));
   for (let i = 0; i < CODE_MAPPING_3_COUNT; i++) generated.push(genCodeMapping3Letter(i + 18000));
 
   root.NVRT_QUESTIONS.push(...generated);
