@@ -2526,6 +2526,168 @@
     );
   }
 
+  /* ═══════════════ Changing Creatures (CEM-style analogy with themed figures) ═══════════════ */
+
+  function creatureMarkup(props, x, y, w = 50, h = 60) {
+    const cx = x + w / 2;
+    const cy = y + h / 2 + 2;                              // small downshift to leave room for antennae
+    const bodyW = w * 0.62;
+    const bodyH = h * 0.7;
+    const ink2 = ink;
+    const fill = props.hollow ? "#ffffff" : ink2;
+    const innerInk = props.hollow ? ink2 : "#ffffff";
+
+    let body = "";
+    if (props.shape === "oval") {
+      body = `<ellipse cx="${cx}" cy="${cy}" rx="${bodyW / 2}" ry="${bodyH / 2}" fill="${fill}" stroke="${ink2}" stroke-width="2"/>`;
+    } else if (props.shape === "hexagon") {
+      const pts = [];
+      for (let k = 0; k < 6; k++) {
+        const a = -Math.PI / 2 + (Math.PI / 3) * k;
+        pts.push(`${(cx + (bodyW / 2) * Math.cos(a)).toFixed(2)},${(cy + (bodyH / 2) * Math.sin(a)).toFixed(2)}`);
+      }
+      body = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${ink2}" stroke-width="2"/>`;
+    } else {                                               // "rect" — rounded rectangle body
+      body = `<rect x="${cx - bodyW / 2}" y="${cy - bodyH / 2}" width="${bodyW}" height="${bodyH}" rx="${bodyW / 4}" fill="${fill}" stroke="${ink2}" stroke-width="2"/>`;
+    }
+
+    // Antennae
+    const antTopY = cy - bodyH / 2;
+    const ant = `
+      <line x1="${cx - bodyW * 0.18}" y1="${antTopY}" x2="${cx - bodyW * 0.32}" y2="${antTopY - 9}" stroke="${ink2}" stroke-width="1.5"/>
+      <circle cx="${cx - bodyW * 0.32}" cy="${antTopY - 9}" r="1.5" fill="${ink2}"/>
+      <line x1="${cx + bodyW * 0.18}" y1="${antTopY}" x2="${cx + bodyW * 0.32}" y2="${antTopY - 9}" stroke="${ink2}" stroke-width="1.5"/>
+      <circle cx="${cx + bodyW * 0.32}" cy="${antTopY - 9}" r="1.5" fill="${ink2}"/>`;
+
+    // Legs — 3 short lines per side
+    let legs = "";
+    for (let k = 0; k < 3; k++) {
+      const ly = cy - bodyH / 4 + k * (bodyH / 4);
+      legs += `<line x1="${cx - bodyW / 2}" y1="${ly}" x2="${cx - bodyW / 2 - 7}" y2="${ly + 1}" stroke="${ink2}" stroke-width="1.5"/>`;
+      legs += `<line x1="${cx + bodyW / 2}" y1="${ly}" x2="${cx + bodyW / 2 + 7}" y2="${ly + 1}" stroke="${ink2}" stroke-width="1.5"/>`;
+    }
+
+    // Inner mark
+    let mark = "";
+    if (props.mark === "dot") {
+      mark = `<circle cx="${cx}" cy="${cy}" r="3" fill="${innerInk}"/>`;
+    } else if (props.mark === "line") {
+      mark = `<line x1="${cx - 7}" y1="${cy}" x2="${cx + 7}" y2="${cy}" stroke="${innerInk}" stroke-width="2"/>`;
+    } else if (props.mark === "cross") {
+      mark = `<line x1="${cx - 5}" y1="${cy - 5}" x2="${cx + 5}" y2="${cy + 5}" stroke="${innerInk}" stroke-width="2"/>
+              <line x1="${cx - 5}" y1="${cy + 5}" x2="${cx + 5}" y2="${cy - 5}" stroke="${innerInk}" stroke-width="2"/>`;
+    }
+
+    return body + ant + legs + mark;
+  }
+
+  function applyBugTransform(props, trans) {
+    const shapesArr = ["oval", "hexagon", "rect"];
+    const marksArr = ["none", "dot", "line", "cross"];
+    const result = { ...props };
+    if (trans === "flipHollow") {
+      result.hollow = !result.hollow;
+    } else if (trans === "changeShape") {
+      result.shape = shapesArr[(shapesArr.indexOf(result.shape) + 1) % shapesArr.length];
+    } else if (trans === "addMark") {
+      result.mark = result.mark === "none" ? "dot" : "none";
+    } else if (trans === "cycleMark") {
+      result.mark = marksArr[(marksArr.indexOf(result.mark) + 1) % marksArr.length];
+    }
+    return result;
+  }
+
+  function changingBugsSvg(propsA, propsB, propsC, optionProps) {
+    const W = 56, H = 70;
+    const topY = 26, optY = 122;
+    const positions = [22, 102, 184, 264, 344];
+
+    const arrow = (x) => `<text x="${x}" y="${topY + H / 2 + 8}" font-family="Arial, sans-serif" font-size="22" fill="${accent}">→</text>`;
+    const colon = (x) => `<text x="${x}" y="${topY + H / 2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="${accent}">:</text>`;
+
+    const aBox = `<g transform="translate(${positions[0]} ${topY})"><rect width="${W}" height="${H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/></g>${creatureMarkup(propsA, positions[0] + 2, topY + 2, W - 4, H - 4)}`;
+    const bBox = `<g transform="translate(${positions[1]} ${topY})"><rect width="${W}" height="${H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/></g>${creatureMarkup(propsB, positions[1] + 2, topY + 2, W - 4, H - 4)}`;
+    const cBox = `<g transform="translate(${positions[2]} ${topY})"><rect width="${W}" height="${H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/></g>${creatureMarkup(propsC, positions[2] + 2, topY + 2, W - 4, H - 4)}`;
+    const qBox = `<g transform="translate(${positions[3]} ${topY})"><rect width="${W}" height="${H}" rx="12" fill="#ffffff" stroke="${accent}" stroke-width="2.5" stroke-dasharray="6 4"/><text x="${W / 2}" y="${H / 2 + 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="${accent}">?</text></g>`;
+
+    const optionBoxes = optionProps.map((props, index) => {
+      const ox = 24 + index * 122;
+      return `<g transform="translate(${ox} ${optY})"><rect width="${W}" height="${H}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/></g>${creatureMarkup(props, ox + 2, optY + 2, W - 4, H - 4)}<text x="${ox + W / 2}" y="${optY + H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
+    }).join("");
+
+    return baseSvg(640, 222, `${aBox}${arrow(positions[0] + W + 4)}${bBox}${colon(positions[1] + W + 18)}${cBox}${arrow(positions[2] + W + 4)}${qBox}${optionBoxes}`);
+  }
+
+  function genChangingBugs(seed) {
+    const shapesArr = ["oval", "hexagon", "rect"];
+    const marksArr = ["none", "dot", "line", "cross"];
+    const transformations = ["flipHollow", "changeShape", "addMark", "cycleMark"];
+    const trans = pick(transformations, seed, 1);
+
+    const propsA = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 2)],
+      hollow: pickIndex(2, seed, 3) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 4)]
+    };
+    const propsB = applyBugTransform(propsA, trans);
+
+    let propsC = {
+      shape: shapesArr[pickIndex(shapesArr.length, seed, 5)],
+      hollow: pickIndex(2, seed, 6) === 0,
+      mark: marksArr[pickIndex(marksArr.length, seed, 7)]
+    };
+    // Ensure C differs from A so the analogy isn't trivial
+    if (propsC.shape === propsA.shape && propsC.hollow === propsA.hollow && propsC.mark === propsA.mark) {
+      propsC.shape = shapesArr[(shapesArr.indexOf(propsC.shape) + 1) % shapesArr.length];
+    }
+
+    const propsCorrect = applyBugTransform(propsC, trans);
+    const correctKey = `${propsCorrect.shape}|${propsCorrect.hollow}|${propsCorrect.mark}`;
+
+    // Distractors: apply WRONG transformations, plus a "no change" variant
+    const wrongTransforms = transformations.filter(t => t !== trans);
+    const candidates = [
+      ...wrongTransforms.map(t => applyBugTransform(propsC, t)),
+      { ...propsC },                                       // no transformation
+      { ...propsC, mark: marksArr[(marksArr.indexOf(propsC.mark) + 2) % marksArr.length] }
+    ];
+    const seen = new Set([correctKey]);
+    const distractors = [];
+    for (const cand of candidates) {
+      const key = `${cand.shape}|${cand.hollow}|${cand.mark}`;
+      if (!seen.has(key)) { seen.add(key); distractors.push(cand); }
+      if (distractors.length === 4) break;
+    }
+    // Pad with safe variants if needed
+    let pad = 0;
+    while (distractors.length < 4 && pad < 12) {
+      const cand = { ...propsC, shape: shapesArr[(shapesArr.indexOf(propsC.shape) + 1 + pad) % shapesArr.length], mark: marksArr[(marksArr.indexOf(propsC.mark) + pad + 1) % marksArr.length] };
+      const key = `${cand.shape}|${cand.hollow}|${cand.mark}`;
+      if (!seen.has(key)) { seen.add(key); distractors.push(cand); }
+      pad++;
+    }
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? propsCorrect : distractors[dIdx++]);
+
+    // Difficulty derived from transformation complexity, not random
+    // flipHollow & addMark are single-bit changes → Easy
+    // changeShape & cycleMark involve cycling through 3+ states → Medium
+    const transDifficulty = { flipHollow: 1, addMark: 1, changeShape: 2, cycleMark: 2 };
+    const difficulty = transDifficulty[trans] || 2;
+
+    return makeQuestion(
+      "NVRT Changing Creatures",
+      "Look at how the first creature changes to become the second. Apply the same change to the third creature — which option shows the result?",
+      answer,
+      difficulty,
+      changingBugsSvg(propsA, propsB, propsC, options),
+      "Generated original NVRT analogy with themed creature figures."
+    );
+  }
+
   /* ═══════════════ DRIVER ═══════════════ */
   // Tune counts here to scale individual generator types.
   const HIDDEN_SHAPE_COUNT = 150;
@@ -2536,6 +2698,7 @@
   const HOLE_PUNCH_COUNT = 120;
   const COMPLETE_SQUARE_COUNT = 120;
   const MOST_SIMILAR_COUNT = 120;
+  const CHANGING_BUGS_COUNT = 150;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -2552,6 +2715,7 @@
   for (let i = 0; i < HOLE_PUNCH_COUNT; i++) generated.push(genHolePunch(i + 11000));
   for (let i = 0; i < COMPLETE_SQUARE_COUNT; i++) generated.push(genCompleteSquare(i + 12000));
   for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
+  for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
