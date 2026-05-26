@@ -99,6 +99,41 @@
       inner = `<rect x="${cx - size}" y="${cy - size}" width="${size * 2}" height="${size * 2}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
     } else if (token.kind === "diamond") {
       inner = `<polygon points="${cx},${cy - size} ${cx + size},${cy} ${cx},${cy + size} ${cx - size},${cy}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    } else if (token.kind === "pentagon") {
+      const pts = [];
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + (2 * Math.PI * k) / 5;
+        pts.push(`${(cx + size * Math.cos(a)).toFixed(2)},${(cy + size * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    } else if (token.kind === "hexagon") {
+      const pts = [];
+      for (let k = 0; k < 6; k++) {
+        const a = -Math.PI / 2 + (2 * Math.PI * k) / 6;
+        pts.push(`${(cx + size * Math.cos(a)).toFixed(2)},${(cy + size * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    } else if (token.kind === "star") {
+      const pts = [];
+      for (let k = 0; k < 10; k++) {
+        const r = k % 2 === 0 ? size : size * 0.42;
+        const a = -Math.PI / 2 + (Math.PI * k) / 5;
+        pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    } else if (token.kind === "cross") {
+      const arm = size * 0.36;
+      const pts = [
+        `${cx - arm},${cy - size}`, `${cx + arm},${cy - size}`,
+        `${cx + arm},${cy - arm}`, `${cx + size},${cy - arm}`,
+        `${cx + size},${cy + arm}`, `${cx + arm},${cy + arm}`,
+        `${cx + arm},${cy + size}`, `${cx - arm},${cy + size}`,
+        `${cx - arm},${cy + arm}`, `${cx - size},${cy + arm}`,
+        `${cx - size},${cy - arm}`, `${cx - arm},${cy - arm}`
+      ];
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    } else if (token.kind === "halfcircle") {
+      inner = `<path d="M ${cx - size} ${cy} A ${size} ${size} 0 0 1 ${cx + size} ${cy} Z" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
     } else {
       inner = `<polygon points="${cx},${cy - size} ${cx + size},${cy + size} ${cx - size},${cy + size}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
     }
@@ -604,7 +639,7 @@
   let nextId = root.NVRT_QUESTIONS.reduce((max, q) => Math.max(max, Number(q?.id) || 0), 0) + 1;
   const optionCopy = ["Picture A", "Picture B", "Picture C", "Picture D", "Picture E"];
   const labels = ["A", "B", "C", "D", "E"];
-  const shapes = ["circle", "square", "diamond", "triangle"];
+  const shapes = ["circle", "square", "diamond", "triangle", "pentagon", "hexagon", "star", "cross", "halfcircle"];
   const cellTemplates = [
     [[0, 0], [0, 1], [1, 1]],
     [[0, 0], [1, 0], [1, 1], [1, 2]],
@@ -869,6 +904,41 @@
       inner = `<rect x="${cx - size}" y="${cy - size}" width="${size * 2}" height="${size * 2}" rx="3" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
     } else if (token.kind === "diamond") {
       inner = `<polygon points="${cx},${cy - size} ${cx + size},${cy} ${cx},${cy + size} ${cx - size},${cy}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (token.kind === "pentagon") {
+      const pts = [];
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + (2 * Math.PI * k) / 5;
+        pts.push(`${(cx + size * Math.cos(a)).toFixed(2)},${(cy + size * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (token.kind === "hexagon") {
+      const pts = [];
+      for (let k = 0; k < 6; k++) {
+        const a = -Math.PI / 2 + (2 * Math.PI * k) / 6;
+        pts.push(`${(cx + size * Math.cos(a)).toFixed(2)},${(cy + size * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (token.kind === "star") {
+      const pts = [];
+      for (let k = 0; k < 10; k++) {
+        const r = k % 2 === 0 ? size : size * 0.42;
+        const a = -Math.PI / 2 + (Math.PI * k) / 5;
+        pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
+      }
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (token.kind === "cross") {
+      const arm = size * 0.36;
+      const pts = [
+        `${cx - arm},${cy - size}`, `${cx + arm},${cy - size}`,
+        `${cx + arm},${cy - arm}`, `${cx + size},${cy - arm}`,
+        `${cx + size},${cy + arm}`, `${cx + arm},${cy + arm}`,
+        `${cx + arm},${cy + size}`, `${cx - arm},${cy + size}`,
+        `${cx - arm},${cy + arm}`, `${cx - size},${cy + arm}`,
+        `${cx - size},${cy - arm}`, `${cx - arm},${cy - arm}`
+      ];
+      inner = `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (token.kind === "halfcircle") {
+      inner = `<path d="M ${cx - size} ${cy} A ${size} ${size} 0 0 1 ${cx + size} ${cy} Z" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
     } else {
       inner = `<polygon points="${cx},${cy - size} ${cx + size},${cy + size} ${cx - size},${cy + size}" fill="${fill}" stroke="${ink}" stroke-width="2"/>`;
     }
@@ -1819,6 +1889,651 @@
     );
   }
 
+  /* ═══════════════ NEW GENERATORS ═══════════════ */
+
+  // ─── Hidden Shape ───
+
+  function hiddenShapeSvg(target, panels) {
+    const targetBox = `
+      <g transform="translate(20 28)">
+        <rect width="84" height="84" rx="14" fill="#ffffff" stroke="${accent}" stroke-width="2.5" stroke-dasharray="6 4"/>
+        ${cellPattern(target, { cell: 20, ox: 14, oy: 14 })}
+        <text x="42" y="104" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">Target</text>
+      </g>`;
+    const panelBoxes = panels.map((pattern, index) => panel(
+      124 + index * 102, 28, labels[index],
+      renderPattern(pattern, { cell: 20, ox: 15, oy: 15 }), 88, 88
+    )).join("");
+    return baseSvg(640, 160, `${targetBox}${panelBoxes}`);
+  }
+
+  function panelContainsTarget(panelCells, target) {
+    const panelSet = new Set(normalizeCells(panelCells).map(([c, r]) => `${c}:${r}`));
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dy = -2; dy <= 2; dy++) {
+        const translated = target.map(([c, r]) => [c + dx, r + dy]);
+        if (translated.every(([c, r]) => panelSet.has(`${c}:${r}`))) return true;
+      }
+    }
+    return false;
+  }
+
+  function genHiddenShape(seed) {
+    const targetPool = [
+      [[0, 0], [0, 1]],
+      [[0, 0], [1, 0]],
+      [[0, 0], [1, 1]],
+      [[0, 0], [0, 1], [1, 1]],
+      [[0, 0], [1, 0], [1, 1]],
+      [[0, 1], [1, 0], [1, 1]],
+      [[1, 0], [0, 1], [1, 1]],
+      [[0, 0], [0, 1], [0, 2]],
+      [[0, 0], [1, 0], [2, 0]],
+      [[0, 0], [1, 1], [2, 2]]
+    ];
+    const target = pick(targetPool, seed, 1);
+    const answer = pickIndex(5, seed, 2);
+
+    // Build the containing panel: target + 1-2 unrelated extras
+    const offsetX = pickIndex(2, seed, 3);
+    const offsetY = pickIndex(2, seed, 4);
+    const translatedTarget = target.map(([c, r]) => [c + offsetX, r + offsetY])
+      .filter(([c, r]) => c >= 0 && c < 3 && r >= 0 && r < 3);
+    const extras = [];
+    for (let k = 0; k < 1 + pickIndex(2, seed, 5); k++) {
+      let col, row, tries = 0;
+      do {
+        col = pickIndex(3, seed, 10 + k * 3 + tries);
+        row = pickIndex(3, seed, 11 + k * 3 + tries);
+        tries++;
+      } while (translatedTarget.some(([c, r]) => c === col && r === row) && tries < 20);
+      extras.push([col, row]);
+    }
+    const containingCells = normalizeCells([...translatedTarget, ...extras]);
+
+    // 4 distractor panels that DON'T contain target
+    const distractors = [];
+    let salt = 100;
+    while (distractors.length < 4 && salt < 800) {
+      const cells = [];
+      const numCells = 3 + pickIndex(3, salt, 50);
+      for (let k = 0; k < numCells; k++) {
+        const col = pickIndex(3, salt + k, 51);
+        const row = pickIndex(3, salt + k, 52);
+        if (!cells.some(([c, r]) => c === col && r === row)) cells.push([col, row]);
+      }
+      if (cells.length >= 3 && !panelContainsTarget(cells, target)) {
+        distractors.push({ cells: normalizeCells(cells) });
+      }
+      salt++;
+    }
+    while (distractors.length < 4) distractors.push({ cells: [[0, 0], [2, 2]] });
+
+    const panels = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) {
+      panels.push(i === answer ? { cells: containingCells } : distractors[dIdx++]);
+    }
+
+    return makeQuestion(
+      "NVRT Hidden Shape",
+      "Which figure contains the target shape hidden inside?",
+      answer,
+      diffLevel(seed, 13),
+      hiddenShapeSvg(target, panels),
+      "Generated original NVRT hidden-shape puzzle."
+    );
+  }
+
+  // ─── Cube Net ───
+
+  const validCubeNets = [
+    [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]],
+    [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]],
+    [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [3, 2]],
+    [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]],
+    [[2, 0], [0, 1], [1, 1], [2, 1], [3, 1], [2, 2]],
+    [[1, 0], [1, 1], [0, 2], [1, 2], [2, 2], [1, 3]]
+  ];
+
+  const invalidNetShapes = [
+    [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],   // 2x3 rectangle
+    [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]],   // 2x3 rectangle rotated
+    [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [2, 2]],   // plus with extra in corner
+    [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [3, 2]],   // L with arm causing overlap
+    [[1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2]],   // jagged piece
+    [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [2, 2]]    // open C-shape
+  ];
+
+  function cubeNetSvg(panels) {
+    const panelBoxes = panels.map((pattern, index) => panel(
+      18 + index * 122, 28, labels[index],
+      cellPattern(pattern.cells, { cell: 16, ox: 14, oy: 10 }), 110, 110
+    )).join("");
+    return baseSvg(640, 170, panelBoxes);
+  }
+
+  function genCubeNet(seed) {
+    const askValid = pickIndex(2, seed, 1) === 0;
+    const answer = pickIndex(5, seed, 2);
+    const validStart = pickIndex(validCubeNets.length, seed, 3);
+    const invalidStart = pickIndex(invalidNetShapes.length, seed, 4);
+
+    const panels = [];
+    let validUsed = 0;
+    let invalidUsed = 0;
+    for (let i = 0; i < 5; i++) {
+      const isCorrect = i === answer;
+      const useValid = (askValid && isCorrect) || (!askValid && !isCorrect);
+      if (useValid) {
+        panels.push({ cells: validCubeNets[(validStart + validUsed) % validCubeNets.length] });
+        validUsed++;
+      } else {
+        panels.push({ cells: invalidNetShapes[(invalidStart + invalidUsed) % invalidNetShapes.length] });
+        invalidUsed++;
+      }
+    }
+
+    return makeQuestion(
+      "NVRT Cube Net",
+      askValid
+        ? "Which of these nets can be folded into a cube?"
+        : "Which of these nets cannot be folded into a cube?",
+      answer,
+      diffLevel(seed, 15),
+      cubeNetSvg(panels),
+      "Generated original NVRT cube-net puzzle."
+    );
+  }
+
+  // ─── 3x3 Matrix ───
+
+  function matrixCellSvg(cell, x, y, w = 72, h = 72) {
+    if (!cell) {
+      return `
+        <g transform="translate(${x} ${y})">
+          <rect width="${w}" height="${h}" rx="12" fill="#ffffff" stroke="${accent}" stroke-width="2.5" stroke-dasharray="6 5"/>
+          <text x="${w / 2}" y="${h / 2 + 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="${accent}">?</text>
+        </g>`;
+    }
+    const tokens = [];
+    const startCol = Math.max(0, Math.floor((3 - cell.count) / 2));
+    for (let k = 0; k < cell.count; k++) {
+      tokens.push({ row: 1, col: startCol + k, kind: cell.shape, hollow: cell.hollow || false });
+    }
+    return `
+      <g transform="translate(${x} ${y})">
+        <rect width="${w}" height="${h}" rx="12" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${tokenPattern(tokens, { cell: 16, ox: 14, oy: 18 })}
+      </g>`;
+  }
+
+  function matrixSvg(matrix, options) {
+    const grid = [];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        grid.push(matrixCellSvg(matrix[r][c], 22 + c * 80, 22 + r * 80));
+      }
+    }
+    const optionBoxes = options.map((cell, index) => matrixCellSvg(
+      cell, 282 + index * 70, 80, 60, 60
+    )).join("");
+    const optionLabels = options.map((_, index) =>
+      `<text x="${312 + index * 70}" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`
+    ).join("");
+    return baseSvg(640, 270, `${grid.join("")}${optionBoxes}${optionLabels}`);
+  }
+
+  function genMatrix3x3(seed) {
+    const shape0 = pick(shapes, seed, 1);
+    const shape1 = pickDistinctShape(seed, 2, shape0);
+    const shape2 = pickDistinctFrom(seed, 3, [shape0, shape1]);
+    const shapeByCol = [shape0, shape1, shape2];
+
+    const countPatterns = [[1, 2, 3], [3, 2, 1], [1, 3, 2], [2, 1, 3], [3, 1, 2], [2, 3, 1]];
+    const countByRow = pick(countPatterns, seed, 4);
+
+    const matrix = [];
+    for (let r = 0; r < 3; r++) {
+      const row = [];
+      for (let c = 0; c < 3; c++) {
+        if (r === 2 && c === 2) row.push(null);
+        else row.push({ shape: shapeByCol[c], count: countByRow[r], hollow: false });
+      }
+      matrix.push(row);
+    }
+
+    const correct = { shape: shapeByCol[2], count: countByRow[2], hollow: false };
+    const wrongCount = ((countByRow[2]) % 3) + 1;
+    const distractors = [
+      { shape: shapeByCol[2], count: wrongCount, hollow: false },
+      { shape: shapeByCol[0], count: countByRow[2], hollow: false },
+      { shape: shapeByCol[1], count: countByRow[2], hollow: false },
+      { shape: shapeByCol[2], count: countByRow[2], hollow: true }
+    ];
+
+    const answer = pickIndex(5, seed, 5);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correct : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Matrix",
+      "Which option completes the 3×3 matrix?",
+      answer,
+      diffLevel(seed, 17),
+      matrixSvg(matrix, options),
+      "Generated original NVRT 3x3 matrix puzzle."
+    );
+  }
+
+  // ─── Code / Symbol Mapping ───
+
+  function codeShapeIn(shape, hollow, cx, cy, size = 22) {
+    return shapeMarkup({ kind: shape, hollow, col: 0, row: 0, size }, 0, cx, cy);
+  }
+
+  function codeShapeBox(shape, hollow, x, y, w = 64, h = 64) {
+    return `
+      <g transform="translate(${x} ${y})">
+        <rect width="${w}" height="${h}" rx="10" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        ${codeShapeIn(shape, hollow, w / 2, h / 2, 20)}
+      </g>`;
+  }
+
+  function codeMappingSvg(examples, target, options) {
+    const exampleRow = examples.map((ex, index) => `
+      ${codeShapeBox(ex.shape, ex.hollow, 16 + index * 152, 16)}
+      <text x="${48 + index * 152}" y="106" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="${ink}">${ex.code}</text>
+    `).join("");
+    const targetBlock = `
+      ${codeShapeBox(target.shape, target.hollow, 288, 130)}
+      <text x="320" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="${accent}">?</text>
+    `;
+    const optionBoxes = options.map((code, index) => `
+      <g transform="translate(${20 + index * 122} 240)">
+        <rect width="100" height="56" rx="10" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        <text x="50" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="${ink}">${code}</text>
+      </g>
+      <text x="${70 + index * 122}" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>
+    `).join("");
+    return baseSvg(660, 332, `${exampleRow}${targetBlock}${optionBoxes}`);
+  }
+
+  function genCodeMapping(seed) {
+    const shapeLetterSets = [
+      ["P", "Q", "R", "S"], ["A", "B", "C", "D"], ["W", "X", "Y", "Z"], ["L", "M", "N", "K"]
+    ];
+    const fillLetterSets = [["T", "U"], ["G", "H"], ["F", "E"], ["I", "J"]];
+    const shapeLetters = pick(shapeLetterSets, seed, 1);
+    const fillLetters = pick(fillLetterSets, seed, 2);
+    const shapeKeys = ["circle", "square", "triangle", "diamond"];
+
+    const codeFor = (shape, hollow) => shapeLetters[shapeKeys.indexOf(shape)] + fillLetters[hollow ? 1 : 0];
+
+    const targetShape = pick(shapeKeys, seed, 3);
+    const targetHollow = pickIndex(2, seed, 4) === 0;
+    const target = { shape: targetShape, hollow: targetHollow };
+    const correctCode = codeFor(targetShape, targetHollow);
+
+    // Build 4 examples covering different shape/fill combos
+    const usedKeys = new Set([`${targetShape}:${targetHollow}`]);
+    const examples = [];
+    let salt = 10;
+    while (examples.length < 4 && salt < 200) {
+      const sh = shapeKeys[(shapeKeys.indexOf(targetShape) + 1 + examples.length + (salt % 3)) % 4];
+      const fl = ((salt + examples.length) % 2) === 0;
+      const key = `${sh}:${fl}`;
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key);
+        examples.push({ shape: sh, hollow: fl, code: codeFor(sh, fl) });
+      }
+      salt++;
+    }
+
+    const targetIdx = shapeKeys.indexOf(targetShape);
+    const distractors = [
+      shapeLetters[(targetIdx + 1) % 4] + fillLetters[targetHollow ? 1 : 0],
+      shapeLetters[targetIdx] + fillLetters[targetHollow ? 0 : 1],
+      shapeLetters[(targetIdx + 2) % 4] + fillLetters[targetHollow ? 0 : 1],
+      shapeLetters[(targetIdx + 3) % 4] + fillLetters[targetHollow ? 1 : 0]
+    ];
+
+    const answer = pickIndex(5, seed, 5);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctCode : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Code Mapping",
+      "Each figure has a 2-letter code. What is the code for the figure marked with '?'?",
+      answer,
+      diffLevel(seed, 19),
+      codeMappingSvg(examples, target, options),
+      "Generated original NVRT code-mapping puzzle."
+    );
+  }
+
+  /* ═══════════════ MORE GENERATORS: Cube Count, Hole Punch, Complete Square, Most Similar ═══════════════ */
+
+  // ─── Cube Counting (isometric stack) ───
+
+  function isoCubeFaces(col, row, layer, ox, oy, edge) {
+    const dx = edge * Math.sqrt(3) / 2;
+    const dy = edge / 2;
+    const x = ox + (col - row) * dx;
+    const y = oy + (col + row) * dy - layer * edge;
+    const top = `<polygon points="${x},${y - dy} ${x + dx},${y} ${x},${y + dy} ${x - dx},${y}" fill="#f1f5f9" stroke="${ink}" stroke-width="1.5"/>`;
+    const left = `<polygon points="${x - dx},${y} ${x},${y + dy} ${x},${y + dy + edge} ${x - dx},${y + edge}" fill="#cbd5e1" stroke="${ink}" stroke-width="1.5"/>`;
+    const right = `<polygon points="${x + dx},${y} ${x},${y + dy} ${x},${y + dy + edge} ${x + dx},${y + edge}" fill="#94a3b8" stroke="${ink}" stroke-width="1.5"/>`;
+    return top + left + right;
+  }
+
+  function cubeStackSvg(stacks, options) {
+    const cubes = [];
+    stacks.forEach(({ col, row, height }) => {
+      for (let layer = 0; layer < height; layer++) cubes.push({ col, row, layer });
+    });
+    cubes.sort((a, b) => (a.col + a.row) - (b.col + b.row) || a.layer - b.layer);
+    const edge = 22;
+    const ox = 140, oy = 90;
+    const cubeBody = cubes.map(c => isoCubeFaces(c.col, c.row, c.layer, ox, oy, edge)).join("");
+
+    const optionBoxes = options.map((count, index) => `
+      <g transform="translate(${290 + index * 70} 90)">
+        <rect width="60" height="60" rx="10" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
+        <text x="30" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="${ink}">${count}</text>
+      </g>
+      <text x="${320 + index * 70}" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>
+    `).join("");
+
+    return baseSvg(660, 200, `${cubeBody}${optionBoxes}`);
+  }
+
+  function genCubeCounting(seed) {
+    const stacks = [];
+    let total = 0;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const h = pickIndex(4, seed, r * 7 + c * 3 + 1);
+        if (h > 0) stacks.push({ col: c, row: r, height: h });
+        total += h;
+      }
+    }
+    if (total === 0 || total > 18) return genCubeCounting(seed + 1);
+
+    const answer = pickIndex(5, seed, 100);
+    const distractorPool = new Set();
+    let offset = 1;
+    while (distractorPool.size < 6) {
+      [total - offset, total + offset].forEach(v => { if (v > 0 && v !== total) distractorPool.add(v); });
+      offset++;
+    }
+    const distractors = [...distractorPool].slice(0, 4);
+
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? total : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Cube Counting",
+      "How many cubes are in the stack? (Some may be hidden.)",
+      answer,
+      diffLevel(seed, 21),
+      cubeStackSvg(stacks, options),
+      "Generated original NVRT cube-counting puzzle."
+    );
+  }
+
+  // ─── Hole Punch / Paper Fold ───
+
+  function paperFoldSvg(folds, punch, options) {
+    const SIDE = 88;
+    const HALF = SIDE / 2;
+    const cellSize = SIDE / 4;
+    const ORIG_X = 24, ORIG_Y = 22;
+
+    let foldedView = `
+      <g transform="translate(${ORIG_X} ${ORIG_Y})">
+        <rect width="${SIDE}" height="${SIDE}" rx="8" fill="#ffffff" stroke="${ink}" stroke-width="2"/>`;
+    if (folds.vertical) foldedView += `<line x1="${HALF}" y1="0" x2="${HALF}" y2="${SIDE}" stroke="${accent}" stroke-width="2" stroke-dasharray="4 3"/>`;
+    if (folds.horizontal) foldedView += `<line x1="0" y1="${HALF}" x2="${SIDE}" y2="${HALF}" stroke="${accent}" stroke-width="2" stroke-dasharray="4 3"/>`;
+    foldedView += `<circle cx="${punch.col * cellSize + cellSize / 2}" cy="${punch.row * cellSize + cellSize / 2}" r="5" fill="${accent}" stroke="${ink}" stroke-width="1.5"/>`;
+    foldedView += `</g>`;
+    foldedView += `<text x="${ORIG_X + HALF}" y="${ORIG_Y + SIDE + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">Folded + punch</text>`;
+
+    const OPT_SIZE = 72;
+    const optCell = OPT_SIZE / 4;
+    const optionBoxes = options.map((holes, index) => {
+      const holeDots = holes.map(([c, r]) => `<circle cx="${c * optCell + optCell / 2}" cy="${r * optCell + optCell / 2}" r="4" fill="${ink}"/>`).join("");
+      const gridLines = [];
+      for (let k = 1; k < 4; k++) {
+        gridLines.push(`<line x1="${k * optCell}" y1="0" x2="${k * optCell}" y2="${OPT_SIZE}" stroke="${panelStroke}" stroke-width="1"/>`);
+        gridLines.push(`<line x1="0" y1="${k * optCell}" x2="${OPT_SIZE}" y2="${k * optCell}" stroke="${panelStroke}" stroke-width="1"/>`);
+      }
+      return `
+        <g transform="translate(${158 + index * 92} 22)">
+          <rect width="${OPT_SIZE}" height="${OPT_SIZE}" rx="6" fill="#ffffff" stroke="${ink}" stroke-width="2"/>
+          ${gridLines.join("")}
+          ${holeDots}
+        </g>
+        <text x="${158 + index * 92 + OPT_SIZE / 2}" y="${22 + OPT_SIZE + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>
+      `;
+    }).join("");
+
+    return baseSvg(640, 144, `${foldedView}${optionBoxes}`);
+  }
+
+  function genHolePunch(seed) {
+    const useVertical = pickIndex(2, seed, 1) === 0;
+    const useHorizontal = !useVertical || pickIndex(2, seed, 2) === 0;
+    const folds = { vertical: useVertical, horizontal: useHorizontal };
+
+    const punchCol = useVertical ? pickIndex(2, seed, 3) : pickIndex(4, seed, 3);
+    const punchRow = useHorizontal ? pickIndex(2, seed, 4) : pickIndex(4, seed, 4);
+    const punch = { col: punchCol, row: punchRow };
+
+    let holes = [[punchCol, punchRow]];
+    if (useVertical) holes = [...holes, ...holes.map(([c, r]) => [3 - c, r])];
+    if (useHorizontal) holes = [...holes, ...holes.map(([c, r]) => [c, 3 - r])];
+    const correctHoles = [...new Set(holes.map(([c, r]) => `${c}:${r}`))].map(s => s.split(":").map(Number));
+
+    const keyOf = arr => arr.map(([c, r]) => `${c}:${r}`).sort().join("|");
+    const correctKey = keyOf(correctHoles);
+
+    const distractors = [
+      [[punchCol, punchRow]],
+      useHorizontal && useVertical ? [[punchCol, punchRow], [3 - punchCol, punchRow]] : [[punchCol, punchRow], [punchCol, 3 - punchRow]],
+      [...correctHoles, [(punchCol + 1) % 4, (punchRow + 1) % 4]],
+      correctHoles.length > 1 ? correctHoles.slice(0, -1) : [[(punchCol + 2) % 4, (punchRow + 2) % 4]]
+    ].filter(d => keyOf(d) !== correctKey);
+
+    while (distractors.length < 4) distractors.push([[(punchCol + distractors.length) % 4, (punchRow + 1) % 4]]);
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctHoles : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Hole Punch",
+      "A square paper is folded along the dashed lines and a hole is punched at the dot. Which option shows the paper when unfolded?",
+      answer,
+      diffLevel(seed, 23),
+      paperFoldSvg(folds, punch, options),
+      "Generated original NVRT hole-punch puzzle."
+    );
+  }
+
+  // ─── Complete the Square ───
+
+  const squarePatterns = [
+    [[0, 0], [1, 1], [2, 2], [3, 3], [3, 0], [2, 1], [1, 2], [0, 3]],                             // X cross
+    [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [3, 1], [0, 2], [3, 2], [0, 3], [1, 3], [2, 3], [3, 3]], // frame
+    [[1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2], [1, 3], [2, 3]], // plus
+    [[0, 0], [3, 0], [1, 1], [2, 1], [1, 2], [2, 2], [0, 3], [3, 3]],                             // corners + middle
+    [[0, 0], [2, 0], [1, 1], [3, 1], [0, 2], [2, 2], [1, 3], [3, 3]],                             // checker
+    [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3]],                                     // L
+    [[0, 0], [1, 0], [2, 0], [3, 0], [1, 1], [2, 1], [1, 2], [2, 2], [1, 3], [2, 3]],             // T
+    [[0, 0], [1, 0], [2, 0], [3, 0], [1, 1], [2, 1], [1, 2], [2, 2], [0, 3], [1, 3], [2, 3], [3, 3]]  // hourglass
+  ];
+
+  function completeSquareSvg(visibleCells, removedQuad, options) {
+    const SIDE = 116;
+    const cellSize = SIDE / 4;
+    const qCol = removedQuad % 2 === 0 ? 0 : 2;
+    const qRow = removedQuad < 2 ? 0 : 2;
+
+    let gridBody = `<g transform="translate(28 24)">
+      <rect width="${SIDE}" height="${SIDE}" rx="8" fill="#ffffff" stroke="${ink}" stroke-width="2"/>`;
+    visibleCells.forEach(([c, r]) => {
+      gridBody += `<rect x="${c * cellSize + 2}" y="${r * cellSize + 2}" width="${cellSize - 4}" height="${cellSize - 4}" rx="2" fill="${ink}"/>`;
+    });
+    gridBody += `<rect x="${qCol * cellSize}" y="${qRow * cellSize}" width="${2 * cellSize}" height="${2 * cellSize}" rx="6" fill="#fff7ed" stroke="${accent}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
+    gridBody += `<text x="${qCol * cellSize + cellSize}" y="${qRow * cellSize + cellSize + 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="${accent}">?</text>`;
+    gridBody += `</g>`;
+
+    const OPT_SIZE = 58;
+    const optCell = OPT_SIZE / 2;
+    const optionBoxes = options.map((pieceCells, index) => {
+      let optBody = `<g transform="translate(${178 + index * 80} 50)">
+        <rect width="${OPT_SIZE}" height="${OPT_SIZE}" rx="6" fill="#ffffff" stroke="${ink}" stroke-width="2"/>`;
+      pieceCells.forEach(([c, r]) => {
+        optBody += `<rect x="${c * optCell + 2}" y="${r * optCell + 2}" width="${optCell - 4}" height="${optCell - 4}" rx="2" fill="${ink}"/>`;
+      });
+      optBody += `</g>`;
+      optBody += `<text x="${178 + index * 80 + OPT_SIZE / 2}" y="${50 + OPT_SIZE + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[index]}</text>`;
+      return optBody;
+    }).join("");
+
+    return baseSvg(640, 168, `${gridBody}${optionBoxes}`);
+  }
+
+  function genCompleteSquare(seed) {
+    const pattern = pick(squarePatterns, seed, 1);
+    const removeQuad = pickIndex(4, seed, 2);
+    const qCol = removeQuad % 2 === 0 ? 0 : 2;
+    const qRow = removeQuad < 2 ? 0 : 2;
+
+    const visibleCells = pattern.filter(([c, r]) => !(c >= qCol && c < qCol + 2 && r >= qRow && r < qRow + 2));
+    const correctPiece = pattern
+      .filter(([c, r]) => c >= qCol && c < qCol + 2 && r >= qRow && r < qRow + 2)
+      .map(([c, r]) => [c - qCol, r - qRow]);
+
+    const allPossible2x2 = [
+      [[0, 0]], [[1, 0]], [[0, 1]], [[1, 1]],
+      [[0, 0], [1, 0]], [[0, 0], [0, 1]], [[0, 0], [1, 1]],
+      [[1, 0], [0, 1]], [[1, 0], [1, 1]], [[0, 1], [1, 1]],
+      [[0, 0], [1, 0], [0, 1]], [[0, 0], [1, 0], [1, 1]],
+      [[0, 0], [0, 1], [1, 1]], [[1, 0], [0, 1], [1, 1]],
+      [[0, 0], [1, 0], [0, 1], [1, 1]]
+    ];
+    const keyOf = arr => arr.map(([c, r]) => `${c}:${r}`).sort().join("|");
+    const correctKey = keyOf(correctPiece);
+    const distractorPool = allPossible2x2.filter(p => keyOf(p) !== correctKey);
+
+    const distractors = [];
+    let salt = 200;
+    while (distractors.length < 4 && salt < 400) {
+      const cand = distractorPool[pickIndex(distractorPool.length, seed, salt)];
+      if (!distractors.some(d => keyOf(d) === keyOf(cand))) distractors.push(cand);
+      salt++;
+    }
+    while (distractors.length < 4) distractors.push([[0, 0]]);
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctPiece : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Complete Square",
+      "Which piece completes the missing quadrant of the square?",
+      answer,
+      diffLevel(seed, 25),
+      completeSquareSvg(visibleCells, removeQuad, options),
+      "Generated original NVRT square-completion puzzle."
+    );
+  }
+
+  // ─── Most Similar Pair ───
+
+  function mostSimilarSvg(target, options) {
+    const targetBox = `
+      <g transform="translate(20 28)">
+        <rect width="84" height="84" rx="14" fill="#ffffff" stroke="${accent}" stroke-width="2.5"/>
+        ${tokenPattern(target, { cell: 22, ox: 16, oy: 16 })}
+        <text x="42" y="104" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">Target</text>
+      </g>`;
+    const optionBoxes = options.map((tokens, index) => panel(
+      124 + index * 102, 28, labels[index],
+      tokenPattern(tokens, { cell: 20, ox: 15, oy: 15 }), 88, 88
+    )).join("");
+    return baseSvg(640, 160, `${targetBox}${optionBoxes}`);
+  }
+
+  function genMostSimilarPair(seed) {
+    const shape = pick(shapes, seed, 1);
+    const otherShape = pickDistinctShape(seed, 2, shape);
+    const count = 2 + pickIndex(3, seed, 3);
+    const hollow = pickIndex(2, seed, 4) === 0;
+
+    const layouts = [
+      [[0, 0], [1, 0], [2, 0], [2, 1]],
+      [[0, 0], [1, 1], [2, 2]],
+      [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+      [[1, 0], [0, 1], [1, 1], [2, 1]],
+      [[0, 0], [0, 1], [1, 1], [1, 2]],
+      [[1, 0], [1, 1], [1, 2]],
+      [[0, 1], [1, 1], [2, 1]],
+      [[0, 0], [1, 1]],
+      [[0, 0], [2, 2]],
+      [[0, 0], [1, 0], [0, 1]],
+      [[2, 0], [2, 1], [2, 2]]
+    ];
+    const sliceLayout = (lt, n) => lt.slice(0, Math.min(n, lt.length));
+    const layoutTokens = (lt, k, h, n) => sliceLayout(lt, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
+
+    const targetLayout = pick(layouts, seed, 5);
+    const targetTokens = layoutTokens(targetLayout, shape, hollow, count);
+
+    const correctLayout = pick(layouts, seed, 50);
+    const correctTokens = layoutTokens(correctLayout, shape, hollow, count);
+
+    const altCount = count === 2 ? count + 1 : count - 1;
+    const distractors = [
+      layoutTokens(pick(layouts, seed, 51), otherShape, hollow, count),
+      layoutTokens(pick(layouts, seed, 52), shape, hollow, altCount),
+      layoutTokens(pick(layouts, seed, 53), shape, !hollow, count),
+      layoutTokens(pick(layouts, seed, 54), otherShape, !hollow, altCount)
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctTokens : distractors[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Most Similar",
+      "Which option is most similar to the target figure (same shape, same number, same fill)?",
+      answer,
+      diffLevel(seed, 27),
+      mostSimilarSvg(targetTokens, options),
+      "Generated original NVRT most-similar puzzle."
+    );
+  }
+
+  /* ═══════════════ DRIVER ═══════════════ */
+  // Tune counts here to scale individual generator types.
+  const HIDDEN_SHAPE_COUNT = 150;
+  const CUBE_NET_COUNT = 150;
+  const MATRIX_COUNT = 150;
+  const CODE_MAPPING_COUNT = 150;
+  const CUBE_COUNTING_COUNT = 120;
+  const HOLE_PUNCH_COUNT = 120;
+  const COMPLETE_SQUARE_COUNT = 120;
+  const MOST_SIMILAR_COUNT = 120;
+
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
   for (let i = 0; i < 240; i++) generated.push(genGrid(i + 1000));
@@ -1826,6 +2541,14 @@
   for (let i = 0; i < 240; i++) generated.push(genAnalogy(i + 3000));
   for (let i = 0; i < 120; i++) generated.push(genGroupMembership(i + 4000));
   for (let i = 0; i < 120; i++) generated.push(genSeries(i + 5000));
+  for (let i = 0; i < HIDDEN_SHAPE_COUNT; i++) generated.push(genHiddenShape(i + 6000));
+  for (let i = 0; i < CUBE_NET_COUNT; i++) generated.push(genCubeNet(i + 7000));
+  for (let i = 0; i < MATRIX_COUNT; i++) generated.push(genMatrix3x3(i + 8000));
+  for (let i = 0; i < CODE_MAPPING_COUNT; i++) generated.push(genCodeMapping(i + 9000));
+  for (let i = 0; i < CUBE_COUNTING_COUNT; i++) generated.push(genCubeCounting(i + 10000));
+  for (let i = 0; i < HOLE_PUNCH_COUNT; i++) generated.push(genHolePunch(i + 11000));
+  for (let i = 0; i < COMPLETE_SQUARE_COUNT; i++) generated.push(genCompleteSquare(i + 12000));
+  for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
