@@ -3177,62 +3177,61 @@
   }
 
   function genMostSimilarPair(seed) {
-    const variant = seed % 4;
+    // Easy variant — single shape kind, count, and fill across token grids.
+    const shape = pick(shapes, seed, 1);
+    const otherShape = pickDistinctShape(seed, 2, shape);
+    const count = 2 + pickIndex(3, seed, 3);
+    const hollow = pickIndex(2, seed, 4) === 0;
 
-    if (variant === 0) {
-      // Easy — single shape kind, count, and fill across token grids.
-      const shape = pick(shapes, seed, 1);
-      const otherShape = pickDistinctShape(seed, 2, shape);
-      const count = 2 + pickIndex(3, seed, 3);
-      const hollow = pickIndex(2, seed, 4) === 0;
+    const layouts = [
+      [[0, 0], [1, 0], [2, 0], [2, 1]],
+      [[0, 0], [1, 1], [2, 2]],
+      [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+      [[1, 0], [0, 1], [1, 1], [2, 1]],
+      [[0, 0], [0, 1], [1, 1], [1, 2]],
+      [[1, 0], [1, 1], [1, 2]],
+      [[0, 1], [1, 1], [2, 1]],
+      [[0, 0], [1, 1]],
+      [[0, 0], [2, 2]],
+      [[0, 0], [1, 0], [0, 1]],
+      [[2, 0], [2, 1], [2, 2]]
+    ];
 
-      const layouts = [
-        [[0, 0], [1, 0], [2, 0], [2, 1]],
-        [[0, 0], [1, 1], [2, 2]],
-        [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
-        [[1, 0], [0, 1], [1, 1], [2, 1]],
-        [[0, 0], [0, 1], [1, 1], [1, 2]],
-        [[1, 0], [1, 1], [1, 2]],
-        [[0, 1], [1, 1], [2, 1]],
-        [[0, 0], [1, 1]],
-        [[0, 0], [2, 2]],
-        [[0, 0], [1, 0], [0, 1]],
-        [[2, 0], [2, 1], [2, 2]]
-      ];
+    const altCount = count === 2 ? count + 1 : count - 1;
+    const layoutsForCount = layouts.filter(l => l.length >= count);
+    const layoutsForAlt = layouts.filter(l => l.length >= altCount);
 
-      const altCount = count === 2 ? count + 1 : count - 1;
-      const layoutsForCount = layouts.filter(l => l.length >= count);
-      const layoutsForAlt = layouts.filter(l => l.length >= altCount);
+    const layoutTokens = (lt, k, h, n) =>
+      lt.slice(0, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
 
-      const layoutTokens = (lt, k, h, n) =>
-        lt.slice(0, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
+    const targetTokens = layoutTokens(pick(layoutsForCount, seed, 5), shape, hollow, count);
+    const correctTokens = layoutTokens(pick(layoutsForCount, seed, 50), shape, hollow, count);
 
-      const targetTokens = layoutTokens(pick(layoutsForCount, seed, 5), shape, hollow, count);
-      const correctTokens = layoutTokens(pick(layoutsForCount, seed, 50), shape, hollow, count);
+    const distractors = [
+      layoutTokens(pick(layoutsForCount, seed, 51), otherShape, hollow, count),
+      layoutTokens(pick(layoutsForAlt, seed, 52), shape, hollow, altCount),
+      layoutTokens(pick(layoutsForCount, seed, 53), shape, !hollow, count),
+      layoutTokens(pick(layoutsForAlt, seed, 54), otherShape, !hollow, altCount)
+    ];
 
-      const distractors = [
-        layoutTokens(pick(layoutsForCount, seed, 51), otherShape, hollow, count),
-        layoutTokens(pick(layoutsForAlt, seed, 52), shape, hollow, altCount),
-        layoutTokens(pick(layoutsForCount, seed, 53), shape, !hollow, count),
-        layoutTokens(pick(layoutsForAlt, seed, 54), otherShape, !hollow, altCount)
-      ];
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctTokens : distractors[dIdx++]);
 
-      const answer = pickIndex(5, seed, 99);
-      const options = [];
-      let dIdx = 0;
-      for (let i = 0; i < 5; i++) options.push(i === answer ? correctTokens : distractors[dIdx++]);
+    return makeQuestion(
+      "NVRT Most Similar",
+      "Which option is most similar to the target figure (same shape, same number, same fill)?",
+      answer,
+      1,
+      mostSimilarSvg(targetTokens, options),
+      "Generated original NVRT most-similar puzzle."
+    );
+  }
 
-      return makeQuestion(
-        "NVRT Most Similar",
-        "Which option is most similar to the target figure (same shape, same number, same fill)?",
-        answer,
-        1,
-        mostSimilarSvg(targetTokens, options),
-        "Generated original NVRT most-similar puzzle."
-      );
-    }
-
-    // Variants 1-3: compound figure matching (outer + inner + outerHollow + accent + accent2)
+  function genMostSimilarCompound(seed) {
+    // Medium / Hard / Super Hard — compound figure matching (outer + inner + outerHollow + accent + accent2)
+    const variant = 1 + (seed % 3);                                     // 1 = Medium, 2 = Hard, 3 = Super Hard
     const outers = COMPOUND_OUTER_POOL;
     const inners = COMPOUND_INNER_POOL;
     const accents = ["dot", "line", "cross"];
@@ -3854,10 +3853,11 @@
   const MOST_SIMILAR_COUNT = 120;
   const CHANGING_BUGS_COUNT = 150;
   const CUBE_NET_MATCHING_COUNT = 150;
-  const FIND_LIKE_COUNT = 75;
-  const FIND_LIKE_THREE_COUNT = 75;
+  const FIND_LIKE_COUNT = 150;
+  const FIND_LIKE_THREE_COUNT = 150;
   const FIND_LIKE_HARD_COUNT = 75;
   const FIND_LIKE_SUPER_COUNT = 75;
+  const MOST_SIMILAR_COMPOUND_COUNT = 180;
   const CODE_MAPPING_3_COUNT = 150;
 
   const generated = [];
@@ -3875,6 +3875,7 @@
   for (let i = 0; i < HOLE_PUNCH_COUNT; i++) generated.push(genHolePunch(i + 11000));
   for (let i = 0; i < COMPLETE_SQUARE_COUNT; i++) generated.push(genCompleteSquare(i + 12000));
   for (let i = 0; i < MOST_SIMILAR_COUNT; i++) generated.push(genMostSimilarPair(i + 13000));
+  for (let i = 0; i < MOST_SIMILAR_COMPOUND_COUNT; i++) generated.push(genMostSimilarCompound(i + 13500));
   for (let i = 0; i < CHANGING_BUGS_COUNT; i++) generated.push(genChangingBugs(i + 14000));
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
