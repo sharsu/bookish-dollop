@@ -2607,21 +2607,25 @@
       [[0, 0], [1, 0], [0, 1]],
       [[2, 0], [2, 1], [2, 2]]
     ];
-    const sliceLayout = (lt, n) => lt.slice(0, Math.min(n, lt.length));
-    const layoutTokens = (lt, k, h, n) => sliceLayout(lt, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
-
-    const targetLayout = pick(layouts, seed, 5);
-    const targetTokens = layoutTokens(targetLayout, shape, hollow, count);
-
-    const correctLayout = pick(layouts, seed, 50);
-    const correctTokens = layoutTokens(correctLayout, shape, hollow, count);
 
     const altCount = count === 2 ? count + 1 : count - 1;
+    // Pre-filter: pick from layouts that have AT LEAST as many cells as the count we need,
+    // so slicing always produces exactly `count` (or `altCount`) cells. This avoids the
+    // bug where a long-count target was paired with a short-layout option showing fewer cells.
+    const layoutsForCount = layouts.filter(l => l.length >= count);
+    const layoutsForAlt = layouts.filter(l => l.length >= altCount);
+
+    const layoutTokens = (lt, k, h, n) =>
+      lt.slice(0, n).map(([c, r]) => ({ col: c, row: r, kind: k, hollow: h }));
+
+    const targetTokens = layoutTokens(pick(layoutsForCount, seed, 5), shape, hollow, count);
+    const correctTokens = layoutTokens(pick(layoutsForCount, seed, 50), shape, hollow, count);
+
     const distractors = [
-      layoutTokens(pick(layouts, seed, 51), otherShape, hollow, count),
-      layoutTokens(pick(layouts, seed, 52), shape, hollow, altCount),
-      layoutTokens(pick(layouts, seed, 53), shape, !hollow, count),
-      layoutTokens(pick(layouts, seed, 54), otherShape, !hollow, altCount)
+      layoutTokens(pick(layoutsForCount, seed, 51), otherShape, hollow, count),
+      layoutTokens(pick(layoutsForAlt, seed, 52), shape, hollow, altCount),
+      layoutTokens(pick(layoutsForCount, seed, 53), shape, !hollow, count),
+      layoutTokens(pick(layoutsForAlt, seed, 54), otherShape, !hollow, altCount)
     ];
 
     const answer = pickIndex(5, seed, 99);
@@ -2633,7 +2637,7 @@
       "NVRT Most Similar",
       "Which option is most similar to the target figure (same shape, same number, same fill)?",
       answer,
-      diffLevel(seed, 27),
+      1,                                                   // Single-step matching → Easy
       mostSimilarSvg(targetTokens, options),
       "Generated original NVRT most-similar puzzle."
     );
