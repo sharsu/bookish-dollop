@@ -1719,11 +1719,12 @@
       ];
 
       const placed = placeOptions(correct, distractors, seed);
+      const lineDifficulty = tpl.length <= 2 ? 1 : 2;                                // Easy if only 2 segments to track, Medium otherwise
       return makeQuestion(
         "NVRT Reflection",
         "Which option shows the mirror image of the figure on the left?",
         placed.answer,
-        2,                                                                          // Medium — arrowhead direction reverses under reflection
+        lineDifficulty,
         reflectionLinesSvg(source, placed.options, axis),
         "Generated original NVRT reflection puzzle with line and arrow figure."
       );
