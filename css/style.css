@@ -466,7 +466,10 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .quiz-main.nvrt-mode .question-card {
   padding: 28px 32px;
 }
-.quiz-main.nvrt-mode .question-media {
+.quiz-main.nvrt-mode .question-media[hidden] {
+  display: none;
+}
+.quiz-main.nvrt-mode .question-media:not([hidden]) {
   display: flex;
   justify-content: center;
 }

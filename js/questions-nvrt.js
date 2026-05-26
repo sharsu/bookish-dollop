@@ -209,7 +209,7 @@
       282 + index * 68,
       78,
       labels[index],
-      renderPattern(pattern, { ox: 11, oy: 11, cell: 17 }),
+      renderPattern(pattern, { ox: 11, oy: 11, cell: 14 }),
       56,
       56
     )).join("");
@@ -225,10 +225,10 @@
     const source = `
       <g transform="translate(48 28)">
         <rect width="132" height="108" rx="16" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-        <line x1="66" y1="10" x2="66" y2="98" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>
         ${renderPattern(sourceCells, { ox: 20, oy: 20, cell: 19 })}
+        <line x1="85" y1="10" x2="85" y2="98" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>
       </g>
-      <text x="114" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Mirror line</text>`;
+      <text x="133" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Mirror line</text>`;
 
     const optionBoxes = options.map((pattern, index) => panel(
       214 + index * 82,
@@ -244,7 +244,7 @@
 
   function analogySvg(a, b, c, options) {
     const render = pattern => renderPattern(pattern, { cell: 20, ox: 17, oy: 17 });
-    const renderMini = pattern => renderPattern(pattern, { ox: 11, oy: 11, cell: 17 });
+    const renderMini = pattern => renderPattern(pattern, { ox: 11, oy: 11, cell: 14 });
     const top = `${panel(36, 28, "A", render(a), 84, 84)}<text x="137" y="78" font-family="Arial, sans-serif" font-size="26" fill="${accent}">→</text>${panel(160, 28, "B", render(b), 84, 84)}`;
     const bottom = `${panel(36, 140, "C", render(c), 84, 84)}<text x="137" y="190" font-family="Arial, sans-serif" font-size="26" fill="${accent}">→</text>${questionMarkBox(160, 140, 84, 84)}`;
     const optionBoxes = options.map((pattern, index) => panel(
@@ -1017,7 +1017,7 @@
       questionMarkBox(150, 136, 90, 90),
       `<text x="24" y="20" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Find the missing box</text>`,
       `<text x="282" y="44" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Choose one option</text>`,
-      ...options.map((pattern, index) => panel(282 + index * 68, 78, labels[index], renderPattern(pattern, { cell: 17, ox: 11, oy: 11 }), 56, 56))
+      ...options.map((pattern, index) => panel(282 + index * 68, 78, labels[index], renderPattern(pattern, { cell: 14, ox: 11, oy: 11 }), 56, 56))
     ].join("");
 
     return baseSvg(640, 252, body);
@@ -1028,15 +1028,18 @@
       ? { ox: 20, oy: 20, cell: 19 }
       : { ox: 30, oy: 16, cell: 16 };
     const mirrorLine = axis === "vertical"
-      ? `<line x1="66" y1="10" x2="66" y2="98" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`
-      : `<line x1="18" y1="54" x2="114" y2="54" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`;
+      ? `<line x1="85" y1="10" x2="85" y2="98" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`
+      : `<line x1="18" y1="70" x2="114" y2="70" stroke="${accent}" stroke-width="2.5" stroke-dasharray="7 6"/>`;
+    const labelPos = axis === "vertical"
+      ? `<text x="133" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Mirror line</text>`
+      : `<text x="170" y="102" text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="${ink}">Mirror line</text>`;
     const source = `
       <g transform="translate(48 28)">
         <rect width="132" height="108" rx="16" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/>
-        ${mirrorLine}
         ${patternMarkup(sourcePattern, sourceOpts)}
+        ${mirrorLine}
       </g>
-      <text x="114" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="${ink}">Mirror line</text>`;
+      ${labelPos}`;
     const optionBoxes = options.map((pattern, index) => panel(214 + index * 82, 44, labels[index], renderPattern(pattern, { cell: 17, ox: 10, oy: 10 }), 68, 68)).join("");
     return baseSvg(640, 180, `${source}${optionBoxes}`);
   }
@@ -1044,7 +1047,7 @@
   function analogySvg(a, b, c, options) {
     const top = `${panel(36, 28, "A", renderPattern(a, { cell: 20, ox: 17, oy: 17 }), 84, 84)}<text x="137" y="78" font-family="Arial, sans-serif" font-size="26" fill="${accent}">→</text>${panel(160, 28, "B", renderPattern(b, { cell: 20, ox: 17, oy: 17 }), 84, 84)}`;
     const bottom = `${panel(36, 140, "C", renderPattern(c, { cell: 20, ox: 17, oy: 17 }), 84, 84)}<text x="137" y="190" font-family="Arial, sans-serif" font-size="26" fill="${accent}">→</text>${questionMarkBox(160, 140, 84, 84)}`;
-    const optionBoxes = options.map((pattern, index) => panel(282 + index * 68, 88, labels[index], renderPattern(pattern, { cell: 17, ox: 11, oy: 11 }), 56, 56)).join("");
+    const optionBoxes = options.map((pattern, index) => panel(282 + index * 68, 88, labels[index], renderPattern(pattern, { cell: 14, ox: 11, oy: 11 }), 56, 56)).join("");
     return baseSvg(640, 252, `${top}${bottom}${optionBoxes}`);
   }
 
