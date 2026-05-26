@@ -2211,7 +2211,7 @@
       "NVRT Code Mapping",
       "Each figure has a 2-letter code. What is the code for the figure marked with '?'?",
       answer,
-      diffLevel(seed, 19),
+      1,                                                   // 2-letter code maps are conceptually simple → Easy
       codeMappingSvg(examples, target, options),
       "Generated original NVRT code-mapping puzzle."
     );
