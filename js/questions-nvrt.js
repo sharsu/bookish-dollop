@@ -2217,6 +2217,119 @@
     );
   }
 
+  /* ─── 3-letter Code Mapping (advanced, with compound figures) ─── */
+
+  function compoundFigureSvg(props, x, y, w, h) {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const outerSize = Math.min(w, h) * 0.32;
+    const innerSize = Math.min(w, h) * 0.13;
+    const outer = shapeMarkup({ kind: props.outer, col: 0, row: 0, size: outerSize, hollow: true }, 0, cx, cy);
+    const inner = shapeMarkup({ kind: props.inner, col: 0, row: 0, size: innerSize, hollow: false }, 0, cx, cy);
+    let accentMark = "";
+    if (props.accent === "dot") {
+      accentMark = `<circle cx="${x + w - 8}" cy="${y + 8}" r="3" fill="${ink}"/>`;
+    } else if (props.accent === "line") {
+      accentMark = `<line x1="${x + 6}" y1="${y + h - 6}" x2="${x + w - 6}" y2="${y + h - 6}" stroke="${ink}" stroke-width="2"/>`;
+    } else if (props.accent === "cross") {
+      accentMark = `<line x1="${x + w - 12}" y1="${y + 4}" x2="${x + w - 4}" y2="${y + 12}" stroke="${ink}" stroke-width="2"/><line x1="${x + w - 12}" y1="${y + 12}" x2="${x + w - 4}" y2="${y + 4}" stroke="${ink}" stroke-width="2"/>`;
+    }
+    return outer + inner + accentMark;
+  }
+
+  function codeMapping3LetterSvg(examples, target, options) {
+    const FIG_W = 62, FIG_H = 62;
+    let body = "";
+    examples.forEach((ex, idx) => {
+      const fx = 22 + idx * 76;
+      body += `<g transform="translate(${fx} 18)"><rect width="${FIG_W}" height="${FIG_H}" rx="10" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/></g>`;
+      body += compoundFigureSvg(ex, fx, 18, FIG_W, FIG_H);
+      body += `<text x="${fx + FIG_W / 2}" y="${18 + FIG_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="${ink}">${ex.code}</text>`;
+    });
+    const qX = 22 + 4 * 76 + 16;
+    body += `<g transform="translate(${qX} 18)"><rect width="${FIG_W}" height="${FIG_H}" rx="10" fill="#ffffff" stroke="${accent}" stroke-width="2.5" stroke-dasharray="6 4"/></g>`;
+    body += compoundFigureSvg(target, qX, 18, FIG_W, FIG_H);
+    body += `<text x="${qX + FIG_W / 2}" y="${18 + FIG_H + 18}" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="${accent}">?</text>`;
+    options.forEach((code, idx) => {
+      const ox = 22 + idx * 122;
+      body += `<g transform="translate(${ox} 134)"><rect width="100" height="44" rx="10" fill="#ffffff" stroke="${panelStroke}" stroke-width="2"/><text x="50" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="${ink}">${code}</text></g>`;
+      body += `<text x="${ox + 50}" y="194" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="${ink}">${labels[idx]}</text>`;
+    });
+    return baseSvg(660, 210, body);
+  }
+
+  function genCodeMapping3Letter(seed) {
+    const outerShapes = ["circle", "square", "hexagon", "pentagon"];
+    const innerShapes = ["triangle", "diamond", "circle", "star"];
+    const accentTypes = ["none", "dot", "line", "cross"];
+    const alphabetSets = [
+      [["P", "Q", "R", "S"], ["T", "U", "V", "W"], ["F", "G", "H", "J"]],
+      [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["I", "J", "K", "L"]],
+      [["M", "N", "L", "K"], ["X", "Y", "Z", "V"], ["T", "U", "W", "R"]],
+      [["J", "K", "L", "M"], ["N", "P", "Q", "R"], ["S", "T", "V", "W"]]
+    ];
+    const [outerLetters, innerLetters, accentLetters] = pick(alphabetSets, seed, 1);
+
+    const codeFor = (props) =>
+      outerLetters[outerShapes.indexOf(props.outer)] +
+      innerLetters[innerShapes.indexOf(props.inner)] +
+      accentLetters[accentTypes.indexOf(props.accent)];
+
+    const target = {
+      outer: outerShapes[pickIndex(4, seed, 2)],
+      inner: innerShapes[pickIndex(4, seed, 3)],
+      accent: accentTypes[pickIndex(4, seed, 4)]
+    };
+    const correctCode = codeFor(target);
+
+    const examples = [];
+    const usedKeys = new Set([`${target.outer}:${target.inner}:${target.accent}`]);
+    let salt = 10;
+    while (examples.length < 4 && salt < 80) {
+      const ex = {
+        outer: outerShapes[pickIndex(4, seed, salt)],
+        inner: innerShapes[pickIndex(4, seed, salt + 1)],
+        accent: accentTypes[pickIndex(4, seed, salt + 2)]
+      };
+      const key = `${ex.outer}:${ex.inner}:${ex.accent}`;
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key);
+        examples.push({ ...ex, code: codeFor(ex) });
+      }
+      salt += 3;
+    }
+    while (examples.length < 4) {
+      const ex = { outer: outerShapes[examples.length % 4], inner: innerShapes[(examples.length + 1) % 4], accent: accentTypes[(examples.length + 2) % 4] };
+      examples.push({ ...ex, code: codeFor(ex) });
+    }
+
+    const targetIdx = {
+      outer: outerShapes.indexOf(target.outer),
+      inner: innerShapes.indexOf(target.inner),
+      accent: accentTypes.indexOf(target.accent)
+    };
+    const distractorCodes = [
+      outerLetters[(targetIdx.outer + 1) % 4] + innerLetters[targetIdx.inner] + accentLetters[targetIdx.accent],
+      outerLetters[targetIdx.outer] + innerLetters[(targetIdx.inner + 1) % 4] + accentLetters[targetIdx.accent],
+      outerLetters[targetIdx.outer] + innerLetters[targetIdx.inner] + accentLetters[(targetIdx.accent + 1) % 4],
+      outerLetters[(targetIdx.outer + 2) % 4] + innerLetters[(targetIdx.inner + 2) % 4] + accentLetters[targetIdx.accent]
+    ];
+
+    const answer = pickIndex(5, seed, 99);
+    const options = [];
+    let dIdx = 0;
+    for (let i = 0; i < 5; i++) options.push(i === answer ? correctCode : distractorCodes[dIdx++]);
+
+    return makeQuestion(
+      "NVRT Code Mapping 3-Letter",
+      "Each figure has a 3-letter code. Work out the code for the figure marked with '?'.",
+      answer,
+      2,                                                   // Medium — 3 independent properties to track
+      codeMapping3LetterSvg(examples, target, options),
+      "Generated original NVRT 3-letter code-mapping puzzle."
+    );
+  }
+
   /* ═══════════════ MORE GENERATORS: Cube Count, Hole Punch, Complete Square, Most Similar ═══════════════ */
 
   // ─── Cube Counting (isometric stack) ───
@@ -3016,6 +3129,7 @@
   const CUBE_NET_MATCHING_COUNT = 150;
   const FIND_LIKE_COUNT = 150;
   const FIND_LIKE_THREE_COUNT = 150;
+  const CODE_MAPPING_3_COUNT = 150;
 
   const generated = [];
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
@@ -3036,6 +3150,7 @@
   for (let i = 0; i < CUBE_NET_MATCHING_COUNT; i++) generated.push(genCubeNetMatching(i + 15000));
   for (let i = 0; i < FIND_LIKE_COUNT; i++) generated.push(genFindLikeFirstTwo(i + 16000));
   for (let i = 0; i < FIND_LIKE_THREE_COUNT; i++) generated.push(genFindLikeFirstThree(i + 17000));
+  for (let i = 0; i < CODE_MAPPING_3_COUNT; i++) generated.push(genCodeMapping3Letter(i + 18000));
 
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
