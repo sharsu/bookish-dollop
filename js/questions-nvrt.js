@@ -2601,7 +2601,7 @@
     for (let i = 0; i < 5; i++) options.push(i === answer ? correctCode : distractorCodes[dIdx++]);
 
     return makeQuestion(
-      "NVRT Code Mapping 3-Letter",
+      "NVRT Code Mapping",
       "Each figure has a 3-letter code. Work out the code for the figure marked with '?'.",
       answer,
       2,                                                   // Medium — 3 independent properties to track
