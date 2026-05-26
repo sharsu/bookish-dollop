@@ -1757,6 +1757,48 @@
         ], marks: [
           { x: 28, y: 27, kind: "cross", size: 5 },
           { x: 20, y: 18, kind: "circle", size: 2 }
+        ] },
+        // 9 — Irregular 5-gon outline with internal X + 3 small marks (Super Hard)
+        { segments: [
+          { x1: 14, y1: 12, x2: 34, y2: 8 },
+          { x1: 34, y1: 8, x2: 50, y2: 24 },
+          { x1: 50, y1: 24, x2: 42, y2: 48 },
+          { x1: 42, y1: 48, x2: 18, y2: 50 },
+          { x1: 18, y1: 50, x2: 14, y2: 12 }
+        ], marks: [
+          { x: 32, y: 30, kind: "cross", size: 4 },
+          { x: 22, y: 22, kind: "circle", size: 2 },
+          { x: 40, y: 38, kind: "square", size: 2 },
+          { x: 30, y: 16, kind: "tri", size: 2 }
+        ] },
+        // 10 — Rectangle frame with internal stepped detail + 3 corner marks (Super Hard)
+        { segments: [
+          { x1: 8, y1: 10, x2: 50, y2: 10 },
+          { x1: 50, y1: 10, x2: 50, y2: 50 },
+          { x1: 8, y1: 50, x2: 50, y2: 50 },
+          { x1: 8, y1: 10, x2: 8, y2: 50 },
+          { x1: 14, y1: 22, x2: 22, y2: 22 },
+          { x1: 22, y1: 22, x2: 22, y2: 32 },
+          { x1: 22, y1: 32, x2: 36, y2: 32, aE: 0 }
+        ], marks: [
+          { x: 44, y: 18, kind: "circle", size: 2 },
+          { x: 14, y: 44, kind: "square", size: 2 },
+          { x: 38, y: 44, kind: "tri", size: 2 }
+        ] },
+        // 11 — Stepped path with two hatch groups and two corner marks (Super Hard)
+        { segments: [
+          { x1: 8, y1: 50, x2: 18, y2: 50 },
+          { x1: 18, y1: 50, x2: 18, y2: 34 },
+          { x1: 18, y1: 34, x2: 30, y2: 34 },
+          { x1: 30, y1: 34, x2: 30, y2: 18 },
+          { x1: 30, y1: 18, x2: 46, y2: 18, aE: 0 },
+          { x1: 22, y1: 44, x2: 28, y2: 38 },
+          { x1: 24, y1: 48, x2: 30, y2: 42 },
+          { x1: 34, y1: 28, x2: 40, y2: 22 },
+          { x1: 36, y1: 32, x2: 42, y2: 26 }
+        ], marks: [
+          { x: 12, y: 42, kind: "square", size: 2 },
+          { x: 44, y: 10, kind: "circle", size: 2 }
         ] }
       ];
 
@@ -1822,7 +1864,7 @@
 
       const placed = placeOptions(correct, distractors, seed);
       const totalComplexity = sourceSegs.length + (sourceMarks.length * 2);
-      const lineDifficulty = totalComplexity <= 2 ? 1 : totalComplexity <= 4 ? 2 : 3;
+      const lineDifficulty = totalComplexity <= 2 ? 1 : totalComplexity <= 4 ? 2 : totalComplexity <= 9 ? 3 : 4;
       return makeQuestion(
         "NVRT Reflection",
         "Which option shows the mirror image of the figure on the left?",
@@ -1863,6 +1905,127 @@
       1,
       reflectionSvg(source, placed.options, axis),
       "Generated original reflection NVRT puzzle."
+    );
+  }
+
+  function genReflectionLineSuperHard(seed) {
+    // Always Super Hard — uses high-complexity line/mark templates (≥10
+    // visual elements). Each distractor breaks exactly one rule:
+    //   no reflection, wrong-axis reflection, 180° rotation, or detail swap.
+    const axis = pickIndex(2, seed, 38) === 0 ? "vertical" : "horizontal";
+    const arrowKinds = ["solid", "open", "bar", "dot"];
+    const superTemplates = [
+      // Irregular 5-gon outline with internal X and three small marks
+      { segments: [
+        { x1: 14, y1: 12, x2: 34, y2: 8 },
+        { x1: 34, y1: 8, x2: 50, y2: 24 },
+        { x1: 50, y1: 24, x2: 42, y2: 48 },
+        { x1: 42, y1: 48, x2: 18, y2: 50 },
+        { x1: 18, y1: 50, x2: 14, y2: 12 }
+      ], marks: [
+        { x: 32, y: 30, kind: "cross", size: 4 },
+        { x: 22, y: 22, kind: "circle", size: 2 },
+        { x: 40, y: 38, kind: "square", size: 2 },
+        { x: 30, y: 16, kind: "tri", size: 2 }
+      ] },
+      // Rectangle frame with internal stepped detail and three corner marks
+      { segments: [
+        { x1: 8, y1: 10, x2: 50, y2: 10 },
+        { x1: 50, y1: 10, x2: 50, y2: 50 },
+        { x1: 8, y1: 50, x2: 50, y2: 50 },
+        { x1: 8, y1: 10, x2: 8, y2: 50 },
+        { x1: 14, y1: 22, x2: 22, y2: 22 },
+        { x1: 22, y1: 22, x2: 22, y2: 32 },
+        { x1: 22, y1: 32, x2: 36, y2: 32, aE: 0 }
+      ], marks: [
+        { x: 44, y: 18, kind: "circle", size: 2 },
+        { x: 14, y: 44, kind: "square", size: 2 },
+        { x: 38, y: 44, kind: "tri", size: 2 }
+      ] },
+      // Stepped path with two hatch groups and two corner marks
+      { segments: [
+        { x1: 8, y1: 50, x2: 18, y2: 50 },
+        { x1: 18, y1: 50, x2: 18, y2: 34 },
+        { x1: 18, y1: 34, x2: 30, y2: 34 },
+        { x1: 30, y1: 34, x2: 30, y2: 18 },
+        { x1: 30, y1: 18, x2: 46, y2: 18, aE: 0 },
+        { x1: 22, y1: 44, x2: 28, y2: 38 },
+        { x1: 24, y1: 48, x2: 30, y2: 42 },
+        { x1: 34, y1: 28, x2: 40, y2: 22 },
+        { x1: 36, y1: 32, x2: 42, y2: 26 }
+      ], marks: [
+        { x: 12, y: 42, kind: "square", size: 2 },
+        { x: 44, y: 10, kind: "circle", size: 2 }
+      ] },
+      // Closed hexagon with internal X and four perimeter marks
+      { segments: [
+        { x1: 20, y1: 8, x2: 40, y2: 8 },
+        { x1: 40, y1: 8, x2: 52, y2: 29 },
+        { x1: 52, y1: 29, x2: 40, y2: 50 },
+        { x1: 40, y1: 50, x2: 20, y2: 50 },
+        { x1: 20, y1: 50, x2: 8, y2: 29 },
+        { x1: 8, y1: 29, x2: 20, y2: 8 },
+        { x1: 18, y1: 18, x2: 42, y2: 40 },
+        { x1: 18, y1: 40, x2: 42, y2: 18 }
+      ], marks: [
+        { x: 30, y: 8, kind: "circle", size: 2 },
+        { x: 50, y: 29, kind: "tri", size: 2 },
+        { x: 30, y: 50, kind: "square", size: 2 },
+        { x: 10, y: 29, kind: "cross", size: 3 }
+      ] }
+    ];
+
+    const tpl = superTemplates[pickIndex(superTemplates.length, seed, 30)];
+    const arrowBase = pickIndex(arrowKinds.length, seed, 31);
+    const arrowMap = [0, 1, 2, 3].map(k => arrowKinds[(arrowBase + k) % arrowKinds.length]);
+
+    const buildSegs = (template) => (template.segments || []).map(s => ({
+      x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2,
+      arrowStart: s.aS != null ? arrowMap[s.aS] : undefined,
+      arrowEnd: s.aE != null ? arrowMap[s.aE] : undefined
+    }));
+    const buildMarks = (template) => (template.marks || []).map(m => ({ ...m }));
+
+    const reflectSeg = (s) => axis === "vertical"
+      ? { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
+      : { x1: s.x1, y1: 60 - s.y1, x2: s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd };
+    const rotate180Seg = (s) => ({ x1: 60 - s.x1, y1: 60 - s.y1, x2: 60 - s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd });
+    const reflectOppositeSeg = (s) => axis === "vertical"
+      ? { x1: s.x1, y1: 60 - s.y1, x2: s.x2, y2: 60 - s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd }
+      : { x1: 60 - s.x1, y1: s.y1, x2: 60 - s.x2, y2: s.y2, arrowStart: s.arrowStart, arrowEnd: s.arrowEnd };
+    const reflectMark = (m) => axis === "vertical" ? { ...m, x: 60 - m.x } : { ...m, y: 60 - m.y };
+    const rotate180Mark = (m) => ({ ...m, x: 60 - m.x, y: 60 - m.y });
+    const reflectOppositeMark = (m) => axis === "vertical" ? { ...m, y: 60 - m.y } : { ...m, x: 60 - m.x };
+
+    const sourceSegs = buildSegs(tpl);
+    const sourceMarks = buildMarks(tpl);
+    const source = { lines: { segments: sourceSegs, marks: sourceMarks } };
+    const correct = { lines: { segments: sourceSegs.map(reflectSeg), marks: sourceMarks.map(reflectMark) } };
+
+    // Detail-swap distractor: perturb one mark kind on the reflected figure
+    const markKinds = ["circle", "square", "cross", "tri"];
+    const swapIdx = pickIndex(sourceMarks.length, seed, 32);
+    const swappedMarks = sourceMarks.map(reflectMark).map((m, i) => {
+      if (i !== swapIdx) return m;
+      const wrong = markKinds[(markKinds.indexOf(m.kind) + 1 + pickIndex(markKinds.length - 1, seed, 33)) % markKinds.length];
+      return { ...m, kind: wrong };
+    });
+
+    const distractors = [
+      { lines: { segments: sourceSegs.map(s => ({ ...s })), marks: sourceMarks.map(m => ({ ...m })) } },             // not reflected
+      { lines: { segments: sourceSegs.map(reflectOppositeSeg), marks: sourceMarks.map(reflectOppositeMark) } },      // reflected about wrong axis
+      { lines: { segments: sourceSegs.map(rotate180Seg), marks: sourceMarks.map(rotate180Mark) } },                  // rotated 180°
+      { lines: { segments: sourceSegs.map(reflectSeg), marks: swappedMarks } }                                       // correct reflection but one detail wrong
+    ];
+
+    const placed = placeOptions(correct, distractors, seed);
+    return makeQuestion(
+      "NVRT Reflection",
+      "Which option shows the mirror image of the figure on the left?",
+      placed.answer,
+      4,                                                                                  // Super Hard — many simultaneous details to track
+      reflectionLinesSvg(source, placed.options, axis),
+      "Generated original NVRT reflection puzzle with complex line+mark figure."
     );
   }
 
@@ -4004,6 +4167,7 @@
   for (let i = 0; i < 240; i++) generated.push(genOddOneOut(i));
   for (let i = 0; i < 240; i++) generated.push(genGrid(i + 1000));
   for (let i = 0; i < 240; i++) generated.push(genReflection(i + 2000));
+  for (let i = 0; i < 60; i++) generated.push(genReflectionLineSuperHard(i + 2500));
   for (let i = 0; i < 240; i++) generated.push(genAnalogy(i + 3000));
   for (let i = 0; i < 120; i++) generated.push(genGroupMembership(i + 4000));
   for (let i = 0; i < 120; i++) generated.push(genSeries(i + 5000));
