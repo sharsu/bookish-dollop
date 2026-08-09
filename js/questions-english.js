@@ -167,7 +167,51 @@
     ["thankfully", "thankfuly", 1], ["thorough", "thourough", 3], ["tomorrow", "tomorow", 1],
     ["tongue", "tounge", 2], ["twelfth", "twelth", 3], ["unnecessary", "unecessary", 3],
     ["until", "untill", 1], ["vegetable", "vegtable", 1], ["vengeance", "vengance", 4],
-    ["vicious", "visious", 3], ["Wednesday", "Wendsday", 1], ["weird", "wierd", 2]
+    ["vicious", "visious", 3], ["Wednesday", "Wendsday", 1], ["weird", "wierd", 2],
+    /* QE Boys scholarship spelling workbook (other-papers/Spelling.pdf):
+       110 words grouped by letter pattern. The misspelling for each is the
+       error its own pattern invites — -able/-ible and -cial/-tial swapped,
+       -cies written -cys, doubled letters reduced to one. */
+    ["acceptable", "acceptible", 2], ["achievable", "achievible", 2],
+    ["advisable", "advisible", 2], ["agreeable", "agreable", 2], ["available", "availible", 2],
+    ["avoidable", "avoidible", 2], ["believable", "believible", 2],
+    ["breakable", "breakible", 2], ["dependable", "dependible", 2],
+    ["enjoyable", "enjoyible", 2], ["comfortable", "comfortible", 3],
+    ["considerable", "considerible", 3], ["fashionable", "fashionible", 3],
+    ["identifiable", "identifyable", 3], ["knowledgeable", "knowledgable", 3],
+    ["manageable", "managable", 3], ["memorable", "memorible", 3],
+    ["predictable", "predictible", 3], ["reasonable", "reasonible", 3],
+    ["reliable", "relyable", 3], ["remarkable", "remarkible", 3],
+    ["respectable", "respectible", 3], ["valuable", "valuible", 3],
+    ["accessible", "accessable", 3], ["audible", "audable", 3],
+    ["compatible", "compatable", 3], ["comprehensible", "comprehensable", 3],
+    ["contemptible", "contemptable", 3], ["credible", "credable", 3], ["edible", "edable", 3],
+    ["eligible", "eligable", 3], ["flexible", "flexable", 3], ["gullible", "gullable", 3],
+    ["horrible", "horrable", 3], ["illegible", "illegable", 3],
+    ["incredible", "incredable", 3], ["irresistible", "irresistable", 3],
+    ["invincible", "invincable", 3], ["invisible", "invisable", 3],
+    ["permissible", "permissable", 4], ["possible", "possable", 4],
+    ["responsible", "responsable", 4], ["reversible", "reversable", 4],
+    ["sensible", "sensable", 4], ["susceptible", "susceptable", 4],
+    ["terrible", "terrable", 4], ["aggressive", "agressive", 3],
+    ["appreciate", "apreciate", 3], ["assessment", "asessment", 3],
+    ["brilliant", "briliant", 3], ["communicate", "comunicate", 3],
+    ["millennium", "millenium", 3], ["profession", "proffession", 3],
+    ["sufficient", "sufficent", 4], ["artificial", "artifitial", 4],
+    ["beneficial", "benefitial", 4], ["commercial", "commertial", 4],
+    ["crucial", "crutial", 4], ["financial", "finantial", 4], ["official", "offitial", 4],
+    ["social", "sotial", 4], ["special", "spetial", 4], ["superficial", "superfitial", 4],
+    ["confidential", "confidencial", 4], ["influential", "influencial", 4],
+    ["potential", "potencial", 4], ["atrocious", "atrotious", 4],
+    ["audacious", "audatious", 4], ["delicious", "delitious", 4],
+    ["ferocious", "ferotious", 4], ["gracious", "gratious", 4], ["malicious", "malitious", 4],
+    ["suspicious", "suspitious", 4], ["tenacious", "tenatious", 4],
+    ["accuracies", "accuracys", 4], ["agencies", "agencys", 4],
+    ["conspiracies", "conspiracys", 4], ["delicacies", "delicacys", 4],
+    ["democracies", "democracys", 4], ["emergencies", "emergencys", 4],
+    ["frequencies", "frequencys", 4], ["inconsistencies", "inconsistencys", 4],
+    ["inefficiencies", "inefficiencys", 4], ["legacies", "legacys", 4],
+    ["vacancies", "vacancys", 4]
   ];
 
   function spellFindMisspelt(i) {
@@ -196,6 +240,11 @@
     ];
   }
 
+  /* These two walk SPELLING_PAIRS, which is far longer than the default
+     variation count. Declaring the pool size tells the driver to run enough
+     variations to reach every word — without it most of the pool is dead. */
+  spellFindMisspelt.poolSize = SPELLING_PAIRS.length;
+
   function spellChooseCorrect(i) {
     const [right, wrong, level] = pick(SPELLING_PAIRS, i);
     const wrongOptions = firstDistinct(right, [wrong, ...misspellVariants(right)]);
@@ -205,6 +254,8 @@
     return mkE("Spelling", "Which of these is the correct spelling?",
       right, wrongOptions, Math.max(1, level - 1), i);
   }
+
+  spellChooseCorrect.poolSize = SPELLING_PAIRS.length;
 
   /* The exam-style "find the mistake in this sentence" question. These are
      written out rather than slotted into a frame: a shared frame cannot host
@@ -1227,7 +1278,10 @@
   Object.values(generators).forEach(gens => {
     gens.forEach(([gen, lo, hi], gIdx) => {
       const span = lo ? hi - lo + 1 : 0;
-      for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
+      // A generator backed by a pool bigger than the default needs one variation
+      // per pool entry, or the tail of the pool is never reached.
+      const variations = Math.max(VARIATIONS_PER_TEMPLATE, gen.poolSize || 0);
+      for (let v = 0; v < variations; v++) {
         try {
           const q = gen(v + gIdx * 13);
           if (!q) continue;
