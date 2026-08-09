@@ -167,6 +167,15 @@ const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
 const ADAPTIVE_RESULTS_WINDOW = 5;
 const MAX_STORED_RESULTS = 100;
+/* Paper length / timing for one test type, from CONFIG.papers. A missing row,
+   or a value that is absent or not a positive number, falls back to the global
+   default, so a typo shortens nothing. */
+function paperSetting(testType, key, fallback) {
+  const row = (CONFIG.papers || {})[testType] || {};
+  const value = Number(row[key]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 const TEST_TYPE_CONFIG = Object.freeze({
   maths: {
     key: "maths",
@@ -175,8 +184,8 @@ const TEST_TYPE_CONFIG = Object.freeze({
     setupSubtitle: "Good luck! Do your best! 🌟",
     startLabel: "🚀 Start Maths Test",
     learnTopics: true,
-    defaultQuestions: CONFIG.defaultQuestions,
-    defaultTimeLimit: CONFIG.defaultTimeLimit
+    defaultQuestions: paperSetting("maths", "questions", CONFIG.defaultQuestions),
+    defaultTimeLimit: paperSetting("maths", "timeLimit", CONFIG.defaultTimeLimit)
   },
   nvrt: {
     key: "nvrt",
@@ -185,13 +194,25 @@ const TEST_TYPE_CONFIG = Object.freeze({
     setupSubtitle: "Look for patterns, read carefully and trust your thinking. 🧩",
     startLabel: "🧩 Start NVRT Test",
     learnTopics: false,
-    defaultQuestions: CONFIG.defaultQuestions,
-    defaultTimeLimit: CONFIG.defaultTimeLimit
+    defaultQuestions: paperSetting("nvrt", "questions", CONFIG.defaultQuestions),
+    defaultTimeLimit: paperSetting("nvrt", "timeLimit", CONFIG.defaultTimeLimit)
+  },
+  english: {
+    key: "english",
+    label: "English Test",
+    setupTitle: "Ready for an English Test?",
+    setupSubtitle: "Read every question twice — the clue is always in the words. 📖",
+    startLabel: "📖 Start English Test",
+    learnTopics: false,
+    defaultQuestions: paperSetting("english", "questions", CONFIG.defaultQuestions),
+    defaultTimeLimit: paperSetting("english", "timeLimit", CONFIG.defaultTimeLimit)
   }
 });
 
+const TEST_TYPE_KEYS = Object.keys(TEST_TYPE_CONFIG);
+
 function normalizeTestType(testType) {
-  return testType === "nvrt" ? "nvrt" : "maths";
+  return TEST_TYPE_KEYS.includes(testType) ? testType : "maths";
 }
 
 function getTestTypeConfig(testType) {
@@ -207,6 +228,9 @@ function getQuestionBankForTestType(testType) {
   const root = typeof window !== "undefined" ? window : globalThis;
   if (normalized === "nvrt") {
     return Array.isArray(root.NVRT_QUESTIONS) ? root.NVRT_QUESTIONS : [];
+  }
+  if (normalized === "english") {
+    return Array.isArray(root.ENGLISH_QUESTIONS) ? root.ENGLISH_QUESTIONS : [];
   }
   return typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS) ? QUESTIONS : [];
 }
@@ -388,14 +412,41 @@ function clearActiveExamState() {
   }
 }
 
-function getValidQuestionPool(pool) {
-  if (!Array.isArray(pool)) return [];
-  return pool.filter(q => q && typeof q.difficulty === "number" && Array.isArray(q.options));
+const ALL_DIFFICULTIES = [1, 2, 3, 4];
+
+/* The difficulties a paper of this type may use, from CONFIG.allowedDifficulties.
+   Anything unusable — missing, empty, or containing no real level — falls back
+   to all four, so a mistake in the config can never produce an empty paper. */
+function getAllowedDifficulties(testType) {
+  const configured = CONFIG.allowedDifficulties || {};
+  const chosen = configured[normalizeTestType(testType)] || configured.default;
+  const levels = ALL_DIFFICULTIES.filter(level => Array.isArray(chosen) && chosen.includes(level));
+  return levels.length ? levels : ALL_DIFFICULTIES.slice();
 }
 
-function buildDifficultyTargets(totalQuestions) {
-  const difficulties = [1, 2, 3, 4];
-  return buildTargets(difficulties, totalQuestions);
+/* `allowed` is optional: resuming a saved exam re-validates the questions the
+   child is already partway through, and must not drop any of them even if the
+   allowed range has been narrowed since that paper was started. */
+function getValidQuestionPool(pool, allowed) {
+  if (!Array.isArray(pool)) return [];
+  return pool.filter(q =>
+    q && typeof q.difficulty === "number" && Array.isArray(q.options) &&
+    (!allowed || allowed.includes(q.difficulty)));
+}
+
+function buildDifficultyTargets(totalQuestions, allowed = ALL_DIFFICULTIES) {
+  return buildTargets(allowed, totalQuestions);
+}
+
+/* Drop the levels this paper may not use and rescale what is left back to 1,
+   so narrowing the range shifts the weight onto the remaining levels instead
+   of silently shortening the paper. */
+function restrictWeights(weightMap, allowed) {
+  const weighted = allowed.filter(level => (weightMap[level] || 0) > 0);
+  const levels = weighted.length ? weighted : allowed;
+  const total = levels.reduce((sum, level) => sum + (weightMap[level] || 0), 0);
+  if (!total) return Object.fromEntries(levels.map(level => [level, 1 / levels.length]));
+  return Object.fromEntries(levels.map(level => [level, (weightMap[level] || 0) / total]));
 }
 
 function buildWeightedTargets(items, weightMap, totalQuestions) {
@@ -441,25 +492,91 @@ function hasAvailableQuestionsForTopic(buckets, topic, difficulties) {
   return difficulties.some(level => getBucketCount(buckets, level, topic) > 0);
 }
 
-function buildAdaptiveDifficultyTargets(totalQuestions, recentResults) {
+/* Decide which comprehension passages a paper will use, before any question is
+   picked. Real papers pair one classic literary text with one modern or
+   non-fiction text, so that is what this builds: the first pick is always
+   Classic, the rest come from the other categories, and only if those run out
+   does it take a second Classic. */
+function chooseQuestionGroups(pool, count, shuffleArray) {
+  const categoryOf = new Map();
+  const linesOf = new Map();
+  pool.forEach(q => {
+    if (!q?.group || categoryOf.has(q.group)) return;
+    categoryOf.set(q.group, q.groupCategory || "");
+    linesOf.set(q.group, Number(q.groupLines) || 0);
+  });
+  if (!categoryOf.size) return new Set();
+
+  /* A text past this length is a paper on its own — asking a child to read
+     two of them inside the time allowed is not a comprehension test. */
+  const lineLimit = Number(CONFIG.singlePassageLineLimit) || Infinity;
+  const isLong = group => linesOf.get(group) > lineLimit;
+
+  const shuffled = shuffleArray([...categoryOf.keys()]);
+  const classics = shuffled.filter(group => categoryOf.get(group) === "Classic");
+  const modern = shuffled.filter(group => categoryOf.get(group) !== "Classic");
+
+  // Papers lead with a classic literary text; the rest are modern or non-fiction.
+  const first = classics.shift() || modern.shift();
+  if (!first) return new Set();
+  if (isLong(first)) return new Set([first]);
+
+  const chosen = [first];
+  const rest = [...modern, ...classics].filter(group => !isLong(group));
+  while (chosen.length < count && rest.length) chosen.push(rest.shift());
+
+  return new Set(chosen);
+}
+
+/* Take the next question from a bucket, preferring the chosen passage that has
+   contributed fewest questions so far, so the comprehension quota is spread
+   evenly across the passages instead of exhausting one before starting another. */
+function takeQuestionFromBucket(bucket, groupCounts) {
+  let bestIndex = -1;
+  let fewestUsed = Infinity;
+  for (let i = bucket.length - 1; i >= 0; i -= 1) {
+    const group = bucket[i]?.group;
+    if (!group) continue;
+    const used = groupCounts[group] || 0;
+    if (used < fewestUsed) { fewestUsed = used; bestIndex = i; }
+  }
+  return bestIndex === -1 ? bucket.pop() : bucket.splice(bestIndex, 1)[0];
+}
+
+/* Pull grouped questions together so they run consecutively. A group takes the
+   position of its first member, so the surrounding shuffle is preserved, and
+   within a group the questions keep their authored order (id ascending) — the
+   passages are written to move from retrieval towards inference. */
+function orderGroupsTogether(questions) {
+  const ordered = [];
+  const placed = new Set();
+
+  questions.forEach(question => {
+    const group = question.group;
+    if (!group) { ordered.push(question); return; }
+    if (placed.has(group)) return;
+    placed.add(group);
+    ordered.push(...questions
+      .filter(other => other.group === group)
+      .sort((a, b) => (a.id || 0) - (b.id || 0)));
+  });
+
+  return ordered;
+}
+
+function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES) {
   const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
-  if (recent.length < 2) return buildDifficultyTargets(totalQuestions);
+  if (recent.length < 2) return buildDifficultyTargets(totalQuestions, allowed);
 
   const averageScore = averageOf(recent.map(result => result.percentage));
-  if (averageScore < 45) {
-    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.4, 2: 0.35, 3: 0.2, 4: 0.05 }, totalQuestions);
-  }
-  if (averageScore < 60) {
-    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.3, 2: 0.3, 3: 0.25, 4: 0.15 }, totalQuestions);
-  }
-  if (averageScore < 75) {
-    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.2, 2: 0.3, 3: 0.3, 4: 0.2 }, totalQuestions);
-  }
-  if (averageScore < 85) {
-    return buildWeightedTargets([1, 2, 3, 4], { 1: 0.15, 2: 0.25, 3: 0.3, 4: 0.3 }, totalQuestions);
-  }
+  const weights =
+    averageScore < 45 ? { 1: 0.4,  2: 0.35, 3: 0.2,  4: 0.05 } :
+    averageScore < 60 ? { 1: 0.3,  2: 0.3,  3: 0.25, 4: 0.15 } :
+    averageScore < 75 ? { 1: 0.2,  2: 0.3,  3: 0.3,  4: 0.2  } :
+    averageScore < 85 ? { 1: 0.15, 2: 0.25, 3: 0.3,  4: 0.3  } :
+                        { 1: 0.1,  2: 0.2,  3: 0.3,  4: 0.4  };
 
-  return buildWeightedTargets([1, 2, 3, 4], { 1: 0.1, 2: 0.2, 3: 0.3, 4: 0.4 }, totalQuestions);
+  return buildWeightedTargets(allowed, restrictWeights(weights, allowed), totalQuestions);
 }
 
 function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
@@ -476,26 +593,43 @@ function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
 
     if (!percentages.length) return [topic, fallbackOrder.slice()];
 
+    // Preference orders are written across all four levels, then narrowed to
+    // the ones this paper is allowed to use.
+    const allowed = fallbackOrder;
+    const prefer = order => [topic, order.filter(level => allowed.includes(level))];
+
     const averageTopicScore = averageOf(percentages);
-    if (averageTopicScore < 50) return [topic, [1, 2, 3, 4]];
-    if (averageTopicScore < 65) return [topic, [2, 1, 3, 4]];
-    if (averageTopicScore < 80) return [topic, [3, 2, 4, 1]];
-    return [topic, [4, 3, 2, 1]];
+    if (averageTopicScore < 50) return prefer([1, 2, 3, 4]);
+    if (averageTopicScore < 65) return prefer([2, 1, 3, 4]);
+    if (averageTopicScore < 80) return prefer([3, 2, 4, 1]);
+    return prefer([4, 3, 2, 1]);
   }));
 }
 
 function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
-  const validPool = getValidQuestionPool(pool);
-  const difficultyOrder = shuffleArray([1, 2, 3, 4]);
+  const allowed = getAllowedDifficulties(options.testType);
+  const rangePool = getValidQuestionPool(pool, allowed);
+
+  /* Fix the comprehension passages up front and draw only from those, so the
+     paper is guaranteed the configured number of passages across categories
+     rather than however many the question-by-question picking happens to open. */
+  const passageCount = Math.max(1, Number(CONFIG.comprehensionPassagesPerPaper) || 1);
+  const chosenGroups = chooseQuestionGroups(rangePool, passageCount, shuffleArray);
+  const validPool = chosenGroups.size
+    ? rangePool.filter(q => !q.group || chosenGroups.has(q.group))
+    : rangePool;
+
+  const difficultyOrder = shuffleArray(allowed.slice());
   const topics = shuffleArray([...new Set(validPool.map(q => q.topic))]);
   const storedResults = loadStoredResults().filter(result => matchesTestType(result, options.testType));
   const studentResults = options.studentName
     ? storedResults.filter(result => result.studentName === options.studentName)
     : storedResults;
-  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults);
+  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults, allowed);
   const topicTargets = buildTargets(topics, totalQuestions);
   const topicDifficultyPreferences = buildTopicDifficultyPreferences(topics, studentResults, difficultyOrder);
   const selected = [];
+  const groupCounts = {};
   const difficultyCounts = Object.fromEntries(difficultyOrder.map(level => [level, 0]));
   const topicCounts = Object.fromEntries(topics.map(topic => [topic, 0]));
   const topicDifficultyCounts = Object.fromEntries(
@@ -558,10 +692,11 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
     });
 
     const chosenDifficulty = difficultyPool[0];
-    const nextQuestion = buckets[chosenDifficulty][chosenTopic].pop();
+    const nextQuestion = takeQuestionFromBucket(buckets[chosenDifficulty][chosenTopic], groupCounts);
     if (!nextQuestion) break;
 
     selected.push(nextQuestion);
+    if (nextQuestion.group) groupCounts[nextQuestion.group] = (groupCounts[nextQuestion.group] || 0) + 1;
     difficultyCounts[chosenDifficulty] += 1;
     topicCounts[chosenTopic] += 1;
     topicDifficultyCounts[chosenTopic][chosenDifficulty] += 1;
@@ -575,7 +710,7 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
     selected.push(...shuffleArray(leftovers).slice(0, totalQuestions - selected.length));
   }
 
-  return shuffleArray(selected.slice(0, totalQuestions));
+  return orderGroupsTogether(selected.slice(0, totalQuestions));
 }
 
 function getStudyGuideRegistry() {
@@ -950,12 +1085,15 @@ class ExamApp {
     }
 
     if (!this.selectedTestType) {
-      this.showError("Please choose Maths or NVRT first");
+      this.showError("Please choose Maths, NVRT or English first");
       return;
     }
 
-    const pool = getValidQuestionPool(getQuestionBankForTestType(this.selectedTestType));
-    console.log("Total questions available:", pool.length);
+    // Count only what this paper is actually allowed to draw on, so the check
+    // and the error message match what selectQuizQuestions will really see.
+    const allowed = getAllowedDifficulties(this.selectedTestType);
+    const pool = getValidQuestionPool(getQuestionBankForTestType(this.selectedTestType), allowed);
+    console.log(`Questions available at difficulties ${allowed.join(", ")}:`, pool.length);
 
     if (pool.length < this.numQuestions) {
       this.showError(`Not enough questions available. Found: ${pool.length}`);
@@ -1612,8 +1750,11 @@ class ExamApp {
       this.quizScreen.removeAttribute("hidden");
       const quizMain = this.quizScreen.querySelector(".quiz-main");
       if (quizMain) {
-        const isNvrt = normalizeTestType(this.selectedTestType) === "nvrt";
-        quizMain.classList.toggle("nvrt-mode", isNvrt);
+        const normalized = normalizeTestType(this.selectedTestType);
+        // Neither NVRT nor English needs the rough-work pad; both read better
+        // across the full width, English especially with comprehension passages.
+        quizMain.classList.toggle("nvrt-mode", normalized === "nvrt");
+        quizMain.classList.toggle("english-mode", normalized === "english");
       }
       console.log("✓ Quiz screen shown");
     } else {

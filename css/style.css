@@ -353,7 +353,16 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .review-item.review-correct { border-color: #86efac; background: #f0fdf4; }
 .review-item.review-wrong   { border-color: #fca5a5; background: #fff1f2; }
 .review-item.review-skip    { border-color: #d1d5db; background: #f9fafb; }
-.review-q  { font-weight: 600; margin-bottom: 8px; font-size: .95rem; }
+/* pre-line keeps English comprehension passages readable in the review list;
+   the max-height stops a single passage from swamping the whole page. */
+.review-q  {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: .95rem;
+  white-space: pre-line;
+  max-height: 12em;
+  overflow-y: auto;
+}
 .review-meta { font-size: .85rem; color: var(--muted); }
 .review-meta span { margin-right: 14px; }
 
@@ -476,6 +485,32 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 .quiz-main.nvrt-mode .question-media img {
   max-width: 100%;
   height: auto;
+}
+
+/* English mode: same full-width treatment as NVRT, but the question text is a
+   comprehension passage, so it keeps its line breaks and drops to a readable
+   body size instead of the large bold maths prompt. */
+.quiz-main.english-mode .quiz-right-side {
+  display: none;
+}
+.quiz-main.english-mode .quiz-left-side {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.quiz-main.english-mode .question-card {
+  padding: 28px 32px;
+}
+.quiz-main.english-mode .question-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.75;
+  white-space: pre-line;
+  text-align: left;
+}
+.quiz-main.english-mode .option-btn {
+  text-align: left;
+  line-height: 1.5;
 }
 
 .btn-icon-small {

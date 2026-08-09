@@ -42,18 +42,37 @@ const QUESTIONS = [];
      Uses i/3 so consecutive variations within a small window get different wording. */
   const pickWording = (i, variants) => variants[Math.floor(i / 3) % variants.length];
 
-  /* mk(topic, question, correct, distractors, difficulty, seed) → MCQ object */
+  /* nudge("540 cm³", 7) → "547 cm³";  nudge("£8.64", 3) → "£11.64"
+     Shifts the number inside an answer while keeping its units, currency
+     symbol, thousands separators and decimal places, so a made-up option is
+     indistinguishable in shape from a real one. Returns null when the answer
+     holds no number to shift. */
+  const nudge = (text, step) => {
+    const match = `${text}`.match(/-?\d[\d,]*(?:\.\d+)?/);
+    if (!match) return null;
+    const raw = match[0];
+    const value = Number(raw.replace(/,/g, ""));
+    if (!Number.isFinite(value)) return null;
+    const next = value + step;
+    const decimals = (raw.split(".")[1] || "").length;
+    const shown = decimals ? next.toFixed(decimals)
+      : (raw.includes(",") ? comma(next) : `${next}`);
+    return `${text}`.replace(raw, shown);
+  };
+
+  /* mk(topic, question, correct, distractors, difficulty, seed) → MCQ object.
+     Returns null if four genuinely distinct options cannot be built, so the
+     driver drops the question rather than shipping a filler option. */
   const mk = (topic, question, correct, distractors, difficulty, seed) => {
     const uniq = [];
     [correct, ...distractors].map(v => `${v}`).forEach(v => { if (!uniq.includes(v)) uniq.push(v); });
-    const num = Number(correct);
-    let pad = 1;
-    while (uniq.length < 4) {
-      const cand = Number.isFinite(num) ? fmt(num + pad * 3 + difficulty) : `${uniq[0]} v${pad}`;
-      if (!uniq.includes(cand)) uniq.push(cand);
-      pad++;
-      if (pad > 30) uniq.push(`${uniq[0]}_${uniq.length}`);
+
+    for (let pad = 1; uniq.length < 4 && pad <= 40; pad++) {
+      const cand = nudge(uniq[0], pad * 3 + difficulty);
+      if (cand && !uniq.includes(cand)) uniq.push(cand);
     }
+    if (uniq.length < 4) return null;
+
     const pos = ((seed % 4) + 4) % 4;
     const opts = uniq.slice(1, 4);
     opts.splice(pos, 0, uniq[0]);
@@ -1449,11 +1468,18 @@ const QUESTIONS = [];
     const year = 1980 + (i % 40), given = i % 7;
     const shift = isLeap(year) ? 2 : 1;
     const ansIdx = (given + shift) % 7;
+    /* Keep the "forgot to shift at all" day as a distractor, but only when it
+       is not already the answer or one of the neighbours — in a common year
+       the shift is 1, so the starting day IS the day before the answer. */
+    const wrong = [];
+    [given, (ansIdx + 1) % 7, (ansIdx + 6) % 7, (ansIdx + 2) % 7, (ansIdx + 3) % 7]
+      .forEach(idx => {
+        const day = wrapDay(idx);
+        if (idx !== ansIdx && !wrong.includes(day)) wrong.push(day);
+      });
     return mk("Logic",
       `A date in ${year} fell on a ${wrapDay(given)}. On which day will the same date fall in ${year + 1}?`,
-      wrapDay(ansIdx),
-      [wrapDay((ansIdx + 1) % 7), wrapDay((ansIdx + 6) % 7), wrapDay(given)],
-      diff(i, 3), i);
+      wrapDay(ansIdx), wrong.slice(0, 3), diff(i, 3), i);
   }
 
   function logLeapYearPick(i) {
@@ -1581,49 +1607,848 @@ const QUESTIONS = [];
       diff(i, 4), i);
   }
 
-  /* ═══════════════════ DRIVER ═══════════════════ */
+  /* ═══════════════════ FROM THE SCANNED PAPERS ═══════════════════
+     Question shapes taken from the QE / Examberry / Exam Papers Plus papers
+     and screenshots in question-bank/ that the templates above did not
+     already cover. */
 
-  const generators = {
-    Numbers: [numPlaceValue, numPlaceValueDiff, numRounding, numRoundingBounds, numIsPrime,
-              numLCM, numHCF, numHCFofFour, numPowers, numFactorCount, numPrimeFactorCount,
-              numArithmetic, numWordProblem, numBusLCM, numSmallestEvenFromDigits,
-              numCubeMissing, numPrimeSumSquare, numFourConsecOdd],
-    Decimals: [decAdd, decSubtract, decMultiply, decDivide, decCompare, decRound, decToFrac,
-               decHalfway, decMultFactReuse, decPriceChange],
-    Fractions: [fracAdd, fracSubtract, fracMultiply, fracDivide, fracSimplify,
-                fracImproperToMixed, fracOfX, fracMixedMultiply],
-    Percentages: [pctOf, pctFracToPct, pctDecToPct, pctSalePrice, pctIncrease,
-                  pctSimpleInterest, pctReverse, pctChained],
-    BIDMAS: [bidSimple, bidBrackets, bidPowers, bidMixed, bidNegative, bidTempChange],
-    Algebra: [algSubLinear, algSubMulti, algSubQuadratic, algSolve1Step, algSolve2Step,
-              algSolveBothSides, algSimplifyTerms, algCustomOp, algWeightPair, algTriangleAngles],
-    Sequences: [seqArithNext, seqArithNth, seqArithNthFormula, seqFibLike, seqGeomNext, seqBallPattern],
-    Ratio: [ratSimplify, ratSplit, ratWordTotal, ratDifference, ratRecipe,
-            ratMapScale, ratInverseProp, ratChained],
-    Speed: [spdFindSpeed, spdFindDistance, spdFindTime, spdMphHoursMin],
-    Measurement: [meaUnitConvert, meaAreaPerim, meaVolumeCube, meaTempDiff,
-                  meaInchConvert, meaMoneyChange],
-    Geometry: [geoAngleSum, geoAngleType, geoShapeAngle, geoComplementary, geoTriangleArea,
-               geoLinesSymmetry, geoRotSymmetry, geoPrismFEV, geoCuboidMissingEdge],
-    Statistics: [statMean, statMedian, statMode, statRange, statMissingMean,
-                 statFreqMidpoint, statPieAngle, statPictogram, statCorrelation],
-    Probability: [probBagPick, probDie, probCoin, probComplement, probExpected, probIndependent],
-    Logic: [logConsecutiveIntSum, logConsecutiveEvenSum, logConsecutiveOddPuzzle,
-            logPalindromeYesNo, logNextPalindrome, logSquarePalindromesInRange,
-            logDayOfWeek, logDayWeeksAgo, logDayShiftAcrossYear, logLeapYearPick, logLeapBirthday,
-            logClockAngleAtHour, logClockMirror, logSumAndDiff, logArithmagonProduct,
-            logAdditionPyramid, logLetterPuzzle, logMagicSquareRow, logDigitSumOfSum]
+  /* Fraction of a fraction — "3/7 of the toys are unicorns, 2/9 of those are
+     faulty". Distinct from fracMultiply, which asks for the bare product. */
+  function fracOfFrac(i) {
+    const a = 1 + (i % 5), b = 3 + ((i * 3) % 7);
+    const c = 1 + ((i * 2) % 4), d = 3 + ((i * 5) % 8);
+    if (a >= b || c >= d) return null;
+    const items = ["pink unicorns", "wooden trains", "toy robots", "blue kites", "rubber ducks"];
+    const item = items[i % items.length];
+    return mk("Fractions",
+      `Of all the toys produced in a factory, ${simp(a, b)} of them are ${item}. ${simp(c, d)} of the ${item} are faulty. What fraction of all the toys are faulty ${item}?`,
+      simp(a * c, b * d),
+      [simp(a + c, b + d), simp(a * c, b + d), simp(a * d, b * c)],
+      diff(i, 3), i);
+  }
+
+  /* Sale discount followed by change from a note. */
+  function pctSaleChange(i) {
+    const discount = [10, 20, 25, 50][i % 4];
+    const priceA = 500 + 20 * (i % 35);   // pence, kept a multiple of 20 so
+    const priceB = 620 + 20 * ((i * 3) % 30); // every discount stays whole pence
+    const note = 2000;
+    const total = (priceA + priceB) * (100 - discount) / 100;
+    if (total >= note) return null;
+    const ans = (note - total) / 100;
+    return mk("Percentages",
+      `A shop has a ${discount}% off sale. Lisa buys a kettle normally priced at ${fmtMoney(priceA / 100)} and a CD normally priced at ${fmtMoney(priceB / 100)}. How much change should she receive from a £${note / 100} note?`,
+      `£${ans.toFixed(2)}`,
+      [`£${((note - priceA - priceB) / 100).toFixed(2)}`, `£${(total / 100).toFixed(2)}`, `£${(ans + discount / 100).toFixed(2)}`],
+      diff(i, 3), i);
+  }
+
+  /* Rotation of a point about a centre. Anticlockwise 90° about (cx, cy):
+     (x, y) → (cx − (y − cy), cy + (x − cx)). */
+  function geoRotationCoords(i) {
+    const cx = i % 4, cy = 1 + (i % 3);
+    const px = cx + 1 + (i % 5), py = cy + 2 + (i % 4);
+    const anticlockwise = i % 2 === 0;
+    const dx = px - cx, dy = py - cy;
+    const ans = anticlockwise ? [cx - dy, cy + dx] : [cx + dy, cy - dx];
+    const wrongWay = anticlockwise ? [cx + dy, cy - dx] : [cx - dy, cy + dx];
+    const pt = ([x, y]) => `(${x}, ${y})`;
+    return mk("Geometry",
+      `A shape is rotated 90° ${anticlockwise ? "anticlockwise" : "clockwise"} about the point ${pt([cx, cy])}. One corner of the shape is at ${pt([px, py])}. What are its new coordinates?`,
+      pt(ans), [pt(wrongWay), pt([-px, -py]), pt([py, px])],
+      diff(i, 3), i);
+  }
+
+  /* Two identical rectangles laid one over the other, overlap given. */
+  function meaOverlapArea(i) {
+    const w = 6 + (i % 10), h = 10 + ((i * 3) % 12);
+    const one = w * h;
+    const overlap = 12 + 6 * (i % 8);
+    if (overlap >= one) return null;
+    const ans = 2 * one - overlap;
+    return mk("Measurement",
+      `Two identical rectangles measuring ${w} cm by ${h} cm are placed one on top of the other so that they overlap. The overlapping region has an area of ${overlap} cm². What is the area of the combined shape?`,
+      `${ans} cm²`,
+      [`${2 * one} cm²`, `${one} cm²`, `${one - overlap} cm²`],
+      diff(i, 3), i);
+  }
+
+  /* Pie chart: scale a known sector up to another sector. */
+  function statPieFromAngle(i) {
+    const knownAngle = [30, 36, 40, 45, 60, 72, 90, 120][i % 8];
+    const per = 2 + (i % 6);                     // people per degree
+    const knownCount = knownAngle * per;
+    const askAngle = [60, 90, 120, 150, 180][i % 5];
+    if (askAngle === knownAngle) return null;
+    const ans = askAngle * per;
+    return mk("Statistics",
+      `In a pie chart showing how a group of students voted, a sector of ${knownAngle}° represents ${knownCount} students. How many students does a sector of ${askAngle}° represent?`,
+      comma(ans),
+      [comma(knownCount), comma(ans + per * 10), comma(Math.round(ans / 2))],
+      diff(i, 3), i);
+  }
+
+  /* Bar chart total: Σ (value × frequency). */
+  function statFreqTotal(i) {
+    const freqs = [8 + (i % 5), 14 + ((i * 3) % 6), 9 + ((i * 5) % 5), 2 + (i % 4)];
+    const total = freqs.reduce((acc, f, value) => acc + value * f, 0);
+    const students = sum(freqs);
+    return mk("Statistics",
+      `A class was asked to bring in school vouchers. ${freqs[0]} students brought 0 vouchers, ${freqs[1]} brought 1, ${freqs[2]} brought 2 and ${freqs[3]} brought 3. How many vouchers did the class bring in altogether?`,
+      `${total}`,
+      [`${students}`, `${total - freqs[3]}`, `${total + freqs[1]}`],
+      diff(i, 3), i);
+  }
+
+  /* "Which of these is NOT true of a …" – shape property recall. */
+  const SHAPE_FACTS = [
+    { shape: "rhombus",
+      truths: ["It has two pairs of parallel sides", "It has two pairs of equal angles", "It has exactly two lines of symmetry", "It has rotational symmetry of order 2"],
+      falsehood: "It has exactly two sides of equal length" },
+    { shape: "square",
+      truths: ["It has four lines of symmetry", "Its diagonals cross at right angles", "It has rotational symmetry of order 4", "All four of its angles are 90°"],
+      falsehood: "It has exactly two lines of symmetry" },
+    { shape: "parallelogram",
+      truths: ["Opposite sides are equal in length", "Opposite angles are equal", "It has rotational symmetry of order 2", "Its angles add up to 360°"],
+      falsehood: "It has two lines of symmetry" },
+    { shape: "kite",
+      truths: ["It has exactly one line of symmetry", "It has two pairs of adjacent equal sides", "One pair of opposite angles is equal", "Its diagonals cross at right angles"],
+      falsehood: "It has two pairs of parallel sides" },
+    { shape: "regular hexagon",
+      truths: ["It has six lines of symmetry", "It has rotational symmetry of order 6", "Each interior angle is 120°", "Its interior angles add up to 720°"],
+      falsehood: "Its interior angles add up to 540°" },
+    { shape: "isosceles trapezium",
+      truths: ["It has exactly one pair of parallel sides", "It has one line of symmetry", "It has two pairs of equal angles", "Its angles add up to 360°"],
+      falsehood: "It has rotational symmetry of order 2" }
+  ];
+
+  function geoShapeProperty(i) {
+    const fact = SHAPE_FACTS[i % SHAPE_FACTS.length];
+    const start = i % fact.truths.length;
+    const truths = [0, 1, 2].map(k => fact.truths[(start + k) % fact.truths.length]);
+    const article = /^[aeiou]/i.test(fact.shape) ? "an" : "a";
+    return mk("Geometry",
+      `Which of the following is NOT true of ${article} ${fact.shape}?`,
+      fact.falsehood, truths, diff(i, 3), i);
+  }
+
+  /* Overlapping-sets percentage: neither = 100 − (A + B − both). */
+  function pctVennNeither(i) {
+    const total = 200 + 50 * (i % 5);
+    const both = 12 + 2 * (i % 9);
+    const onlyPlusBothA = both + 10 + 2 * (i % 8);
+    const onlyPlusBothB = both + 6 + 2 * ((i * 3) % 7);
+    const union = onlyPlusBothA + onlyPlusBothB - both;
+    if (union >= 100) return null;
+    const neitherPct = 100 - union;
+    const ans = total * neitherPct / 100;
+    if (!Number.isInteger(ans)) return null;
+    return mk("Percentages",
+      `Out of ${total} students in a school, ${both}% of them play both rugby and cricket. ${onlyPlusBothA}% of students play rugby and ${onlyPlusBothB}% of students play cricket. How many students play neither rugby nor cricket?`,
+      comma(ans),
+      [comma(total * union / 100), comma(total * both / 100), comma(total * (100 - onlyPlusBothA - onlyPlusBothB) / 100)],
+      diff(i, 2), i);
+  }
+
+  /* Matchstick-style growing pattern — the nth term as an expression. */
+  function seqMatchstickNth(i) {
+    const d = 2 + (i % 4);
+    const first = d + 1 + (i % 3);
+    const c = first - d;
+    const term = n => `${d}${n}${c === 0 ? "" : (c > 0 ? ` + ${c}` : ` - ${-c}`)}`;
+    return mk("Sequences",
+      `A pattern is made from matchsticks. Pattern 1 uses ${first} matches, pattern 2 uses ${first + d} matches and pattern 3 uses ${first + 2 * d} matches. Assuming the pattern continues in the same way, how many matches are in pattern n?`,
+      term("n"),
+      [`${d}n - ${Math.abs(c) || 1}`, `${first}n`, `${d + 1}n + ${c}`],
+      diff(i, 3), i);
+  }
+
+  /* Mean of the factors of a number, answered as a mixed number where needed. */
+  function statMeanOfFactors(i) {
+    const candidates = [12, 18, 20, 24, 28, 30, 36, 40, 42, 45, 48, 50, 54, 56, 60, 66, 70, 72];
+    const n = candidates[i % candidates.length];
+    const factors = factorsOf(n);
+    const totalOfFactors = sum(factors);
+    const mixed = value => {
+      const whole = Math.floor(value);
+      const frac = value - whole;
+      if (frac === 0) return `${whole}`;
+      const denom = factors.length / gcd(totalOfFactors % factors.length, factors.length);
+      const numer = Math.round(frac * denom);
+      return `${whole} ${numer}/${denom}`;
+    };
+    const ans = totalOfFactors / factors.length;
+    return mk("Statistics",
+      `What is the mean of the factors of ${n}?`,
+      mixed(ans),
+      [mixed(ans + 1), `${factors.length}`, `${totalOfFactors}`],
+      diff(i, 2), i);
+  }
+
+  /* Two picks without replacement. */
+  function probWithoutReplacement(i) {
+    const odds = 2 + (i % 5);
+    const evens = 2 + ((i * 3 + 1) % 6);
+    const total = odds + evens;
+    const probability = (odds / total) * (evens / (total - 1));
+    // The papers only ever set these up so the answer lands on a tidy decimal;
+    // skip the seeds that would give a recurring one.
+    if (Math.abs(probability * 100 - Math.round(probability * 100)) > 1e-9) return null;
+    // Start from an odd number so the two runs stay genuinely odd and even.
+    const base = 1 + 2 * (i % 3);
+    const oddNumbers = Array.from({ length: odds }, (_, k) => base + 2 * k);
+    const evenNumbers = Array.from({ length: evens }, (_, k) => base + 1 + 2 * k);
+    const sorted = [...oddNumbers, ...evenNumbers].sort((a, b) => a - b);
+    return mk("Probability",
+      `There are ${total} numbers in a pot: ${sorted.join(", ")}. Summer picks one and then, without replacing it, picks another. What is the chance of her picking an odd number and then an even number?`,
+      fmt(Number(probability.toFixed(4))),
+      [fmt(Number(((odds / total) * (evens / total)).toFixed(4))),
+       fmt(Number(((odds / total) * ((evens - 1) / (total - 1))).toFixed(4))),
+       fmt(Number((odds / total).toFixed(4)))],
+      diff(i, 2), i);
+  }
+
+  /* Compare several expressions and pick the largest / smallest. */
+  function numCompareExpressions(i) {
+    const specs = [
+      { label: `1/6 of ${42 + 6 * (i % 4)}`, value: (42 + 6 * (i % 4)) / 6 },
+      { label: `${20 + 5 * (i % 3)}% of ${32 + 8 * (i % 3)}`, value: (20 + 5 * (i % 3)) * (32 + 8 * (i % 3)) / 100 },
+      { label: `${(1.3 + 0.2 * (i % 4)).toFixed(1)} × ${(5.3 + 0.4 * (i % 3)).toFixed(1)}`, value: (1.3 + 0.2 * (i % 4)) * (5.3 + 0.4 * (i % 3)) },
+      { label: `${60 + 7 * (i % 4)} ÷ 7`, value: (60 + 7 * (i % 4)) / 7 },
+      { label: `the square root of ${[36, 49, 64, 81][i % 4]}`, value: Math.sqrt([36, 49, 64, 81][i % 4]) }
+    ];
+    const chosen = [0, 1, 2, 3, 4].map(k => specs[(i + k) % specs.length]).slice(0, 4);
+    const values = chosen.map(s => Number(s.value.toFixed(6)));
+    if (new Set(values).size !== 4) return null;
+    const wantLargest = i % 2 === 0;
+    const best = chosen.reduce((acc, s) => (wantLargest ? s.value > acc.value : s.value < acc.value) ? s : acc, chosen[0]);
+    return mk("Numbers",
+      `Which of these expressions has the ${wantLargest ? "greatest" : "smallest"} value?`,
+      best.label, chosen.filter(s => s !== best).map(s => s.label),
+      diff(i, 3), i);
+  }
+
+  /* Three pairwise prices — adding all three gives 3(c + p + o). */
+  function algThreeItemPricing(i) {
+    const carrot = 20 + 3 * (i % 9);
+    const potato = 26 + 4 * ((i * 3) % 7);
+    const onion = 30 + 5 * ((i * 5) % 6);
+    const p1 = 2 * carrot + potato;
+    const p2 = 2 * potato + onion;
+    const p3 = 2 * onion + carrot;
+    const ans = carrot + potato + onion;
+    const asMoney = pence => pence < 100 ? `${pence}p` : `£${(pence / 100).toFixed(2)}`;
+    return mk("Algebra",
+      `${asMoney(p1)} buys 2 carrots and 1 potato. ${asMoney(p2)} buys 2 potatoes and 1 onion. ${asMoney(p3)} buys 2 onions and 1 carrot. How much does it cost to buy 1 carrot, 1 potato and 1 onion?`,
+      asMoney(ans),
+      [asMoney(ans + 3), asMoney(ans - 3), asMoney(Math.round((p1 + p2 + p3) / 2))],
+      diff(i, 3), i);
+  }
+
+  /* Distance–time comparison: how far apart after a further stretch of time. */
+  function spdGapBetweenTwo(i) {
+    const startA = 60 + 5 * (i % 8);
+    const startB = 20 + 5 * (i % 6);
+    const speedA = 8 + (i % 5);
+    const speedB = speedA + 2 + (i % 6);
+    const hours = 2 + (i % 4);
+    const posA = startA + speedA * hours;
+    const posB = startB + speedB * hours;
+    const ans = Math.abs(posA - posB);
+    if (ans === 0) return null;
+    return mk("Speed",
+      `Two cyclists ride the same route out of a city. At 12:00 the first is ${startA} miles from the city travelling at ${speedA} mph, and the second is ${startB} miles from the city travelling at ${speedB} mph. If both keep to the same speed, how far apart will they be ${hours} hours later?`,
+      `${ans} miles`,
+      [`${Math.abs(startA - startB)} miles`, `${ans + hours} miles`, `${posA + posB} miles`],
+      diff(i, 3), i);
+  }
+
+  /* Splitting a regular polygon with a single straight cut. */
+  const SHAPE_SPLITS = [
+    { shape: "regular pentagon", known: "an isosceles triangle", other: "an isosceles trapezium",
+      wrong: ["a rectangle", "a parallelogram", "an irregular pentagon"] },
+    { shape: "regular hexagon", known: "an isosceles trapezium", other: "an isosceles trapezium",
+      wrong: ["a square", "a right-angled triangle", "a regular pentagon"] },
+    { shape: "square", known: "a right-angled triangle", other: "a right-angled triangle",
+      wrong: ["a rhombus", "a regular pentagon", "an isosceles trapezium"] },
+    { shape: "rectangle", known: "a right-angled triangle", other: "a right-angled triangle",
+      wrong: ["a kite", "an equilateral triangle", "a regular hexagon"] },
+    { shape: "regular octagon", known: "an isosceles trapezium", other: "an irregular hexagon",
+      wrong: ["a circle", "an equilateral triangle", "a square"] }
+  ];
+
+  function geoShapeSplit(i) {
+    const item = SHAPE_SPLITS[i % SHAPE_SPLITS.length];
+    return mk("Geometry",
+      `A ${item.shape} is divided into two by a single straight cut. One of the shapes formed is ${item.known}. What is the other shape?`,
+      item.other, item.wrong, diff(i, 3), i);
+  }
+
+  /* ═══════════════════ SUPER HARD ═══════════════════
+     Level-4 templates. Every topic needs its own: without these, the quiz
+     selector has nothing to reach for when a child is doing well and quietly
+     fills the super-hard slots with level-3 questions instead.
+
+     What makes these level 4 rather than 3 is that none of them can be
+     answered by carrying out one remembered procedure — each needs a chain of
+     steps, a step worked backwards, or a well-known trap avoided. */
+
+  /* ── Fractions ── */
+
+  /* Two successive fractions removed, only the remainder given: the child has
+     to work the whole chain backwards. */
+  function fracReverseTwoStage(i) {
+    const a = 3 + (i % 3);          // first fraction is 1/a
+    const b = 3 + ((i * 2) % 3);    // then 1/b of what is left
+    const t = 2 + (i % 5);
+    const total = a * b * t * 10;
+    const left = total * (a - 1) * (b - 1) / (a * b);
+    const liquids = ["toad juice", "elderflower cordial", "ginger beer", "barley water"];
+    return mk("Fractions",
+      `A bottle of ${liquids[i % liquids.length]} is ${simp(1, a)} syrup. ${simp(1, b)} of the rest is water, leaving ${left} ml of juice. How much does the full bottle hold?`,
+      `${total} ml`,
+      [`${left * a} ml`, `${Math.round(left * b * (a / (a - 1)))} ml`, `${total - left} ml`],
+      4, i);
+  }
+
+  /* Spend a fraction, then a fraction of the remainder. */
+  function fracOfRemainderMoney(i) {
+    const a = 3 + (i % 4), b = 2 + ((i * 3) % 4);
+    const t = 1 + (i % 6);
+    const start = a * b * t * 5;
+    const afterFirst = start * (a - 1) / a;
+    const spentSecond = afterFirst / b;
+    const left = afterFirst - spentSecond;
+    if (!Number.isInteger(left) || !Number.isInteger(spentSecond)) return null;
+    return mk("Fractions",
+      `Priya spends ${simp(1, a)} of her savings on a bike, then ${simp(1, b)} of what is left on a helmet. She has ${fmtMoney(left)} left. How much did she have at the start?`,
+      fmtMoney(start),
+      [fmtMoney(afterFirst), fmtMoney(left * b), fmtMoney(start - spentSecond)],
+      4, i);
+  }
+
+  /* Which fraction lies strictly between two others. The mediant always does;
+     one option is an endpoint, which "between" excludes. */
+  function fracBetweenTwo(i) {
+    const q = 3 + (i % 5), s = 2 + ((i * 3) % 4);
+    const p = 1 + (i % (q - 1)), r = 1 + ((i * 2) % (s - 1 || 1));
+    if (s < 2 || p / q >= r / s) return null;
+    const answer = simp(p + r, q + s);
+    const below = simp(p, q + 1), above = simp(r, s - 1), edge = simp(p, q);
+    const all = [answer, below, above, edge];
+    if (new Set(all).size !== 4) return null;
+    return mk("Fractions",
+      `Which of these fractions lies between ${simp(p, q)} and ${simp(r, s)}?`,
+      answer, [below, above, edge], 4, i);
+  }
+
+  /* ── BIDMAS ── */
+
+  function bidNestedBrackets(i) {
+    const a = 2 + (i % 7), b = 3 + ((i * 3) % 8), c = 2 + (i % 5), d = 2 + (i % 4);
+    const inner = (a + b) * c - d * d;
+    const e = [2, 3, 4, 5].find(k => inner % k === 0 && inner / k > 0);
+    if (!e) return null;
+    const f = 3 + (i % 9);
+    const ans = inner / e + f;
+    return mk("BIDMAS",
+      `What is ((${a} + ${b}) × ${c} − ${d}²) ÷ ${e} + ${f}?`,
+      `${ans}`,
+      [`${(a + b) * c - d * d / e + f}`, `${inner / e * f}`, `${ans - f}`],
+      4, i);
+  }
+
+  /* Evaluate `a o1 b o2 c` honouring BIDMAS. */
+  const evalPair = (a, o1, b, o2, c) => {
+    const ap = (x, o, y) => o === "+" ? x + y : o === "−" ? x - y : o === "×" ? x * y : x / y;
+    const high = o => o === "×" || o === "÷";
+    if (!high(o1) && high(o2)) return ap(a, o1, ap(b, o2, c));
+    return ap(ap(a, o1, b), o2, c);
   };
 
-  // Single scale knob — produces ~110 generators × N variations questions.
+  function bidMissingOperator(i) {
+    const a = 12 + 4 * (i % 6), b = 2 + (i % 4), c = 3 + (i % 5);
+    const ops = ["+", "−", "×", "÷"];
+    const combos = [];
+    ops.forEach(o1 => ops.forEach(o2 => combos.push([o1, o2])));
+    const scored = combos
+      .map(([o1, o2]) => ({ o1, o2, v: evalPair(a, o1, b, o2, c) }))
+      .filter(x => Number.isInteger(x.v) && x.v > 0);
+    const target = scored[i % scored.length];
+    // Only usable when exactly one pair of operations hits the target.
+    if (scored.filter(x => x.v === target.v).length !== 1) return null;
+    const wrong = scored.filter(x => x.v !== target.v).slice(0, 3);
+    if (wrong.length < 3) return null;
+    const label = x => `${x.o1} and ${x.o2}`;
+    return mk("BIDMAS",
+      `Which pair of operations makes this true?\n${a} ? ${b} ? ${c} = ${target.v}`,
+      label(target), wrong.map(label), 4, i);
+  }
+
+  function bidInsertBrackets(i) {
+    const a = 2 + (i % 8), b = 3 + ((i * 3) % 7), c = 2 + (i % 6), d = 1 + (i % 5);
+    if (c <= d) return null;
+    const placements = [
+      { text: `(${a} + ${b}) × ${c} − ${d}`, v: (a + b) * c - d },
+      { text: `${a} + ${b} × (${c} − ${d})`, v: a + b * (c - d) },
+      { text: `(${a} + ${b}) × (${c} − ${d})`, v: (a + b) * (c - d) },
+      { text: `${a} + (${b} × ${c}) − ${d}`, v: a + b * c - d }
+    ];
+    if (new Set(placements.map(p => p.v)).size !== 4) return null;
+    const target = placements[i % 4];
+    return mk("BIDMAS",
+      `Where must the brackets go to make this calculation equal ${target.v}?\n${a} + ${b} × ${c} − ${d}`,
+      target.text, placements.filter(p => p !== target).map(p => p.text), 4, i);
+  }
+
+  /* ── Sequences ── */
+
+  /* Second differences are constant, so the gaps themselves grow. */
+  function seqQuadraticNext(i) {
+    const first = 2 + (i % 6), d1 = 3 + (i % 4), d2 = 2 + (i % 3);
+    const terms = [first];
+    let step = d1;
+    for (let k = 1; k < 6; k++) { terms.push(terms[k - 1] + step); step += d2; }
+    const ans = terms[5];
+    return mk("Sequences",
+      `What is the next term in this sequence?\n${terms.slice(0, 5).join(", ")}, ...`,
+      `${ans}`,
+      [`${terms[4] + step - d2}`, `${terms[4] + d1}`, `${ans + d2}`],
+      4, i);
+  }
+
+  function seqNthFromTwoTerms(i) {
+    const a1 = 1 + (i % 9), d = 2 + (i % 7);
+    const m = 3 + (i % 3), n = m + 3 + (i % 4);
+    const tm = a1 + (m - 1) * d, tn = a1 + (n - 1) * d;
+    const c = a1 - d;
+    const formula = c === 0 ? `${d}n` : (c > 0 ? `${d}n + ${c}` : `${d}n − ${-c}`);
+    return mk("Sequences",
+      `In an arithmetic sequence the ${m}th term is ${tm} and the ${n}th term is ${tn}. What is the nth term?`,
+      formula,
+      [`${d}n + ${a1}`, `${d}n − ${d}`, `${tm}n + ${d}`],
+      4, i);
+  }
+
+  /* Fibonacci-like, but the given terms start partway in. */
+  function seqFibMissingStart(i) {
+    const t1 = 1 + (i % 7), t2 = 2 + ((i * 3) % 9);
+    const t3 = t1 + t2, t4 = t2 + t3, t5 = t3 + t4, t6 = t4 + t5;
+    return mk("Sequences",
+      `In this sequence each term is the sum of the two terms before it. The 3rd, 4th, 5th and 6th terms are ${t3}, ${t4}, ${t5} and ${t6}. What is the 1st term?`,
+      `${t1}`, [`${t2}`, `${t3 - t1}`, `${Math.abs(t2 - t1)}`], 4, i);
+  }
+
+  /* ── Speed ── */
+
+  /* The classic trap: the average of the two speeds is not the average speed. */
+  function spdAverageTwoLegs(i) {
+    const pairs = [[60, 40], [30, 20], [12, 4], [80, 20], [24, 8], [90, 45], [50, 30], [36, 12]];
+    const [u, v] = pairs[i % pairs.length];
+    const harmonic = 2 * u * v / (u + v);
+    if (!Number.isInteger(harmonic)) return null;
+    const dist = (u + v) * (1 + (i % 4));
+    return mk("Speed",
+      `A cyclist rides ${dist} km to a village at ${u} km/h and returns along the same road at ${v} km/h. What is her average speed for the whole journey?`,
+      `${harmonic} km/h`,
+      [`${(u + v) / 2} km/h`, `${u - v} km/h`, `${fmt(harmonic + 2)} km/h`],
+      4, i);
+  }
+
+  function spdCatchUp(i) {
+    const u = 20 + 10 * (i % 5);
+    const v = u + 10 + 10 * (i % 3);
+    const headStartHours = 1 + (i % 3);
+    const gap = u * headStartHours;
+    const hours = gap / (v - u);
+    if (!Number.isInteger(hours * 60) || hours > 12) return null;
+    const mins = Math.round(hours * 60);
+    const label = mins % 60 === 0 ? `${mins / 60} hours` : `${Math.floor(mins / 60)} hours ${mins % 60} minutes`;
+    return mk("Speed",
+      `A lorry sets off at ${u} km/h. ${headStartHours} hour${headStartHours > 1 ? "s" : ""} later a car leaves from the same place along the same road at ${v} km/h. How long after the car sets off does it catch the lorry?`,
+      label,
+      [`${headStartHours} hours`, `${fmt(gap / v)} hours`, `${fmt(hours + 1)} hours`],
+      4, i);
+  }
+
+  function spdMeetingPoint(i) {
+    const u = 30 + 10 * (i % 5), v = 40 + 10 * ((i * 3) % 4);
+    const t = 2 + (i % 4);
+    const distance = (u + v) * t;
+    const fromA = u * t;
+    return mk("Speed",
+      `Two towns are ${comma(distance)} km apart. A train leaves the first town at ${u} km/h and, at the same moment, a train leaves the second town towards it at ${v} km/h. How far from the first town do they meet?`,
+      `${comma(fromA)} km`,
+      [`${comma(distance / 2)} km`, `${comma(v * t)} km`, `${comma(fromA + u)} km`],
+      4, i);
+  }
+
+  /* ── Measurement ── */
+
+  /* L-shaped prism: cross-sectional area first, then multiply by the length. */
+  function meaCompoundVolume(i) {
+    const W = 8 + (i % 7), H = 6 + ((i * 3) % 6);
+    const w = 2 + (i % 3), h = 2 + ((i * 2) % 3);
+    if (w >= W || h >= H) return null;
+    const len = 4 + (i % 8);
+    const area = W * H - w * h;
+    const ans = area * len;
+    return mk("Measurement",
+      `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting a ${w} cm by ${h} cm rectangle out of the corner of a ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
+      `${comma(ans)} cm³`,
+      [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`, `${comma(ans + w * h * len)} cm³`],
+      4, i);
+  }
+
+  function meaSurfaceAreaFromVolume(i) {
+    const s = 2 + (i % 6);
+    const len = 4 + (i % 9);
+    const volume = s * s * len;
+    const ans = 2 * s * s + 4 * s * len;
+    return mk("Measurement",
+      `A cuboid has a square cross-section of side ${s} cm and a volume of ${comma(volume)} cm³. What is its total surface area?`,
+      `${comma(ans)} cm²`,
+      [`${comma(4 * s * len)} cm²`, `${comma(2 * s * s + 2 * s * len)} cm²`, `${comma(6 * s * s)} cm²`],
+      4, i);
+  }
+
+  /* Lengths scale by k, areas by k² — the standard trap. */
+  function meaScaleArea(i) {
+    const k = 2 + (i % 5);
+    const area = 12 + 6 * (i % 10);
+    const ans = area * k * k;
+    return mk("Measurement",
+      `A photograph is enlarged so that every length is ${k} times as long as before. The original photograph covered ${area} cm². What area does the enlarged photograph cover?`,
+      `${comma(ans)} cm²`,
+      [`${comma(area * k)} cm²`, `${comma(area * k * k * k)} cm²`, `${comma(area + k * k)} cm²`],
+      4, i);
+  }
+
+  /* ── Probability ── */
+
+  function probTwoDiceSum(i) {
+    const ways = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+    const target = 4 + (i % 8);
+    const n = ways[target];
+    return mk("Probability",
+      `Two fair six-sided dice are rolled and their scores are added. What is the probability that the total is ${target}?`,
+      simp(n, 36),
+      [simp(n, 12), simp(n + 1, 36), simp(1, target)],
+      4, i);
+  }
+
+  function probAtLeastOne(i) {
+    const flips = 3 + (i % 3);
+    const total = 2 ** flips;
+    return mk("Probability",
+      `A fair coin is flipped ${flips} times. What is the probability of getting at least one head?`,
+      simp(total - 1, total),
+      [simp(1, total), simp(1, 2), simp(total - 2, total)],
+      4, i);
+  }
+
+  /* ── Numbers ── */
+
+  function numRemainderPuzzle(i) {
+    const sets = [[4, 5, 6], [3, 4, 5], [4, 6, 9], [5, 6, 8], [3, 5, 7], [4, 5, 9]];
+    const divisors = sets[i % sets.length];
+    const base = lcmAll(divisors);
+    const ans = base + 1;
+    return mk("Numbers",
+      `What is the smallest number greater than 1 that leaves a remainder of 1 when it is divided by ${divisors[0]}, ${divisors[1]} and ${divisors[2]}?`,
+      comma(ans),
+      [comma(base), comma(base * 2 + 1), comma(divisors.reduce((a, b) => a * b, 1) + 1)],
+      4, i);
+  }
+
+  /* Last digits repeat in a short cycle, so the exponent can be huge. */
+  function numLastDigitPower(i) {
+    const base = [2, 3, 4, 7, 8, 9, 12, 13][i % 8];
+    const exponent = 20 + 3 * (i % 15);
+    let last = 1;
+    for (let k = 0; k < exponent; k++) last = (last * base) % 10;
+    return mk("Numbers",
+      `What is the last digit of ${base}^${exponent}?`,
+      `${last}`,
+      [`${(last + 1) % 10}`, `${base % 10}`, `${(last + 5) % 10}`],
+      4, i);
+  }
+
+  /* ── Decimals ── */
+
+  function decDivideByDecimal(i) {
+    const ans = 200 + 50 * (i % 9);
+    const divisor = [0.015, 0.025, 0.04, 0.05, 0.002][i % 5];
+    const dividend = Number((ans * divisor).toFixed(4));
+    return mk("Decimals",
+      `What is ${fmt(dividend)} ÷ ${fmt(divisor)}?`,
+      comma(ans),
+      [comma(ans / 10), comma(ans * 10), fmt(Number((dividend * divisor).toFixed(6)))],
+      4, i);
+  }
+
+  function decChainedOf(i) {
+    const a = [0.4, 0.25, 0.6, 0.75, 0.8][i % 5];
+    const b = [0.25, 0.5, 0.2, 0.4, 0.75][(i * 3) % 5];
+    const start = 240 + 40 * (i % 8);
+    const ans = Number((start * a * b).toFixed(4));
+    if (!Number.isInteger(ans)) return null;
+    return mk("Decimals",
+      `What is ${fmt(a)} of ${fmt(b)} of ${comma(start)}?`,
+      comma(ans),
+      [comma(Number((start * a).toFixed(2))), comma(Number((start * b).toFixed(2))), fmt(Number((start * (a + b)).toFixed(2)))],
+      4, i);
+  }
+
+  /* ── Geometry ── */
+
+  function geoPolygonFromAngleSum(i) {
+    const sides = 5 + (i % 10);
+    const total = (sides - 2) * 180;
+    return mk("Geometry",
+      `The interior angles of a regular polygon add up to ${comma(total)}°. How many sides does it have?`,
+      `${sides}`,
+      [`${sides - 2}`, `${sides + 2}`, `${Math.round(total / 180)}`],
+      4, i);
+  }
+
+  function geoShadedArea(i) {
+    const s = 8 + (i % 9);
+    const b = 2 + (i % (s - 2)), h = 2 + ((i * 3) % (s - 2));
+    const triangle = b * h / 2;
+    if (!Number.isInteger(triangle)) return null;
+    const ans = s * s - triangle;
+    return mk("Geometry",
+      `A triangle with base ${b} cm and height ${h} cm is cut out of a square of side ${s} cm. What area of the square is left?`,
+      `${fmt(ans)} cm²`,
+      [`${fmt(s * s - b * h)} cm²`, `${fmt(triangle)} cm²`, `${fmt(s * s)} cm²`],
+      4, i);
+  }
+
+  /* ── Statistics ── */
+
+  /* Combining two group means: the answer is weighted, not the halfway point. */
+  function statCombinedMean(i) {
+    /* Sizes in the ratio p : q and a gap of (p + q) × k between the means keep
+       the weighted mean whole for every seed. p ≠ q so the halfway value — the
+       distractor the question is really testing — is never also the answer. */
+    const ratios = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 2], [2, 5], [3, 4], [4, 1]];
+    const [p, q] = ratios[i % ratios.length];
+    const t = 5 * (1 + (i % 5));
+    const nA = p * t, nB = q * t;
+    const k = 1 + (i % 4);
+    const mA = 45 + 2 * (i % 10);
+    const mB = mA + (p + q) * k;
+    const combined = mA + q * k;
+    return mk("Statistics",
+      `Class A has ${nA} pupils with a mean score of ${mA}. Class B has ${nB} pupils with a mean score of ${mB}. What is the mean score of all ${nA + nB} pupils together?`,
+      `${combined}`,
+      [`${fmt((mA + mB) / 2)}`, `${mB}`, `${combined + 1}`],
+      4, i);
+  }
+
+  function statMedianFromFreq(i) {
+    const freqs = [3 + (i % 4), 5 + ((i * 3) % 5), 4 + ((i * 5) % 4), 2 + (i % 3), 1 + (i % 4)];
+    const n = sum(freqs);
+    if (n % 2 === 0) freqs[0] += 1;
+    const total = sum(freqs);
+    const position = (total + 1) / 2;
+    let running = 0, median = 1;
+    for (let k = 0; k < freqs.length; k++) { running += freqs[k]; if (running >= position) { median = k + 1; break; } }
+    const rows = freqs.map((f, k) => `${k + 1} goal${k ? "s" : ""}: ${f} matches`).join("\n");
+    return mk("Statistics",
+      `A team recorded the goals it scored in each of ${total} matches:\n${rows}\nWhat is the median number of goals?`,
+      `${median}`,
+      [`${median + 1}`, `${Math.max(1, median - 1)}`, `${fmt(Number((sum(freqs.map((f, k) => f * (k + 1))) / total).toFixed(2)))}`],
+      4, i);
+  }
+
+  /* ── Ratio ── */
+
+  function ratAfterChange(i) {
+    const a = 2 + (i % 4), b = a + 1 + (i % 4);
+    const d = 1 + (i % 3), c = d + 1 + (i % 3);
+    if (c * b <= a * d) return null;
+    const t = 1 + (i % 5);
+    const x = d * t;
+    const first = a * x, second = b * x;
+    const added = t * (c * b - a * d);
+    return mk("Ratio",
+      `A box holds red and blue counters in the ratio ${a} : ${b}. When ${comma(added)} more red counters are added, the ratio becomes ${c} : ${d}. How many red counters were in the box to begin with?`,
+      comma(first),
+      [comma(second), comma(first + added), comma(added * a)],
+      4, i);
+  }
+
+  /* ── Algebra ── */
+
+  function algSimultaneous(i) {
+    const x = 2 + (i % 8), y = 1 + ((i * 3) % 7);
+    const a = 2 + (i % 3), b = 3 + (i % 4);
+    const c = 4 + (i % 5), d = 1 + (i % 3);
+    if (a * d + b * c === 0) return null;
+    const p = a * x + b * y, q = c * x - d * y;
+    return mk("Algebra",
+      `Solve these two equations to find x.\n${a}x + ${b}y = ${p}\n${c}x − ${d}y = ${q}`,
+      `${x}`, [`${y}`, `${x + y}`, `${x + 1}`], 4, i);
+  }
+
+  /* ═══════════════════ DRIVER ═══════════════════ */
+
+  /* Each entry is [template, easiest level, hardest level].
+
+     The band — not the template's own diff(i) call — decides what the child is
+     told. Difficulty has to describe the skill being tested, and the skill is a
+     property of the template, not of where a variation landed in the loop:
+     "What is the LCM of 6 and 9?" is not harder than "the LCM of 15 and 20?"
+     just because it was generated on a multiple of 5. Where a band spans more
+     than one level, the variations are spread evenly through it. */
+  const generators = {
+    Numbers: [
+      [numPlaceValue, 1, 2],              // read one digit's value
+      [numPlaceValueDiff, 2, 3],          // two place values, then subtract
+      [numRounding, 1, 2],
+      [numRoundingBounds, 2, 3],          // rounding worked backwards
+      [numIsPrime, 1, 2],
+      [numLCM, 2, 2],
+      [numHCF, 2, 2],
+      [numHCFofFour, 3, 3],               // four numbers at once
+      [numPowers, 1, 1],
+      [numFactorCount, 2, 3],
+      [numPrimeFactorCount, 3, 3],        // index notation
+      [numArithmetic, 1, 2],
+      [numWordProblem, 1, 1],
+      [numBusLCM, 3, 3],                  // LCM of three, applied
+      [numSmallestEvenFromDigits, 2, 3],
+      [numCubeMissing, 2, 2],
+      [numPrimeSumSquare, 4, 4],          // search over a range
+      [numFourConsecOdd, 3, 3],
+      [numCompareExpressions, 3, 3],      // four calculations, then compare
+      [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
+      [numLastDigitPower, 4, 4]           // spot the repeating cycle
+    ],
+    Decimals: [
+      [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
+      [decCompare, 1, 2], [decRound, 1, 2], [decToFrac, 2, 2],
+      [decHalfway, 3, 3],                 // midpoint of two decimals
+      [decMultFactReuse, 3, 4],           // reuse a known product, shift place value
+      [decPriceChange, 3, 3],             // increase then decrease
+      [decDivideByDecimal, 4, 4],         // dividing by a number below 1
+      [decChainedOf, 4, 4]                // decimal of a decimal of a whole
+    ],
+    Fractions: [
+      [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
+      [fracSimplify, 1, 1], [fracImproperToMixed, 1, 2], [fracOfX, 2, 2],
+      [fracMixedMultiply, 3, 3],          // convert, multiply, simplify
+      [fracOfFrac, 3, 3],                 // fraction of a fraction, in words
+      [fracReverseTwoStage, 4, 4],        // two fractions removed, worked back
+      [fracOfRemainderMoney, 4, 4],       // fraction of what was left
+      [fracBetweenTwo, 4, 4]              // strictly between two fractions
+    ],
+    Percentages: [
+      [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
+      [pctSalePrice, 2, 2], [pctIncrease, 2, 2], [pctSimpleInterest, 2, 3],
+      [pctReverse, 2, 3],                 // work back to the original
+      [pctChained, 3, 4],                 // percentage of a percentage of a percentage
+      [pctSaleChange, 3, 3],              // discount, total, then change
+      [pctVennNeither, 3, 4]              // overlapping sets
+    ],
+    BIDMAS: [
+      [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
+      [bidMixed, 2, 3], [bidNegative, 3, 3], [bidTempChange, 2, 2],
+      [bidNestedBrackets, 4, 4],          // brackets inside brackets, with a power
+      [bidMissingOperator, 4, 4],         // choose the operations
+      [bidInsertBrackets, 4, 4]           // place the brackets
+    ],
+    Algebra: [
+      [algSubLinear, 1, 1], [algSubMulti, 2, 3], [algSubQuadratic, 3, 3],
+      [algSolve1Step, 1, 1], [algSolve2Step, 2, 2], [algSolveBothSides, 2, 3],
+      [algSimplifyTerms, 2, 2], [algCustomOp, 2, 3],
+      [algWeightPair, 3, 3],              // sum and difference
+      [algTriangleAngles, 4, 4],          // several constraints at once
+      [algThreeItemPricing, 4, 4],        // three unknowns
+      [algSimultaneous, 4, 4]             // two equations, two unknowns
+    ],
+    Sequences: [
+      [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
+      [seqFibLike, 2, 2], [seqGeomNext, 2, 2], [seqBallPattern, 2, 2],
+      [seqMatchstickNth, 3, 3],           // nth term as an expression
+      [seqQuadraticNext, 4, 4],           // the gaps themselves grow
+      [seqNthFromTwoTerms, 4, 4],         // rule from two scattered terms
+      [seqFibMissingStart, 4, 4]          // Fibonacci-like, worked backwards
+    ],
+    Ratio: [
+      [ratSimplify, 1, 1], [ratSplit, 2, 2], [ratWordTotal, 2, 2],
+      [ratDifference, 3, 3], [ratRecipe, 2, 2], [ratMapScale, 2, 2],
+      [ratInverseProp, 3, 3],             // inverse proportion
+      [ratChained, 4, 4],                 // link two ratios
+      [ratAfterChange, 4, 4]              // ratio before and after a change
+    ],
+    Speed: [
+      [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
+      [spdMphHoursMin, 2, 3],             // mixed hours and minutes
+      [spdGapBetweenTwo, 3, 3],
+      [spdAverageTwoLegs, 4, 4],          // average speed is not the mean speed
+      [spdCatchUp, 4, 4],                 // closing a head start
+      [spdMeetingPoint, 4, 4]             // travelling towards each other
+    ],
+    Measurement: [
+      [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
+      [meaTempDiff, 2, 2], [meaInchConvert, 2, 3], [meaMoneyChange, 2, 2],
+      [meaOverlapArea, 3, 3],
+      [meaCompoundVolume, 4, 4],          // L-shaped cross-section
+      [meaSurfaceAreaFromVolume, 4, 4],   // volume back to surface area
+      [meaScaleArea, 4, 4]                // areas scale by the square
+    ],
+    Geometry: [
+      [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
+      [geoComplementary, 1, 2], [geoTriangleArea, 2, 2], [geoLinesSymmetry, 1, 2],
+      [geoRotSymmetry, 2, 2], [geoPrismFEV, 2, 2], [geoCuboidMissingEdge, 2, 2],
+      [geoRotationCoords, 3, 4],          // rotation about a point
+      [geoShapeProperty, 3, 3], [geoShapeSplit, 3, 3],
+      [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
+      [geoShadedArea, 4, 4]               // what is left after a cut-out
+    ],
+    Statistics: [
+      [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
+      [statMissingMean, 3, 3],            // mean worked backwards
+      [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
+      [statCorrelation, 1, 1], [statPieFromAngle, 3, 3], [statFreqTotal, 2, 3],
+      [statMeanOfFactors, 3, 4],          // list factors, then average them
+      [statCombinedMean, 4, 4],           // weighted, not halfway
+      [statMedianFromFreq, 4, 4]          // median out of a frequency table
+    ],
+    Probability: [
+      [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
+      [probExpected, 2, 2], [probIndependent, 3, 3],
+      [probWithoutReplacement, 3, 4],     // the pool changes between picks
+      [probTwoDiceSum, 4, 4],             // count the favourable pairs
+      [probAtLeastOne, 4, 4]              // easier via the complement
+    ],
+    Logic: [
+      [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
+      [logConsecutiveOddPuzzle, 3, 4], [logPalindromeYesNo, 1, 1],
+      [logNextPalindrome, 2, 2], [logSquarePalindromesInRange, 3, 3],
+      [logDayOfWeek, 2, 2], [logDayWeeksAgo, 2, 2], [logDayShiftAcrossYear, 3, 3],
+      [logLeapYearPick, 1, 2], [logLeapBirthday, 4, 4],
+      [logClockAngleAtHour, 3, 3], [logClockMirror, 3, 3], [logSumAndDiff, 2, 2],
+      [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
+      [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2]
+    ]
+  };
+
+  // Single scale knob — produces ~140 generators × N variations questions.
   const VARIATIONS_PER_TEMPLATE = 50;
 
-  Object.entries(generators).forEach(([topic, gens]) => {
-    gens.forEach((gen, gIdx) => {
+  Object.values(generators).forEach(gens => {
+    gens.forEach(([gen, lo, hi], gIdx) => {
+      const span = hi - lo + 1;
       for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
         try {
           const q = gen(v + gIdx * 13);
-          if (q) QUESTIONS.push(q);
+          if (!q) continue;
+          q.difficulty = lo + (v % span);
+          QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }
       }
     });
