@@ -415,6 +415,8 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
 
 .review-answer-missed { border-color: #d1d5db; background: #f9fafb; }
 .review-answer-missed .review-answer-tag { color: var(--muted); }
+/* A nudge, not an answer — skipped questions withhold the correct option. */
+.review-answer-note { flex: 1 1 auto; min-width: 0; color: var(--muted); font-style: italic; }
 
 .review-meta { font-size: .85rem; color: var(--muted); }
 .review-meta span { margin-right: 14px; }

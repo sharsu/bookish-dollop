@@ -1411,14 +1411,22 @@ class ExamApp {
       answers.appendChild(this.buildAnswerRow("chosen", "You chose", question, chosen, "✗"));
       answers.appendChild(this.buildAnswerRow("correct", "Correct answer", question, question.answer, "✓"));
     } else {
+      /* Nothing was attempted, so the correct answer is deliberately withheld —
+         there is no mistake to learn from, and leaving it out keeps the question
+         worth attempting properly next time. */
       const missed = document.createElement("div");
       missed.className = "review-answer review-answer-missed";
       const tag = document.createElement("span");
       tag.className = "review-answer-tag";
       tag.textContent = "Not answered";
       missed.appendChild(tag);
+      // Its own class, not review-answer-text: this is a prompt, not an option,
+      // and nothing in a skipped entry should look like one.
+      const note = document.createElement("span");
+      note.className = "review-answer-note";
+      note.textContent = "Have another go at this one.";
+      missed.appendChild(note);
       answers.appendChild(missed);
-      answers.appendChild(this.buildAnswerRow("correct", "Correct answer", question, question.answer, "✓"));
     }
 
     item.appendChild(answers);
