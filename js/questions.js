@@ -81,6 +81,10 @@ const QUESTIONS = [];
 
   const diff = (i, hardCycle = 5) => (i % hardCycle === 0 ? 3 : (i % 2 === 0 ? 2 : 1));
 
+  /* "a" or "an" for a word or a number read aloud: 8, 11 and 18 begin with a
+     vowel sound, 13 to 17 do not. */
+  const article = value => (/^(?:[aeiou]|8|11|18)/i.test(String(value).trim()) ? "an" : "a");
+
   /* ═══════════════════ NUMBERS ═══════════════════ */
 
   function numPlaceValue(i) {
@@ -1060,7 +1064,7 @@ const QUESTIONS = [];
                     12: "regular dodecagon", 13: "regular 13-gon", 14: "regular 14-gon",
                     15: "regular 15-gon" };
     const val = (n - 2) * 180 / n;
-    return mk("Geometry", `Each interior angle of a ${names[n]} is:`, `${fmt(val)}°`,
+    return mk("Geometry", `Each interior angle of ${article(names[n])} ${names[n]} is:`, `${fmt(val)}°`,
       [`${fmt(val + 30)}°`, `${fmt(val - 30)}°`, `${fmt(360 / n)}°`], diff(i, 4), i);
   }
 
@@ -1101,7 +1105,7 @@ const QUESTIONS = [];
     ];
     const s = shapes[i % shapes.length];
     const ansText = s.l === -1 ? "infinitely many" : `${s.l}`;
-    return mk("Geometry", `How many lines of symmetry does a ${s.n} have?`,
+    return mk("Geometry", `How many lines of symmetry does ${article(s.n)} ${s.n} have?`,
       ansText,
       s.l === -1 ? ["0", "4", "8"] : [`${s.l + 1}`, `${Math.max(s.l - 1, 0)}`, `${s.l + 2}`],
       diff(i, 4), i);
@@ -1121,7 +1125,7 @@ const QUESTIONS = [];
       { n: "regular 16-gon", o: 16 }, { n: "regular 18-gon", o: 18 }
     ];
     const s = shapes[i % shapes.length];
-    return mk("Geometry", `What is the order of rotational symmetry of a ${s.n}?`,
+    return mk("Geometry", `What is the order of rotational symmetry of ${article(s.n)} ${s.n}?`,
       `${s.o}`, [`${s.o + 1}`, `${Math.max(s.o - 1, 1)}`, `${s.o * 2}`],
       diff(i, 4), i);
   }
@@ -1136,9 +1140,20 @@ const QUESTIONS = [];
     const f = n + 2, e = 3 * n, v = 2 * n;
     const labels = ["faces", "edges", "vertices"];
     const ans = [f, e, v][choose];
-    return mk("Geometry", `How many ${labels[choose]} does a ${names[n]} prism have?`,
+    const q = mk("Geometry", `How many ${labels[choose]} does ${article(names[n])} ${names[n]} prism have?`,
       `${ans}`, [`${ans + 1}`, `${ans - 1}`, `${ans + n}`],
       diff(i, 3), i);
+    /* Give the formula, not "count them" — for a 14-gonal prism counting is
+       hopeless. Which formula depends on what was asked, so it is set here where
+       both the measure and n are known. */
+    if (q) {
+      q.explain = [
+        `For an n-gonal prism the number of faces is F = n + 2: one rectangular face for each side of the base, plus the two ends. Here n = ${n}, so F = ${n} + 2 = ${f}.`,
+        `For an n-gonal prism the number of edges is E = 3n: n edges round the top, n round the bottom, and n joining them. Here n = ${n}, so E = 3 × ${n} = ${e}.`,
+        `For an n-gonal prism the number of vertices is V = 2n: the two identical bases each have n corners. Here n = ${n}, so V = 2 × ${n} = ${v}.`
+      ][choose];
+    }
+    return q;
   }
 
   function geoCuboidMissingEdge(i) {
@@ -2094,7 +2109,7 @@ const QUESTIONS = [];
     const area = W * H - w * h;
     const ans = area * len;
     return mk("Measurement",
-      `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting a ${w} cm by ${h} cm rectangle out of the corner of a ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
+      `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting ${article(w)} ${w} cm by ${h} cm rectangle out of the corner of ${article(W)} ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
       `${comma(ans)} cm³`,
       [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`, `${comma(ans + w * h * len)} cm³`],
       4, i);
@@ -2306,11 +2321,11 @@ const QUESTIONS = [];
     numRounding: "Look only at the digit immediately to the right of the place you are rounding to. 5 or more rounds up, 4 or less rounds down.",
     numRoundingBounds: "Work backwards. The smallest number is half a unit below the rounded value; the largest is just under half a unit above it.",
     numIsPrime: "A prime has exactly two factors, 1 and itself. Test each option against 2, 3, 5 and 7 — if none divide in, it is prime.",
-    numLCM: "List the multiples of the larger number and stop at the first one the smaller number also divides into.",
+    numLCM: "Either list the multiples of the larger number until the smaller divides in, or use LCM = (a × b) ÷ HCF, which is far quicker for big numbers.",
     numHCF: "List the factors of both numbers and take the largest they share. Or split each into primes and multiply the primes they have in common.",
     numHCFofFour: "Find the HCF of the first two, then the HCF of that answer with the third, and so on. Working in pairs keeps it manageable.",
     numPowers: "A small raised number tells you how many times to multiply the number by itself — 9² means 9 × 9, not 9 × 2.",
-    numFactorCount: "Work in pairs from 1 upwards: 1 × n, 2 × …, and stop when the pair meets in the middle. Count every number you used.",
+    numFactorCount: "Split the number into prime factors, add 1 to each index and multiply those together — 36 = 2² × 3² gives 3 × 3 = 9 factors. Pairing up from 1 is a good check on small numbers.",
     numPrimeFactorCount: "The index tells you how many times that prime appears. Add the indices together to count the prime factors including repeats.",
     numArithmetic: "Set the calculation out in columns, keeping place values lined up, and work one column at a time.",
     numWordProblem: "Decide what one lot is worth, then multiply by how many lots there are.",
@@ -2439,9 +2454,9 @@ const QUESTIONS = [];
     geoShapeAngle: "For a regular polygon, the interior angles add to (sides − 2) × 180°, then divide by the number of sides.",
     geoComplementary: "Angles round a point add to 360°, and angles on a straight line add to 180°. Subtract what you know.",
     geoTriangleArea: "Area of a triangle is base × height ÷ 2. Forgetting to halve is the usual slip.",
-    geoLinesSymmetry: "A line of symmetry folds the shape onto itself exactly. Test each direction in turn.",
+    geoLinesSymmetry: "A regular polygon with n sides has exactly n lines of symmetry, and a circle has infinitely many. For irregular shapes, test each fold: a rectangle has 2, a parallelogram none, a kite 1.",
     geoRotSymmetry: "Count how many times the shape looks the same in one full turn. For a regular polygon it equals the number of sides.",
-    geoPrismFEV: "Count the faces, edges and vertices systematically — the two ends and the sides separately — rather than guessing.",
+    geoPrismFEV: "Use the formulas for an n-gonal prism: faces F = n + 2, edges E = 3n, vertices V = 2n. Counting only works for small bases.",
     geoCuboidMissingEdge: "Volume is length × width × height, so divide the volume by the two edges you know.",
     geoRotationCoords: "Work relative to the centre of rotation, not the origin. Find how far across and up the point is from the centre, then swap and flip those steps according to the direction.",
     geoShapeProperty: "Check each statement against the shape one at a time. The question asks which is NOT true, so three will be correct.",
@@ -2473,7 +2488,7 @@ const QUESTIONS = [];
     probExpected: "Multiply the probability by the number of trials.",
     probIndependent: "For both to happen, multiply the two probabilities together.",
     probWithoutReplacement: "The first pick changes what is left, so the second fraction has a smaller total underneath. Multiply the two fractions.",
-    probTwoDiceSum: "There are 36 equally likely pairs. Count how many add to the total you want, then put that over 36.",
+    probTwoDiceSum: "There are 36 equally likely pairs, and the number giving a total t is 6 − |7 − t| — most ways for 7, fewest for 2 and 12. Put that count over 36 and cancel.",
     probAtLeastOne: "'At least one' is easier backwards: find the chance of none, then subtract from 1.",
 
     /* Logic */
