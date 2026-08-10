@@ -363,8 +363,66 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
   max-height: 12em;
   overflow-y: auto;
 }
+/* What the child chose, set against what was right. */
+.review-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+.review-answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: .95rem;
+  background: #ffffff;
+}
+.review-answer-tag {
+  flex: 0 0 auto;
+  min-width: 8.5em;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.review-answer-letter {
+  flex: 0 0 auto;
+  width: 1.6em;
+  height: 1.6em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: .8rem;
+  background: rgba(0, 0, 0, .06);
+}
+/* The answer itself can be long (a sentence, or a whole punctuated clause),
+   so it wraps rather than pushing the row wide. */
+.review-answer-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.review-answer-correct { border-color: #86efac; background: #ecfdf5; }
+.review-answer-correct .review-answer-tag { color: #047857; }
+.review-answer-correct .review-answer-letter { background: #a7f3d0; color: #065f46; }
+
+.review-answer-chosen { border-color: #fca5a5; background: #fff1f2; }
+.review-answer-chosen .review-answer-tag { color: #b91c1c; }
+.review-answer-chosen .review-answer-letter { background: #fecaca; color: #991b1b; }
+.review-answer-chosen .review-answer-text { text-decoration: line-through; text-decoration-color: #fca5a5; }
+
+.review-answer-missed { border-color: #d1d5db; background: #f9fafb; }
+.review-answer-missed .review-answer-tag { color: var(--muted); }
+
 .review-meta { font-size: .85rem; color: var(--muted); }
 .review-meta span { margin-right: 14px; }
+
+@media (max-width: 600px) {
+  .review-answer { flex-wrap: wrap; }
+  .review-answer-tag { min-width: 100%; }
+}
 
 .results-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
 
