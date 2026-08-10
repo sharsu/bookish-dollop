@@ -81,6 +81,10 @@ const QUESTIONS = [];
 
   const diff = (i, hardCycle = 5) => (i % hardCycle === 0 ? 3 : (i % 2 === 0 ? 2 : 1));
 
+  /* "a" or "an" for a word or a number read aloud: 8, 11 and 18 begin with a
+     vowel sound, 13 to 17 do not. */
+  const article = value => (/^(?:[aeiou]|8|11|18)/i.test(String(value).trim()) ? "an" : "a");
+
   /* ═══════════════════ NUMBERS ═══════════════════ */
 
   function numPlaceValue(i) {
@@ -1060,7 +1064,7 @@ const QUESTIONS = [];
                     12: "regular dodecagon", 13: "regular 13-gon", 14: "regular 14-gon",
                     15: "regular 15-gon" };
     const val = (n - 2) * 180 / n;
-    return mk("Geometry", `Each interior angle of a ${names[n]} is:`, `${fmt(val)}°`,
+    return mk("Geometry", `Each interior angle of ${article(names[n])} ${names[n]} is:`, `${fmt(val)}°`,
       [`${fmt(val + 30)}°`, `${fmt(val - 30)}°`, `${fmt(360 / n)}°`], diff(i, 4), i);
   }
 
@@ -1101,7 +1105,7 @@ const QUESTIONS = [];
     ];
     const s = shapes[i % shapes.length];
     const ansText = s.l === -1 ? "infinitely many" : `${s.l}`;
-    return mk("Geometry", `How many lines of symmetry does a ${s.n} have?`,
+    return mk("Geometry", `How many lines of symmetry does ${article(s.n)} ${s.n} have?`,
       ansText,
       s.l === -1 ? ["0", "4", "8"] : [`${s.l + 1}`, `${Math.max(s.l - 1, 0)}`, `${s.l + 2}`],
       diff(i, 4), i);
@@ -1121,7 +1125,7 @@ const QUESTIONS = [];
       { n: "regular 16-gon", o: 16 }, { n: "regular 18-gon", o: 18 }
     ];
     const s = shapes[i % shapes.length];
-    return mk("Geometry", `What is the order of rotational symmetry of a ${s.n}?`,
+    return mk("Geometry", `What is the order of rotational symmetry of ${article(s.n)} ${s.n}?`,
       `${s.o}`, [`${s.o + 1}`, `${Math.max(s.o - 1, 1)}`, `${s.o * 2}`],
       diff(i, 4), i);
   }
@@ -1136,9 +1140,20 @@ const QUESTIONS = [];
     const f = n + 2, e = 3 * n, v = 2 * n;
     const labels = ["faces", "edges", "vertices"];
     const ans = [f, e, v][choose];
-    return mk("Geometry", `How many ${labels[choose]} does a ${names[n]} prism have?`,
+    const q = mk("Geometry", `How many ${labels[choose]} does ${article(names[n])} ${names[n]} prism have?`,
       `${ans}`, [`${ans + 1}`, `${ans - 1}`, `${ans + n}`],
       diff(i, 3), i);
+    /* Give the formula, not "count them" — for a 14-gonal prism counting is
+       hopeless. Which formula depends on what was asked, so it is set here where
+       both the measure and n are known. */
+    if (q) {
+      q.explain = [
+        `For an n-gonal prism the number of faces is F = n + 2: one rectangular face for each side of the base, plus the two ends. Here n = ${n}, so F = ${n} + 2 = ${f}.`,
+        `For an n-gonal prism the number of edges is E = 3n: n edges round the top, n round the bottom, and n joining them. Here n = ${n}, so E = 3 × ${n} = ${e}.`,
+        `For an n-gonal prism the number of vertices is V = 2n: the two identical bases each have n corners. Here n = ${n}, so V = 2 × ${n} = ${v}.`
+      ][choose];
+    }
+    return q;
   }
 
   function geoCuboidMissingEdge(i) {
@@ -2094,7 +2109,7 @@ const QUESTIONS = [];
     const area = W * H - w * h;
     const ans = area * len;
     return mk("Measurement",
-      `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting a ${w} cm by ${h} cm rectangle out of the corner of a ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
+      `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting ${article(w)} ${w} cm by ${h} cm rectangle out of the corner of ${article(W)} ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
       `${comma(ans)} cm³`,
       [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`, `${comma(ans + w * h * len)} cm³`],
       4, i);
@@ -2293,6 +2308,211 @@ const QUESTIONS = [];
       `${x}`, [`${y}`, `${x + y}`, `${x + 1}`], 4, i);
   }
 
+  /* ═══════════════════ METHODS ═══════════════════
+     The technique for each template, shown in the review when a child gets the
+     question wrong. Keyed by generator name so the generators themselves stay
+     untouched. Where a template has a well-known trap, the method names it —
+     that is usually the whole lesson. A generator may also set q.explain itself
+     to give a worked hint using the actual numbers; that wins over this. */
+  const METHODS = {
+    /* Numbers */
+    numPlaceValue: "Name the column the digit sits in — units, tens, hundreds, thousands — then multiply the digit by that column's value.",
+    numPlaceValueDiff: "Work out what each of the two digits is worth on its own, then subtract the smaller from the larger. Don't subtract the digits themselves.",
+    numRounding: "Look only at the digit immediately to the right of the place you are rounding to. 5 or more rounds up, 4 or less rounds down.",
+    numRoundingBounds: "Work backwards. The smallest number is half a unit below the rounded value; the largest is just under half a unit above it.",
+    numIsPrime: "A prime has exactly two factors, 1 and itself. Test each option against 2, 3, 5 and 7 — if none divide in, it is prime.",
+    numLCM: "Either list the multiples of the larger number until the smaller divides in, or use LCM = (a × b) ÷ HCF, which is far quicker for big numbers.",
+    numHCF: "List the factors of both numbers and take the largest they share. Or split each into primes and multiply the primes they have in common.",
+    numHCFofFour: "Find the HCF of the first two, then the HCF of that answer with the third, and so on. Working in pairs keeps it manageable.",
+    numPowers: "A small raised number tells you how many times to multiply the number by itself — 9² means 9 × 9, not 9 × 2.",
+    numFactorCount: "Split the number into prime factors, add 1 to each index and multiply those together — 36 = 2² × 3² gives 3 × 3 = 9 factors. Pairing up from 1 is a good check on small numbers.",
+    numPrimeFactorCount: "The index tells you how many times that prime appears. Add the indices together to count the prime factors including repeats.",
+    numArithmetic: "Set the calculation out in columns, keeping place values lined up, and work one column at a time.",
+    numWordProblem: "Decide what one lot is worth, then multiply by how many lots there are.",
+    numBusLCM: "They meet again after the lowest common multiple of the three intervals. Find the LCM of two, then bring in the third.",
+    numSmallestEvenFromDigits: "For the smallest number, put the smallest digits at the front — but an even number must end in an even digit, so reserve one for the units column first.",
+    numCubeMissing: "You need the number that multiplies by itself three times to give the total — the cube root. Try small numbers: 3 × 3 × 3 = 27.",
+    numPrimeSumSquare: "List the primes in the range, then test pairs. Only a few sums are square numbers, so check each sum against 4, 9, 16, 25, 36…",
+    numFourConsecOdd: "Consecutive odd numbers rise by 2. Divide the total by how many there are to find the middle, then step out from there.",
+    numCompareExpressions: "Work every option out fully before comparing. A fraction of a big number can easily beat a percentage of a small one.",
+    numRemainderPuzzle: "A number leaving remainder 1 for all three divisors is one more than a common multiple. Find the LCM, then add 1.",
+    numLastDigitPower: "Last digits repeat in a short cycle. Work out the first four or five powers, spot the cycle length, then find where the exponent lands in it.",
+
+    /* Decimals */
+    decAdd: "Line the decimal points up underneath each other before adding, filling empty places with zeros.",
+    decSubtract: "Line the decimal points up and pad the shorter number with zeros so both have the same number of decimal places.",
+    decMultiply: "Ignore the decimal point and multiply as whole numbers. Then count the decimal places in the question and put that many into the answer.",
+    decDivide: "Keep the decimal point in the answer directly above the point in the number you are dividing, then divide as usual.",
+    decCompare: "Compare place by place from the left — tenths first, then hundredths. More digits does not mean a bigger number.",
+    decRound: "Count decimal places from the point, then look at the next digit along to decide whether to round up.",
+    decToFrac: "Write the digits over 10, 100 or 1000 depending on how many decimal places there are, then cancel down.",
+    decHalfway: "The halfway value is the two numbers added together and divided by 2.",
+    decMultFactReuse: "Use the fact you are given. Compare it with what is asked and adjust by powers of ten — you should not need to calculate from scratch.",
+    decPriceChange: "Apply the changes one after the other. A rise then a fall of the same percentage does not return you to the start, because the second is taken from a different amount.",
+    decDivideByDecimal: "Dividing by a number below 1 makes the answer bigger. Multiply both numbers by 10, 100 or 1000 until the divisor is whole, then divide.",
+    decChainedOf: "Work left to right, one step at a time. 'Of' means multiply.",
+
+    /* Fractions */
+    fracAdd: "Make the denominators the same, add only the numerators, then cancel down.",
+    fracSubtract: "Make the denominators the same, subtract only the numerators, then cancel down.",
+    fracMultiply: "Multiply the numerators together and the denominators together. Cancel before multiplying if you can — it keeps the numbers small.",
+    fracDivide: "Turn the second fraction upside down and multiply. Keep, flip, multiply.",
+    fracSimplify: "Divide the top and the bottom by their highest common factor.",
+    fracImproperToMixed: "Divide the top by the bottom. The whole-number part is the answer to the division; the remainder stays over the same denominator.",
+    fracOfX: "'Of' means multiply. Divide by the denominator to find one part, then multiply by the numerator.",
+    fracMixedMultiply: "Turn both mixed numbers into improper fractions first, then multiply and simplify. Do not multiply the whole numbers separately.",
+    fracOfFrac: "A fraction of a fraction means multiply the two together — the answer is smaller than either of them.",
+    fracReverseTwoStage: "Work backwards. Decide what fraction of the whole is left after both removals, then scale that back up to find the total.",
+    fracOfRemainderMoney: "The second fraction is taken from what was left, not from the original amount. Work backwards one stage at a time.",
+    fracBetweenTwo: "Put both fractions over a common denominator so you can see the gap, then find one that sits inside it. 'Between' does not include the two ends.",
+
+    /* Percentages */
+    pctOf: "Find 10% by dividing by 10, or 1% by dividing by 100, then build the percentage you need from those.",
+    pctFracToPct: "Divide the top by the bottom to get a decimal, then multiply by 100.",
+    pctDecToPct: "Multiply by 100 — the digits stay the same, the point moves two places right.",
+    pctSalePrice: "Either find the discount and subtract it, or go straight to what is left: 30% off means paying 70%.",
+    pctIncrease: "Find the increase and add it on, or multiply by 1 plus the percentage as a decimal.",
+    pctSimpleInterest: "Simple interest is the same each year. Find one year's interest, then multiply by the number of years.",
+    pctReverse: "Work back to 100%. If you know what 10% is worth, multiply by 10; if you know 1%, multiply by 100.",
+    pctChained: "Apply each percentage in turn to the answer before it. You cannot add the percentages together.",
+    pctSaleChange: "Three steps: take the discount off each price, add the totals, then subtract from the money handed over.",
+    pctVennNeither: "Add the two groups, then subtract the overlap once — it was counted twice. Take that total from 100% to find those in neither.",
+
+    /* BIDMAS */
+    bidSimple: "Multiply and divide before you add and subtract, whatever order they appear in.",
+    bidBrackets: "Work out the brackets first, then the rest.",
+    bidPowers: "Powers come after brackets but before multiplying and dividing. Square the number first.",
+    bidMixed: "Brackets, Indices, Division and Multiplication, then Addition and Subtraction — and left to right within each pair.",
+    bidNegative: "Do the multiplication first. Two negatives multiplied give a positive; a negative and a positive give a negative.",
+    bidTempChange: "Count the gap in two parts: up to zero, then on past it. Adding those gives the whole difference.",
+    bidNestedBrackets: "Start with the innermost bracket and work outwards, dealing with the power before you divide.",
+    bidMissingOperator: "Test each pair of operations, remembering that × and ÷ are done before + and −. Only one pair gives the target.",
+    bidInsertBrackets: "Work out what each bracket position would give, then match against the target. Brackets change which operation happens first.",
+
+    /* Algebra */
+    algSubLinear: "Replace the letter with its value, then work the arithmetic out in BIDMAS order.",
+    algSubMulti: "Substitute every letter before calculating, and keep the signs — subtracting a negative adds.",
+    algSubQuadratic: "Square the value first, then multiply by the number in front. With a negative value, the square is positive.",
+    algSolve1Step: "Do the opposite operation to both sides to get the letter on its own.",
+    algSolve2Step: "Undo the addition or subtraction first, then undo the multiplication or division.",
+    algSolveBothSides: "Collect the letters on one side and the numbers on the other, doing the same thing to both sides each time.",
+    algSimplifyTerms: "Only collect terms with the same letter. The a terms and the b terms stay separate.",
+    algCustomOp: "The definition tells you what to do. Substitute the two values into the pattern exactly as written.",
+    algWeightPair: "Subtract the difference from the total and halve it to find the lighter one, then add the difference back for the heavier.",
+    algTriangleAngles: "Turn each sentence into an equation, remembering the three angles add to 180°, then solve.",
+    algThreeItemPricing: "Add all three statements. Each item appears three times, so dividing the total by 3 gives the price of one of each.",
+    algSimultaneous: "Match the coefficients of one letter, then add or subtract the equations to remove it. Solve for what is left, then substitute back.",
+
+    /* Sequences */
+    seqArithNext: "Find the difference between terms and continue it.",
+    seqArithNth: "Find the common difference, then step on from a term you know rather than writing out every term.",
+    seqArithNthFormula: "The number in front of n is the common difference. Then work out what to add or subtract to make the first term come out right.",
+    seqFibLike: "Each term is the two before it added together.",
+    seqGeomNext: "Divide one term by the one before to find what it is being multiplied by, then multiply on.",
+    seqBallPattern: "Find how many are added each time, then use the first term plus that many steps — not the pattern number multiplied.",
+    seqMatchstickNth: "The number in front of n is how many are added for each new pattern. Then adjust so pattern 1 comes out right.",
+    seqQuadraticNext: "The differences are not constant, so look at the differences between the differences. Continue that, then work back up.",
+    seqNthFromTwoTerms: "Divide the gap between the two values by the gap between their positions to get the common difference, then work back to the first term.",
+    seqFibMissingStart: "Work backwards: each term is the two before it added, so subtracting one term from the next gives the one you are missing.",
+
+    /* Ratio */
+    ratSimplify: "Divide both sides by their highest common factor.",
+    ratSplit: "Add the parts to find how many there are altogether, divide the total by that to get one part, then multiply out.",
+    ratWordTotal: "Add the ratio parts to find the total number of shares, find what one share is worth, then multiply by the shares you were asked for.",
+    ratDifference: "The difference in the ratio parts matches the difference given. Find one share from that, then use it for whatever the question asks.",
+    ratRecipe: "Scale by the same factor throughout. Find the amount for one person if that makes the numbers easier.",
+    ratMapScale: "Multiply the map measurement by the scale to get the real length, keeping the units straight.",
+    ratInverseProp: "More workers means less time, so this is inverse. Find the total work first — workers × time — then divide by the new number of workers.",
+    ratChained: "Scale both ratios so the shared quantity has the same number in each, then read the two outer numbers off and simplify.",
+    ratAfterChange: "Write the original amounts as a multiple of the ratio parts, form an equation from the new ratio, and solve for the multiplier.",
+
+    /* Speed */
+    spdFindSpeed: "Speed is distance divided by time.",
+    spdFindDistance: "Distance is speed multiplied by time.",
+    spdFindTime: "Time is distance divided by speed.",
+    spdMphHoursMin: "Turn the minutes into a fraction of an hour before multiplying — 30 minutes is 0.5 hours, not 0.3.",
+    spdGapBetweenTwo: "Work out where each one is after the time given, then subtract the two positions.",
+    spdAverageTwoLegs: "Average speed is the total distance divided by the total time, never the average of the two speeds. Find the time for each leg, add them, then divide the whole distance by that.",
+    spdCatchUp: "Find the head start in distance, then divide by the difference in the two speeds — that is how fast the gap closes.",
+    spdMeetingPoint: "Travelling towards each other, they close the gap at the sum of their speeds. Find the time to meet, then multiply by one speed to see how far that one went.",
+
+    /* Measurement */
+    meaUnitConvert: "Decide whether the new unit is bigger or smaller, then multiply or divide by the right power of ten. Check the answer looks sensible.",
+    meaAreaPerim: "Perimeter is the distance all the way round; area is the space inside. Add for perimeter, multiply for area.",
+    meaVolumeCube: "Volume of a cube is the side length multiplied by itself three times.",
+    meaTempDiff: "Count up to zero and then on past it, adding the two parts together.",
+    meaInchConvert: "Convert in the order the question sets out, one unit at a time, and check what unit the answer is wanted in.",
+    meaMoneyChange: "Work out each amount, add them, then subtract from the money handed over. Keep everything in the same units.",
+    meaOverlapArea: "Add both rectangles, then subtract the overlap once — it was counted twice, once in each rectangle.",
+    meaCompoundVolume: "Find the cross-sectional area first by subtracting the cut-out from the whole rectangle, then multiply by the length.",
+    meaSurfaceAreaFromVolume: "Use the volume to find the missing length, then add up the areas of all six faces.",
+    meaScaleArea: "Lengths scale by the factor, but areas scale by the factor squared. Multiplying the area by the factor once is the usual mistake.",
+
+    /* Geometry */
+    geoAngleSum: "The angles in a triangle add to 180°, and in a quadrilateral to 360°.",
+    geoAngleType: "Acute is under 90°, right is exactly 90°, obtuse is between 90° and 180°, reflex is over 180°.",
+    geoShapeAngle: "For a regular polygon, the interior angles add to (sides − 2) × 180°, then divide by the number of sides.",
+    geoComplementary: "Angles round a point add to 360°, and angles on a straight line add to 180°. Subtract what you know.",
+    geoTriangleArea: "Area of a triangle is base × height ÷ 2. Forgetting to halve is the usual slip.",
+    geoLinesSymmetry: "A regular polygon with n sides has exactly n lines of symmetry, and a circle has infinitely many. For irregular shapes, test each fold: a rectangle has 2, a parallelogram none, a kite 1.",
+    geoRotSymmetry: "Count how many times the shape looks the same in one full turn. For a regular polygon it equals the number of sides.",
+    geoPrismFEV: "Use the formulas for an n-gonal prism: faces F = n + 2, edges E = 3n, vertices V = 2n. Counting only works for small bases.",
+    geoCuboidMissingEdge: "Volume is length × width × height, so divide the volume by the two edges you know.",
+    geoRotationCoords: "Work relative to the centre of rotation, not the origin. Find how far across and up the point is from the centre, then swap and flip those steps according to the direction.",
+    geoShapeProperty: "Check each statement against the shape one at a time. The question asks which is NOT true, so three will be correct.",
+    geoShapeSplit: "Picture the cut. Count the sides of the piece that is left and check whether any are parallel or equal.",
+    geoPolygonFromAngleSum: "The angles add to (sides − 2) × 180°, so divide the total by 180 and add 2.",
+    geoShadedArea: "Find the whole area, find the area cut out, then subtract. Remember the triangle needs halving.",
+
+    /* Statistics */
+    statMean: "Add all the values and divide by how many there are.",
+    statMedian: "Put the values in order first, then take the middle one. With an even count, average the middle two.",
+    statMode: "The mode is the value that appears most often. It is not the middle and not the average.",
+    statRange: "Range is the largest value minus the smallest.",
+    statMissingMean: "Multiply the mean by how many values there are to get the total, then subtract the values you know.",
+    statFreqMidpoint: "The midpoint is the two class boundaries added together and halved.",
+    statPieAngle: "A full circle is 360°, so divide 360 by the number of equal sectors.",
+    statPictogram: "Work out what one symbol stands for first, then multiply by the number of symbols.",
+    statCorrelation: "Positive correlation means both rise together; negative means one rises as the other falls.",
+    statPieFromAngle: "Find how many the sector represents per degree, then multiply by the angle you are asked about.",
+    statFreqTotal: "Multiply each value by how many times it occurred, then add those products. Adding the frequencies alone counts children, not items.",
+    statMeanOfFactors: "List the factors in pairs so none are missed, add them, then divide by how many there are.",
+    statCombinedMean: "Turn each mean back into a total, add the totals, then divide by the combined number. Averaging the two means only works if the groups are the same size.",
+    statMedianFromFreq: "Add the frequencies to find how many there are, work out the middle position, then count through the table until you reach it.",
+
+    /* Probability */
+    probBagPick: "Probability is the number of ways you want over the total number of ways.",
+    probDie: "List which of the six faces count, then put that over 6.",
+    probCoin: "A fair coin has two equally likely results.",
+    probComplement: "The chance of something not happening is 1 minus the chance that it does.",
+    probExpected: "Multiply the probability by the number of trials.",
+    probIndependent: "For both to happen, multiply the two probabilities together.",
+    probWithoutReplacement: "The first pick changes what is left, so the second fraction has a smaller total underneath. Multiply the two fractions.",
+    probTwoDiceSum: "There are 36 equally likely pairs, and the number giving a total t is 6 − |7 − t| — most ways for 7, fewest for 2 and 12. Put that count over 36 and cancel.",
+    probAtLeastOne: "'At least one' is easier backwards: find the chance of none, then subtract from 1.",
+
+    /* Logic */
+    logConsecutiveIntSum: "Divide the total by how many numbers there are to find the middle, then step out either side.",
+    logConsecutiveEvenSum: "Consecutive even numbers rise by 2. Divide the total by how many there are to find the middle one.",
+    logConsecutiveOddPuzzle: "Call the smaller number n, write the larger as n + 2, turn the sentence into an equation and solve.",
+    logPalindromeYesNo: "Read the digits backwards and compare with the original.",
+    logNextPalindrome: "Count upwards, checking each number reads the same both ways. Fixing the first digits and mirroring them is quicker.",
+    logSquarePalindromesInRange: "List the square numbers in the range first, then test each one for reading the same backwards.",
+    logDayOfWeek: "Days repeat every 7. Divide by 7 and use only the remainder to count forward.",
+    logDayWeeksAgo: "Whole weeks land on the same day, so only the extra days shift it.",
+    logDayShiftAcrossYear: "A date moves on one day each year, or two across a leap year. Check whether February 29 falls between the two dates.",
+    logLeapYearPick: "A leap year divides by 4, except century years, which must divide by 400.",
+    logLeapBirthday: "February 29 comes every 4 years, so count in fours from the birth year — but check whether a century year interrupts the pattern.",
+    logClockAngleAtHour: "The minute hand moves 6° a minute; the hour hand moves 0.5° a minute and drifts past the hour. Find both positions, then subtract.",
+    logClockMirror: "A mirrored clock time and the real time add to 12:00. Subtract the shown time from 12 hours.",
+    logSumAndDiff: "Subtract the difference from the sum and halve it for the smaller number, then add the difference back.",
+    logArithmagonProduct: "Multiply all three side products together — that gives the square of a × b × c. Take the square root, then divide by the product of the other two.",
+    logAdditionPyramid: "Work upwards, adding each neighbouring pair. The middle number of the bottom row is used twice.",
+    logLetterPuzzle: "Compare the two statements. The difference between them tells you the value of the extra letter.",
+    logMagicSquareRow: "Every row adds to the same total, so subtract the numbers you know from that total.",
+    logDigitSumOfSum: "Do the addition first, then add the digits of the answer together."
+  };
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -2448,6 +2668,7 @@ const QUESTIONS = [];
           const q = gen(v + gIdx * 13);
           if (!q) continue;
           q.difficulty = lo + (v % span);
+          if (!q.explain && METHODS[gen.name]) q.explain = METHODS[gen.name];
           QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }
       }

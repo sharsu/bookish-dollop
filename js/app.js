@@ -1380,21 +1380,111 @@ class ExamApp {
     const review = document.getElementById("review-list");
     review.innerHTML = "";
     this.quizQuestions.forEach((q, idx) => {
-      const answered = idx in this.answers;
-      const isCorrect = answered && this.answers[idx] === q.answer;
-      const className = isCorrect ? "review-correct" : answered ? "review-wrong" : "review-skip";
-      const difficultyMeta = getDifficultyMeta(q.difficulty);
-      
-      const html = `
-        <div class="review-item ${className}">
-          <div class="review-q">${idx + 1}. ${q.question}</div>
-          <div class="review-meta">
-            <span>${difficultyMeta.label}</span>
-            <span>${q.topic}</span>
-          </div>
-      `;
-      review.innerHTML += html;
+      review.appendChild(this.buildReviewItem(q, idx));
     });
+  }
+
+  /* One entry in the end-of-paper review, showing what the child chose next to
+     what was right. Built as DOM nodes rather than an innerHTML string: the
+     question text is set with textContent so a passage containing < or & cannot
+     break the markup, and appending nodes avoids re-parsing the whole list for
+     every question. */
+  buildReviewItem(question, index) {
+    const answered = index in this.answers;
+    const chosen = answered ? this.answers[index] : -1;
+    const isCorrect = answered && chosen === question.answer;
+
+    const item = document.createElement("div");
+    item.className = `review-item ${isCorrect ? "review-correct" : answered ? "review-wrong" : "review-skip"}`;
+
+    const stem = document.createElement("div");
+    stem.className = "review-q";
+    stem.textContent = `${index + 1}. ${question.question}`;
+    item.appendChild(stem);
+
+    const answers = document.createElement("div");
+    answers.className = "review-answers";
+
+    if (isCorrect) {
+      answers.appendChild(this.buildAnswerRow("correct", "Your answer", question, chosen, "✓"));
+    } else if (answered) {
+      answers.appendChild(this.buildAnswerRow("chosen", "You chose", question, chosen, "✗"));
+      answers.appendChild(this.buildAnswerRow("correct", "Correct answer", question, question.answer, "✓"));
+    } else {
+      /* Nothing was attempted, so the correct answer is deliberately withheld —
+         there is no mistake to learn from, and leaving it out keeps the question
+         worth attempting properly next time. */
+      const missed = document.createElement("div");
+      missed.className = "review-answer review-answer-missed";
+      const tag = document.createElement("span");
+      tag.className = "review-answer-tag";
+      tag.textContent = "Not answered";
+      missed.appendChild(tag);
+      // Its own class, not review-answer-text: this is a prompt, not an option,
+      // and nothing in a skipped entry should look like one.
+      const note = document.createElement("span");
+      note.className = "review-answer-note";
+      note.textContent = "Have another go at this one.";
+      missed.appendChild(note);
+      answers.appendChild(missed);
+    }
+
+    item.appendChild(answers);
+
+    /* The technique, shown only when the answer was wrong. A child who got it
+       right does not need it, and a skipped question is deliberately left
+       unexplained along with its answer. */
+    if (answered && !isCorrect && question.explain) {
+      const method = document.createElement("div");
+      method.className = "review-method";
+
+      const heading = document.createElement("span");
+      heading.className = "review-method-heading";
+      heading.textContent = "How to do it";
+      method.appendChild(heading);
+
+      const body = document.createElement("p");
+      body.className = "review-method-text";
+      body.textContent = question.explain;
+      method.appendChild(body);
+
+      item.appendChild(method);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "review-meta";
+    [getDifficultyMeta(question.difficulty).label, question.topic].forEach(text => {
+      const span = document.createElement("span");
+      span.textContent = text;
+      meta.appendChild(span);
+    });
+    item.appendChild(meta);
+
+    return item;
+  }
+
+  /* A single "You chose B — 42" line. `optionIndex` is the position in the
+     question's option list, which is also what the quiz screen lettered. */
+  buildAnswerRow(kind, label, question, optionIndex, mark) {
+    const row = document.createElement("div");
+    row.className = `review-answer review-answer-${kind}`;
+
+    const tag = document.createElement("span");
+    tag.className = "review-answer-tag";
+    tag.textContent = `${mark} ${label}`;
+    row.appendChild(tag);
+
+    const letter = document.createElement("span");
+    letter.className = "review-answer-letter";
+    letter.textContent = String.fromCharCode(65 + optionIndex);
+    row.appendChild(letter);
+
+    const text = document.createElement("span");
+    text.className = "review-answer-text";
+    text.textContent = question.options[optionIndex];
+    row.appendChild(text);
+
+    return row;
   }
 
   renderParentDashboard() {

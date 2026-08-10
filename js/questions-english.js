@@ -107,6 +107,30 @@
   const passageLength = passage => passage.lines.filter(line => line !== "").length;
 
 
+  /* Comprehension questions are written one at a time rather than generated, so
+     the technique is worked out from what the question is asking for. The stems
+     are consistent enough across the papers for this to be reliable. */
+  function comprehensionTip(stem) {
+    const q = stem.toLowerCase();
+    if (/closest in meaning|synonym|what does .*mean|which word is closest/.test(q))
+      return "Cover the options and read the sentence the word appears in. Work out the meaning from the surrounding lines first, then find the option that matches.";
+    if (/which technique|example of|this is an example/.test(q))
+      return "Check the wording, not the feeling. 'Like' or 'as' means a simile; saying one thing IS another is a metaphor; giving something human behaviour is personification.";
+    if (/what is the effect|why does the writer|why has the writer|why might the writer|why does the passage|what does .*achieve|what is the writer doing/.test(q))
+      return "Ask what the writer gains by this choice. Say what it makes the reader feel or notice, rather than what it describes.";
+    if (/what can we infer|what does this suggest|what does this tell us|what does .*reveal|why did|why was|why is/.test(q))
+      return "The answer is implied, not stated. Find the line it rests on, then choose the option that line genuinely supports — not the one that merely sounds likely.";
+    if (/part of speech|what type of word|what type of words/.test(q))
+      return "Ask what the word is doing in that sentence. Naming is a noun, doing is a verb, describing a noun is an adjective, describing a verb is an adverb.";
+    if (/describes the tone|describes the mood|the writer's attitude|writer's tone/.test(q))
+      return "Tone is the writer's attitude to the subject. Look at the adjectives and verbs they chose, and rule out options that are too strong for the passage.";
+    if (/how is the passage organised|structure of|main purpose|writer's purpose|aim of the/.test(q))
+      return "Look at what each paragraph does rather than what it says — introduce, explain, give evidence, then challenge or conclude.";
+    if (/which two|which of the following statements is true|which sentence from the passage/.test(q))
+      return "Test each statement against the passage separately and find the exact line that proves it. Reject anything the passage only implies loosely.";
+    return "Go back to the passage and find the line the question points at. Read the sentence before and after it too — the answer usually sits just outside the quoted words.";
+  }
+
   function buildComprehension() {
     const out = [];
     PASSAGES.forEach((passage, pIdx) => {
@@ -122,6 +146,7 @@
           q.group = group;
           q.groupCategory = passage.category;   // Fiction | Non-Fiction | Classic
           q.groupLines = passageLength(passage);
+          q.explain = comprehensionTip(spec.q);
           out.push(q);
         }
       });
@@ -167,15 +192,81 @@
     ["thankfully", "thankfuly", 1], ["thorough", "thourough", 3], ["tomorrow", "tomorow", 1],
     ["tongue", "tounge", 2], ["twelfth", "twelth", 3], ["unnecessary", "unecessary", 3],
     ["until", "untill", 1], ["vegetable", "vegtable", 1], ["vengeance", "vengance", 4],
-    ["vicious", "visious", 3], ["Wednesday", "Wendsday", 1], ["weird", "wierd", 2]
+    ["vicious", "visious", 3], ["Wednesday", "Wendsday", 1], ["weird", "wierd", 2],
+    /* QE Boys scholarship spelling workbook (other-papers/Spelling.pdf):
+       110 words grouped by letter pattern. The misspelling for each is the
+       error its own pattern invites — -able/-ible and -cial/-tial swapped,
+       -cies written -cys, doubled letters reduced to one. */
+    ["acceptable", "acceptible", 2], ["achievable", "achievible", 2],
+    ["advisable", "advisible", 2], ["agreeable", "agreable", 2], ["available", "availible", 2],
+    ["avoidable", "avoidible", 2], ["believable", "believible", 2],
+    ["breakable", "breakible", 2], ["dependable", "dependible", 2],
+    ["enjoyable", "enjoyible", 2], ["comfortable", "comfortible", 3],
+    ["considerable", "considerible", 3], ["fashionable", "fashionible", 3],
+    ["identifiable", "identifyable", 3], ["knowledgeable", "knowledgable", 3],
+    ["manageable", "managable", 3], ["memorable", "memorible", 3],
+    ["predictable", "predictible", 3], ["reasonable", "reasonible", 3],
+    ["reliable", "relyable", 3], ["remarkable", "remarkible", 3],
+    ["respectable", "respectible", 3], ["valuable", "valuible", 3],
+    ["accessible", "accessable", 3], ["audible", "audable", 3],
+    ["compatible", "compatable", 3], ["comprehensible", "comprehensable", 3],
+    ["contemptible", "contemptable", 3], ["credible", "credable", 3], ["edible", "edable", 3],
+    ["eligible", "eligable", 3], ["flexible", "flexable", 3], ["gullible", "gullable", 3],
+    ["horrible", "horrable", 3], ["illegible", "illegable", 3],
+    ["incredible", "incredable", 3], ["irresistible", "irresistable", 3],
+    ["invincible", "invincable", 3], ["invisible", "invisable", 3],
+    ["permissible", "permissable", 4], ["possible", "possable", 4],
+    ["responsible", "responsable", 4], ["reversible", "reversable", 4],
+    ["sensible", "sensable", 4], ["susceptible", "susceptable", 4],
+    ["terrible", "terrable", 4], ["aggressive", "agressive", 3],
+    ["appreciate", "apreciate", 3], ["assessment", "asessment", 3],
+    ["brilliant", "briliant", 3], ["communicate", "comunicate", 3],
+    ["millennium", "millenium", 3], ["profession", "proffession", 3],
+    ["sufficient", "sufficent", 4], ["artificial", "artifitial", 4],
+    ["beneficial", "benefitial", 4], ["commercial", "commertial", 4],
+    ["crucial", "crutial", 4], ["financial", "finantial", 4], ["official", "offitial", 4],
+    ["social", "sotial", 4], ["special", "spetial", 4], ["superficial", "superfitial", 4],
+    ["confidential", "confidencial", 4], ["influential", "influencial", 4],
+    ["potential", "potencial", 4], ["atrocious", "atrotious", 4],
+    ["audacious", "audatious", 4], ["delicious", "delitious", 4],
+    ["ferocious", "ferotious", 4], ["gracious", "gratious", 4], ["malicious", "malitious", 4],
+    ["suspicious", "suspitious", 4], ["tenacious", "tenatious", 4],
+    ["accuracies", "accuracys", 4], ["agencies", "agencys", 4],
+    ["conspiracies", "conspiracys", 4], ["delicacies", "delicacys", 4],
+    ["democracies", "democracys", 4], ["emergencies", "emergencys", 4],
+    ["frequencies", "frequencys", 4], ["inconsistencies", "inconsistencys", 4],
+    ["inefficiencies", "inefficiencys", 4], ["legacies", "legacys", 4],
+    ["vacancies", "vacancys", 4]
   ];
 
+  /* The trick for a spelling word depends on its own letter pattern, so it is
+     derived from the word rather than fixed per template. These are the patterns
+     the QE Boys workbook groups its words by. */
+  function spellingTip(word) {
+    const w = word.toLowerCase();
+    if (/cies$/.test(w)) return `Plurals of words ending -cy change the y to i and add es: ${w.slice(0, -3)}y becomes ${w}. Never -cys.`;
+    if (/eable$/.test(w)) return `${word} keeps the e of the root before -able, because the e keeps the c or g soft.`;
+    if (/iable$/.test(w)) return `${word} ends -iable, not -yable: the y of the root changes to i before the ending.`;
+    if (/able$/.test(w)) return `-able is added to a word you can still hear inside it (${w.slice(0, -4)} → ${w}). -ible attaches to roots that cannot stand alone.`;
+    if (/ible$/.test(w)) return `${word} takes -ible, because the root cannot stand on its own as a word. Use -able only when it can.`;
+    if (/cious$/.test(w)) return `${word} ends -cious, not -tious. The two sound identical, so this one has to be learned by sight.`;
+    if (/tious$/.test(w)) return `${word} ends -tious, not -cious. The two sound identical, so learn the whole word.`;
+    if (/cial$/.test(w)) return `${word} ends -cial. After a vowel the ending is usually -cial; after a consonant it is usually -tial.`;
+    if (/tial$/.test(w)) return `${word} ends -tial. After a consonant the ending is usually -tial; after a vowel it is usually -cial.`;
+    const doubled = w.match(/([bcdfglmnprst])\1/);
+    if (doubled) return `${word} has a double ${doubled[1]}. Double letters have to be memorised — say the word slowly and picture it written down.`;
+    if (/ei|ie/.test(w)) return `Watch the ei/ie order in ${word}. Spelling the letters aloud as you write helps fix it.`;
+    return `Break ${word} into syllables and check each one, rather than trusting the overall shape of the word.`;
+  }
+
   function spellFindMisspelt(i) {
-    const [, wrong, level] = pick(SPELLING_PAIRS, i);
+    const [right, wrong, level] = pick(SPELLING_PAIRS, i);
     const clean = others(SPELLING_PAIRS, i).map(pair => pair[0]);
-    return mkE("Spelling",
+    const q = mkE("Spelling",
       "Which one of these four words is spelled incorrectly?",
       wrong, clean, level, i);
+    if (q) q.explain = `The correct spelling is "${right}". ${spellingTip(right)}`;
+    return q;
   }
 
   /* Plausible extra misspellings, built by applying the mistakes children
@@ -196,15 +287,24 @@
     ];
   }
 
+  /* These two walk SPELLING_PAIRS, which is far longer than the default
+     variation count. Declaring the pool size tells the driver to run enough
+     variations to reach every word — without it most of the pool is dead. */
+  spellFindMisspelt.poolSize = SPELLING_PAIRS.length;
+
   function spellChooseCorrect(i) {
     const [right, wrong, level] = pick(SPELLING_PAIRS, i);
     const wrongOptions = firstDistinct(right, [wrong, ...misspellVariants(right)]);
     if (!wrongOptions) return null;
     // Picking the right spelling from four candidates is a shade easier than
     // spotting the odd one out among four different words.
-    return mkE("Spelling", "Which of these is the correct spelling?",
+    const q = mkE("Spelling", "Which of these is the correct spelling?",
       right, wrongOptions, Math.max(1, level - 1), i);
+    if (q) q.explain = spellingTip(right);
+    return q;
   }
+
+  spellChooseCorrect.poolSize = SPELLING_PAIRS.length;
 
   /* The exam-style "find the mistake in this sentence" question. These are
      written out rather than slotted into a frame: a shared frame cannot host
@@ -269,9 +369,11 @@
 
   function spellInSentence(i) {
     const item = pick(SPELL_SENTENCES, i);
-    return mkE("Spelling",
+    const q = mkE("Spelling",
       `One word in this sentence is spelled incorrectly. Which word is it?\n\n"${item.sentence}"`,
       item.wrong, item.ok, item.level, i + 1);
+    if (q) q.explain = `"${item.wrong}" is wrong. ${spellingTip(item.wrong)}`;
+    return q;
   }
 
   /* Homophone confusions are marked as spelling mistakes in these papers. */
@@ -1162,6 +1264,65 @@
       item.right, item.wrong, hardDiff(i), i);
   }
 
+  /* ═══════════════════ METHODS ═══════════════════
+     The technique behind each template, shown when a child gets the question
+     wrong. Keyed by generator name. Spelling and homophone templates set their
+     own q.explain from the word itself, which is more useful than a general
+     rule, and that takes precedence. */
+  const METHODS = {
+    spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
+    spellChooseCorrect: "Cover the options and write the word yourself first, then look for the one that matches.",
+    spellInSentence: "Read the sentence aloud. Short familiar words are usually right, so check the longest, least common word first.",
+    spellHomophone: "These words sound alike but mean different things. Replace the gap with the full meaning and see which still makes sense.",
+    spellAnyMistake: "Check every word before deciding. Sometimes all four are correct, and 'No mistake' is the answer.",
+
+    punApostropheSingular: "One owner: put the apostrophe straight after the owner, then add s — the boy's football.",
+    punApostrophePlural: "Several owners: the plural already ends in s, so the apostrophe goes after it — the girls' bags.",
+    punIrregularPossessive: "Plurals that do not end in s take apostrophe-s like a singular — children's, women's, people's.",
+    punContraction: "The apostrophe stands exactly where the missing letters were: could not loses the o, so could'nt is wrong and couldn't is right.",
+    punDirectSpeech: "The closing mark goes inside the speech marks, and a statement takes a comma there, not a full stop. The reporting clause then stays lower case.",
+    punReportedFirst: "When the speaker comes first, a comma goes before the speech marks, and the words spoken keep their own end mark inside.",
+    punColonList: "A colon introduces a list after a complete statement. A comma is not strong enough to do that job.",
+    punSemicolon: "A semicolon joins two complete sentences that are closely related. Both halves must stand on their own.",
+    punCommaSplice: "Two complete sentences cannot be joined by a comma alone. Use a full stop, a semicolon, or add a joining word.",
+    punFindSegment: "Read each labelled part on its own and ask what punctuation it needs. Check apostrophes and speech marks first — and remember nothing may be wrong.",
+    punCapitals: "Capitals go on names, places, days, months, languages and the start of a sentence — but not on ordinary nouns like winter or school.",
+    punEqualAdjectives: "Two adjectives of the same kind take a comma between them. If one belongs with the noun as a pair, leave it out.",
+    punSentenceEnding: "Decide what the sentence is doing. A question asks, an exclamation exclaims, a statement tells — even a sentence containing 'whether' can still be a statement.",
+    punFullStop: "A full stop must leave a complete sentence on both sides. If one side cannot stand alone, it needed a comma or a joining word instead.",
+
+    graPastSimple: "The simple past stands alone: yesterday I went. If you need 'have' or 'had' in front of it, you have the wrong form.",
+    graPastParticiple: "The past participle is the form used after have, has or had — I have gone, not I have went.",
+    graPronoun: "Take the other person out of the sentence and read it again. 'Told I' sounds wrong, so it must be 'told me'.",
+    graPlural: "Most plurals add s or es, but many everyday words change completely. An apostrophe never makes a plural.",
+    graComparative: "Comparing two things: short words add -er, longer ones take 'more'. Never use both together.",
+    graSuperlative: "Comparing three or more: short words add -est, longer ones take 'most'. Some words change altogether — good, better, best.",
+    graAgreement: "Find the real subject. Words like each, neither and one of are singular however many nouns follow them.",
+    graPartOfSpeech: "Ask what the word is doing. Naming is a noun, doing is a verb, describing a noun is an adjective, describing a verb is an adverb.",
+    graSentenceType: "A statement tells, a question asks, a command instructs, an exclamation shows strong feeling.",
+    graTense: "Match the tenses across the sentence so the order of events is clear. Once and by the time signal that one action finished before the other.",
+    graSubjunctive: "For something imagined rather than real, use 'were' rather than 'was' — if I were you. After insist or essential, the verb stays as 'be'.",
+    graPassiveVoice: "In the passive the subject has the action done to it, and the verb uses a form of 'be' plus a past participle — was broken, had been posted.",
+    graSubordinateClause: "The subordinate clause cannot stand on its own. It usually starts with a word like although, because, when, which or that.",
+
+    vocSynonym: "Put each option into the original sentence in place of the word. The synonym is the one that leaves the meaning unchanged.",
+    vocAntonym: "Look for the true opposite, not just a word that is different. Check the part of speech matches too.",
+    vocDefinition: "Look for a root or prefix you recognise inside the word, then choose the meaning that fits it.",
+    vocIdiom: "An idiom does not mean what its words say. Think about when you have heard the phrase used.",
+    vocCollective: "Collective nouns must be learned individually. Many are unexpected — a murder of crows, a parliament of owls.",
+    vocPrefix: "The prefix carries the meaning. Think of other words that begin the same way and work out what they share.",
+    vocWordGroup: "Test all the words against one class. If they all describe a noun they are adjectives; if they all describe a verb they are adverbs.",
+
+    wordChoice: "Read the whole sentence with each option in place. The right one must be both sensible and correct English.",
+    wordChoicePrecision: "All the options may fit grammatically, so choose the one that gives the sharpest picture rather than the first that works.",
+    wordChoiceConnective: "Decide what the connective must do — add, contrast, or show a result — then pick the one that does it.",
+
+    litIdentify: "A simile compares using like or as; a metaphor says one thing IS another; personification gives human qualities to something that is not human.",
+    litFindExample: "Check each option against the definition rather than choosing the one that sounds most poetic.",
+    litDefinition: "Learn these by their distinguishing feature: the word 'like' or 'as' marks a simile, and only personification gives human behaviour to an object.",
+    litWordEffect: "Ask what the word suggests beyond its plain meaning, and what the writer gains by choosing it over an ordinary alternative."
+  };
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Two kinds of entry, because English difficulty has two sources.
@@ -1227,11 +1388,15 @@
   Object.values(generators).forEach(gens => {
     gens.forEach(([gen, lo, hi], gIdx) => {
       const span = lo ? hi - lo + 1 : 0;
-      for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
+      // A generator backed by a pool bigger than the default needs one variation
+      // per pool entry, or the tail of the pool is never reached.
+      const variations = Math.max(VARIATIONS_PER_TEMPLATE, gen.poolSize || 0);
+      for (let v = 0; v < variations; v++) {
         try {
           const q = gen(v + gIdx * 13);
           if (!q) continue;
           if (span) q.difficulty = lo + (v % span);
+          if (!q.explain && METHODS[gen.name]) q.explain = METHODS[gen.name];
           ENGLISH_QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }
       }

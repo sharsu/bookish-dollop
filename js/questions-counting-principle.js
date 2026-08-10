@@ -58,3 +58,30 @@
   QUESTIONS.push(...extras);
   console.log(`Loaded ${extras.length} Counting Principle questions. Total now: ${QUESTIONS.length}`);
 })();
+/* Methods for the counting-principle questions, shown in the review on a wrong
+   answer. Classified from the wording, since the three underlying rules —
+   multiply the choices, arrange in order, choose without order — are signalled
+   by distinct phrasing. */
+(() => {
+  if (typeof QUESTIONS === "undefined" || !Array.isArray(QUESTIONS)) return;
+
+  const METHODS = [
+    [/factorial|!|arrange all|in a row|order them/,
+     "Arranging n different things in order gives n! ways: n choices for the first place, n − 1 for the next, and so on down to 1."],
+    [/how many ways can .* be arranged|permutation|first, second and third|prize/,
+     "Order matters here, so count the choices for each place in turn and multiply: the pool shrinks by one each time a place is filled."],
+    [/committee|choose .* from .* where order does not matter|combination|team of/,
+     "Order does not matter, so count the ordered arrangements first and then divide by the number of ways the chosen group could itself be ordered."],
+    [/PIN|code|number plate|can be any number|repeated|repeat/,
+     "Work out how many choices each position has. If digits or letters may repeat, every position keeps the full set of choices, so multiply that number by itself once per position."],
+    [/at least one|none of|not/,
+     "Count the total number of possibilities, then subtract the ones you do not want. 'At least one' is almost always quicker worked backwards."]
+  ];
+
+  const FALLBACK = "When one choice is followed by an independent second choice, multiply the number of options together — do not add them. Extend the multiplication for each further choice.";
+
+  QUESTIONS.filter(q => q && q.topic === "Counting Principle" && !q.explain).forEach(question => {
+    const match = METHODS.find(([pattern]) => pattern.test(question.question));
+    question.explain = match ? match[1] : FALLBACK;
+  });
+})();
