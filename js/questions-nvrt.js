@@ -4470,3 +4470,91 @@
   root.NVRT_QUESTIONS.push(...generated);
   console.log(`Loaded ${generated.length} generated NVRT questions. Total now: ${root.NVRT_QUESTIONS.length}`);
 })();
+/* ═══════════════════ METHODS ═══════════════════
+   The technique behind each NVRT family, shown in the review when a child gets
+   the question wrong. NVRT questions are pictures, so the useful help is the
+   procedure for reading the figures — which feature to check, and in what order.
+   Classified from the question stem, since the families share fixed wording. */
+(() => {
+  const root = typeof window !== "undefined" ? window : globalThis;
+  if (!Array.isArray(root.NVRT_QUESTIONS)) return;
+
+  const METHODS = [
+    [/letter code|-letter code/,
+     "Each position in the code stands for one feature — outline, shading, size or the number of marks. Compare two figures that share a letter to work out which feature that position controls, then read the new figure feature by feature."],
+    [/odd one out/,
+     "Find the rule the others obey rather than hunting for something odd. Check one feature at a time across all the figures — shape, shading, count, direction — and the odd one is the one that breaks the rule the rest keep."],
+    [/replace the missing box|completes the .*matrix|missing picture in the grid/,
+     "Work along each row and then down each column. Whatever changes from left to right must change the same way in every row, so apply the row rule and the column rule and take the figure that satisfies both."],
+    [/A changes to B|first creature changes to become the second|changes to become/,
+     "Name the change precisely before looking at the options — what rotates, what reflects, what gains or loses a mark. Then apply exactly that same change to the third figure."],
+    [/mirror image/,
+     "In a reflection, left and right swap but top and bottom do not, and every feature stays the same distance from the mirror line. Check an off-centre detail: it must appear on the opposite side."],
+    [/hidden inside|contains the target/,
+     "The hidden shape keeps its exact size and orientation — it is never rotated or resized. Trace the target's outline over each option and look for those lines unbroken."],
+    [/cubes can be made from the net|cube can be made from the net/,
+     "Faces that touch on the net end up next to each other on the cube; faces separated by one square end up opposite. Two faces that are opposite on the net can never both be visible at once."],
+    [/share a property|belongs with the group/,
+     "Work out what the given figures have in common before looking at the options — usually a combination of two features, such as outer shape together with shading. Then test each option against both."],
+    [/comes next in the sequence/,
+     "Look at what changes from each figure to the next: rotation, number of sides, shading, or position of a mark. Continue every one of those changes by one more step."],
+    [/how many cubes are in the stack/,
+     "Count layer by layer from the bottom, working out how many cubes each layer must contain to support the one above. Remember the hidden cubes at the back that you cannot see."],
+    [/folded|hole is punched/,
+     "Unfold one crease at a time, in the reverse order to the folding. Each unfold mirrors the existing holes across the fold line, so the number of holes doubles at every step."],
+    [/completes the missing quadrant/,
+     "Look at how the three quadrants you can see relate to each other — usually by rotation about the centre or reflection across the middle. The missing piece must continue that same symmetry."],
+    [/most similar to the target/,
+     "The question names the features that must match. Check them one at a time and eliminate any option that fails even one, rather than judging the overall look."],
+    [/net.*(makes|make|fold|folds).*cube|valid cube net|six connected squares/,
+     "A cube net needs exactly six squares joined edge to edge, and must fold up without two squares landing on the same face. Most valid nets are a row of four with one square on each side of that row; count the squares first, then check nothing overlaps when you fold it in your head."]
+  ];
+
+  /* Figure questions get a procedure for reading pictures. The curated
+     numeric and verbal puzzles carry no image, and telling a child to compare
+     figures there would be worse than saying nothing, so they get a reasoning
+     method instead. */
+  const FIGURE_FALLBACK = "Compare the figures one feature at a time — outline, shading, size, rotation, and the number and position of any marks. Decide the rule from the figures you are given before you look at the options.";
+
+  const REASONING = [
+    [/next number in this sequence|next term/,
+     "Find the difference between each pair of terms. If the differences are not constant, look at the differences between those differences, or check whether each term is built from the two before it."],
+    [/prime/,
+     "A prime has exactly two factors, 1 and itself. Test each candidate against 2, 3, 5, 7 and 11 — if none divide in and the number is below 169, it is prime."],
+    [/palindrom/,
+     "A palindrome reads the same both ways. Fix the leading digits, mirror them to make the rest, and count upwards from there rather than testing every number."],
+    [/probability|chance/,
+     "Count the outcomes you want and the total number of outcomes. If one thing happens after another, multiply the two fractions — and remember the total shrinks if nothing is replaced."],
+    /* Match the word, or ratio notation with digits either side. A bare colon
+       matches far too much — it appears in ordinary sentences and in times. */
+    [/ratio|\d+\s*:\s*\d+/,
+     "Add the ratio parts to find the number of shares, work out what one share is worth, then multiply up for whatever the question asks."],
+    [/times (his|her|their|the) age|how old|older than|younger than|age/,
+     "Turn each sentence into a relationship between the two ages, remembering that the gap between them never changes. Test the options against every statement, not just the first."],
+    [/how many.*digits|digit sum|digits add up/,
+     "Break the range into tens and hundreds and count a block at a time, then multiply up. Counting one by one invites mistakes."],
+    [/clock|minute hand|hour hand/,
+     "The minute hand moves 6° a minute and the hour hand 0.5° a minute, so the hour hand drifts past the hour as the minutes pass. Work out both positions, then subtract."],
+    [/how many factors|factors does/,
+     "Split the number into its prime factors, add one to each index, then multiply those together — that counts every factor. Subtract 2 if the question excludes 1 and the number itself."],
+    [/divisible by|multiple of|remainder/,
+     "Use the divisibility tests: a number divides by 3 if its digits sum to a multiple of 3, by 4 if the last two digits do, by 9 if the digit sum does. For several divisors at once, work with their lowest common multiple."],
+    [/mean|median|mode|range|average/,
+     "Take each measure in turn: mean is the total divided by the count, median is the middle once sorted, mode is the most common, range is largest minus smallest. Build the list so every condition holds at once."],
+    [/last digit|second-to-last digit|\d\^|⁷|⁵|²|³/,
+     "Last digits repeat in a short cycle. Work out the first few powers, find the cycle length, then see where the exponent lands within it — you never need the whole number."],
+    [/percentage|per cent|%/,
+     "Find 10% or 1% first and build the percentage you need from that. Where one percentage follows another, apply them one after the other rather than adding them."]
+  ];
+
+  const REASONING_FALLBACK = "Read the question again and write down what you actually know before calculating. Work in small steps, and check your answer against the wording — the options are chosen to catch the common slip.";
+
+  root.NVRT_QUESTIONS.forEach(question => {
+    if (question.explain) return;
+    const match = METHODS.find(([pattern]) => pattern.test(question.question));
+    if (match) { question.explain = match[1]; return; }
+    if (question.questionImage) { question.explain = FIGURE_FALLBACK; return; }
+    const reasoning = REASONING.find(([pattern]) => pattern.test(question.question));
+    question.explain = reasoning ? reasoning[1] : REASONING_FALLBACK;
+  });
+})();

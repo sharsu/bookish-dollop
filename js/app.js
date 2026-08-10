@@ -1431,6 +1431,26 @@ class ExamApp {
 
     item.appendChild(answers);
 
+    /* The technique, shown only when the answer was wrong. A child who got it
+       right does not need it, and a skipped question is deliberately left
+       unexplained along with its answer. */
+    if (answered && !isCorrect && question.explain) {
+      const method = document.createElement("div");
+      method.className = "review-method";
+
+      const heading = document.createElement("span");
+      heading.className = "review-method-heading";
+      heading.textContent = "How to do it";
+      method.appendChild(heading);
+
+      const body = document.createElement("p");
+      body.className = "review-method-text";
+      body.textContent = question.explain;
+      method.appendChild(body);
+
+      item.appendChild(method);
+    }
+
     const meta = document.createElement("div");
     meta.className = "review-meta";
     [getDifficultyMeta(question.difficulty).label, question.topic].forEach(text => {
