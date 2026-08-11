@@ -2498,6 +2498,183 @@ const QUESTIONS = [];
       4, i);
   }
 
+  /* ═══════════════════ DIAGRAM QUESTIONS ═══════════════════
+     Question types from the papers that cannot be asked in words alone. The
+     figure is drawn by js/diagrams.js and carried on the question as
+     questionImage, the same mechanism the NVRT bank uses, so js/app.js renders
+     it without any change. mkFig() is mk() plus the picture. */
+
+  const D = (typeof window !== "undefined" ? window : globalThis).DIAGRAMS || null;
+
+  const mkFig = (topic, question, correct, distractors, difficulty, seed, figure) => {
+    if (!figure) return null;
+    const q = mk(topic, question, correct, distractors, difficulty, seed);
+    if (q) { q.questionImage = figure.image; q.questionImageAlt = figure.alt; }
+    return q;
+  };
+
+  function figShadedFraction(i) {
+    if (!D) return null;
+    const cols = 3 + (i % 4), rows = 2 + (i % 3);
+    const total = cols * rows;
+    const shaded = 1 + (i % (total - 1));
+    return mkFig("Fractions",
+      "What fraction of this shape is shaded? Give your answer in its simplest form.",
+      simp(shaded, total),
+      [simp(total - shaded, total), simp(shaded, total - shaded), `${shaded}/${shaded + total}`],
+      diff(i, 3), i, D.shadedGrid({ cols, rows, shaded }));
+  }
+
+  function figBarChartTotal(i) {
+    if (!D) return null;
+    const labels = ["Mon", "Tue", "Wed", "Thu"];
+    const values = [4 + (i % 7), 6 + ((i * 3) % 8), 3 + ((i * 5) % 6), 5 + ((i * 7) % 9)];
+    const total = sum(values);
+    return mkFig("Statistics",
+      "The bar chart shows how many books were borrowed each day. How many were borrowed altogether?",
+      `${total}`, [`${total - values[0]}`, `${Math.max(...values)}`, `${total + values[1]}`],
+      diff(i, 3), i, D.barChart({ labels, values, axisLabel: "Books" }));
+  }
+
+  function figBarChartDifference(i) {
+    if (!D) return null;
+    const labels = ["Ash", "Beech", "Elm", "Oak"];
+    const values = [5 + (i % 8), 9 + ((i * 3) % 7), 4 + ((i * 5) % 5), 11 + ((i * 2) % 6)];
+    const gap = Math.max(...values) - Math.min(...values);
+    return mkFig("Statistics",
+      "The bar chart shows how many trees of each kind were counted. What is the difference between the most and the least common?",
+      `${gap}`, [`${Math.max(...values)}`, `${Math.min(...values)}`, `${gap + 2}`],
+      diff(i, 3), i, D.barChart({ labels, values, axisLabel: "Trees" }));
+  }
+
+  function figPictogram(i) {
+    if (!D) return null;
+    const per = [4, 5, 10, 2][i % 4];
+    const rows = [["Monday", 3 + (i % 3)], ["Tuesday", 2 + ((i * 3) % 4)], ["Wednesday", 4 + ((i * 5) % 3)]];
+    const target = rows[i % 3];
+    const ans = target[1] * per;
+    return mkFig("Statistics",
+      `The pictogram shows how many parcels were delivered. How many were delivered on ${target[0]}?`,
+      comma(ans), [comma(target[1]), comma(ans + per), comma(per)],
+      diff(i, 3), i, D.pictogram({ rows, per: `${per} parcels` }));
+  }
+
+  function figPieChart(i) {
+    if (!D) return null;
+    const per = 2 + (i % 6);                       // people per degree
+    const parts = [[120, "Football"], [90, "Netball"], [60, "Hockey"], [90, "Tennis"]];
+    const order = i % 4;
+    const sectors = parts.map((p, k) => [parts[(k + order) % 4][1], p[0]]);
+    const pick = sectors[i % 4];
+    const ans = pick[1] * per;
+    const total = 360 * per;
+    return mkFig("Statistics",
+      `${comma(total)} pupils chose a favourite sport. How many chose ${pick[0]}?`,
+      comma(ans), [comma(total - ans), comma(pick[1]), comma(Math.round(ans / 2))],
+      diff(i, 2), i, D.pieChart(sectors));
+  }
+
+  function figDistanceTimeStationary(i) {
+    if (!D) return null;
+    const d1 = 20 + 10 * (i % 5);
+    const stopFrom = 1 + (i % 2), stopFor = 1 + (i % 3);
+    const points = [[0, 0], [stopFrom, d1], [stopFrom + stopFor, d1], [stopFrom + stopFor + 2, d1 + 40]];
+    return mkFig("Speed",
+      "The graph shows a lorry's journey. For how long was the lorry stopped?",
+      `${stopFor} hour${stopFor > 1 ? "s" : ""}`,
+      [`${stopFrom} hour${stopFrom > 1 ? "s" : ""}`, `${stopFor + 1} hours`, "It did not stop"],
+      diff(i, 2), i, D.distanceTime({ points }));
+  }
+
+  function figDistanceTimeSpeed(i) {
+    if (!D) return null;
+    const speed = 10 * (2 + (i % 6));
+    const hours = 2 + (i % 3);
+    const points = [[0, 0], [hours, speed * hours], [hours + 1, speed * hours], [hours + 3, speed * hours + speed * 2]];
+    return mkFig("Speed",
+      "The graph shows a cyclist's journey. What was her speed during the first part of the journey?",
+      `${speed} km/h`, [`${speed * hours} km/h`, `${speed / 2} km/h`, `${speed + 10} km/h`],
+      diff(i, 3), i, D.distanceTime({ points }));
+  }
+
+  function figVennOnly(i) {
+    if (!D) return null;
+    const onlyA = 4 + (i % 9), both = 2 + (i % 7), onlyB = 3 + ((i * 3) % 8), outside = 1 + (i % 5);
+    const asks = [
+      ["like only football", `${onlyA}`, [`${onlyA + both}`, `${both}`, `${onlyB}`]],
+      ["like both sports", `${both}`, [`${onlyA}`, `${onlyA + both}`, `${onlyB + both}`]],
+      ["like football", `${onlyA + both}`, [`${onlyA}`, `${both}`, `${onlyA + both + onlyB}`]],
+      ["were asked altogether", `${onlyA + both + onlyB + outside}`, [`${onlyA + both + onlyB}`, `${both}`, `${outside}`]]
+    ];
+    const [phrase, ans, wrong] = asks[i % asks.length];
+    return mkFig("Statistics",
+      `The Venn diagram shows which sports a group of pupils like. How many ${phrase}?`,
+      ans, wrong, diff(i, 3), i,
+      D.vennTwo({ labelA: "Football", labelB: "Cricket", onlyA, both, onlyB, outside }));
+  }
+
+  function figCompoundPerimeter(i) {
+    if (!D) return null;
+    const W = 8 + (i % 8), H = 6 + ((i * 3) % 6);
+    const w = 2 + (i % 3), h = 2 + ((i * 2) % 3);
+    if (w >= W || h >= H) return null;
+    /* An L-shape cut from a corner has the same perimeter as the whole
+       rectangle: the two new edges replace exactly what they removed. */
+    const perimeter = 2 * (W + H);
+    const area = W * H - w * h;
+    const askArea = i % 2 === 0;
+    return mkFig("Measurement",
+      askArea ? "What is the area of this L-shaped figure?" : "What is the perimeter of this L-shaped figure?",
+      askArea ? `${area} cm²` : `${perimeter} cm`,
+      askArea ? [`${W * H} cm²`, `${w * h} cm²`, `${perimeter} cm²`]
+              : [`${perimeter - 2 * w} cm`, `${area} cm`, `${perimeter + 2 * h} cm`],
+      askArea ? diff(i, 3) : 4, i, D.lShape({ W, H, w, h }));
+  }
+
+  function figAnglesOnLine(i) {
+    if (!D) return null;
+    const a = 30 + 5 * (i % 12), b = 25 + 5 * ((i * 3) % 10);
+    if (a + b >= 175) return null;
+    const x = 180 - a - b;
+    return mkFig("Geometry",
+      "The angles shown lie on a straight line. What is the size of angle x?",
+      `${x}°`, [`${180 - a}°`, `${a + b}°`, `${360 - a - b}°`],
+      diff(i, 3), i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }], unknownLabel: "x" }));
+  }
+
+  function figAnglesAtPoint(i) {
+    if (!D) return null;
+    const a = 60 + 10 * (i % 8), b = 50 + 10 * ((i * 3) % 7), c = 40 + 10 * ((i * 5) % 6);
+    if (a + b + c >= 350) return null;
+    const x = 360 - a - b - c;
+    return mkFig("Geometry",
+      "The angles shown meet at a point. What is the size of angle x?",
+      `${x}°`, [`${180 - (a + b + c) % 180}°`, `${a + b + c}°`, `${x + 10}°`],
+      4, i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }, { deg: c }], unknownLabel: "x", onLine: false }));
+  }
+
+  function figCoordinatesRead(i) {
+    if (!D) return null;
+    const x = 1 + (i % 7), y = 1 + ((i * 3) % 7);
+    return mkFig("Geometry",
+      "What are the coordinates of point P?",
+      `(${x}, ${y})`, [`(${y}, ${x})`, `(${x + 1}, ${y})`, `(${x}, ${y + 1})`],
+      diff(i, 4), i, D.coordGrid({ points: [[x, y, "P"]] }));
+  }
+
+  function figCoordinatesMidpoint(i) {
+    if (!D) return null;
+    const ax = 1 + (i % 3), ay = 1 + (i % 3);
+    const bx = ax + 2 + 2 * (i % 3), by = ay + 2 + 2 * ((i * 3) % 3);
+    if (bx > 8 || by > 8) return null;
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    if (!Number.isInteger(mx) || !Number.isInteger(my)) return null;
+    return mkFig("Geometry",
+      "What are the coordinates of the midpoint of the line joining A and B?",
+      `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${bx - ax}, ${by - ay})`, `(${mx + 1}, ${my})`],
+      4, i, D.coordGrid({ points: [[ax, ay, "A"], [bx, by, "B"]] }));
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -2506,6 +2683,19 @@ const QUESTIONS = [];
      to give a worked hint using the actual numbers; that wins over this. */
   const METHODS = {
     /* Numbers */
+    figShadedFraction: "Count the shaded squares and the squares altogether, write one over the other, then cancel down by the highest common factor.",
+    figBarChartTotal: "Read the height of every bar off the scale, then add them. Check what one gridline is worth first \u2014 it is not always 1.",
+    figBarChartDifference: "Find the tallest and the shortest bar, read both off the scale, then subtract. Do not count the bars themselves.",
+    figPictogram: "Check the key first to see what one symbol is worth, then multiply by the number of symbols in that row.",
+    figPieChart: "A full circle is 360 degrees. Work out how many the whole chart represents per degree, then multiply by the angle of the sector you need.",
+    figDistanceTimeStationary: "A flat, horizontal line means the distance is not changing, so the object is stopped. Read off where that line begins and ends.",
+    figDistanceTimeSpeed: "Speed is the steepness of the line: the distance covered divided by the time taken. Read both off the axes for that section only.",
+    figVennOnly: "The middle of the overlap counts for both groups. 'Only football' is the left part alone; 'football' altogether means the left part plus the overlap.",
+    figCompoundPerimeter: "For area, take the missing corner away from the whole rectangle. For perimeter, notice the two new edges replace exactly the lengths they removed, so it equals the perimeter of the full rectangle.",
+    figAnglesOnLine: "Angles on a straight line add to 180 degrees, so subtract the ones you are given from 180.",
+    figAnglesAtPoint: "Angles meeting at a point add to 360 degrees, so subtract the ones you are given from 360.",
+    figCoordinatesRead: "Read the across value first and then the up value: x before y. Going up before across is the usual mistake.",
+    figCoordinatesMidpoint: "The midpoint is halfway in each direction, so average the two x values and average the two y values.",
     numRoundLargePlace: "Find the digit in the place you are rounding to, then look only at the digit immediately to its right. Everything after the rounding place becomes zero.",
     numDigitProductCount: "Find every set of three digits whose product is the target, then count how many orders each set can be written in. A set of three different digits gives 6 arrangements; two the same gives 3.",
     numClosestToTarget: "Work out the distance from the target for each option, ignoring whether it is above or below. The smallest distance wins, so -0.98 beats -0.91 when the target is -1.",
@@ -2769,7 +2959,7 @@ const QUESTIONS = [];
       [fracReverseTwoStage, 4, 4],        // two fractions removed, worked back
       [fracOfRemainderMoney, 4, 4],       // fraction of what was left
       [fracBetweenTwo, 4, 4],             // strictly between two fractions
-      [fracOfCapacity, 4, 4]
+      [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3]
     ],
     Percentages: [
       [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
@@ -2820,7 +3010,8 @@ const QUESTIONS = [];
       [spdGapBetweenTwo, 3, 3],
       [spdAverageTwoLegs, 4, 4],          // average speed is not the mean speed
       [spdCatchUp, 4, 4],                 // closing a head start
-      [spdMeetingPoint, 4, 4]             // travelling towards each other
+      [spdMeetingPoint, 4, 4],            // travelling towards each other
+      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3]
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -2829,7 +3020,8 @@ const QUESTIONS = [];
       [meaCompoundVolume, 4, 4],          // L-shaped cross-section
       [meaSurfaceAreaFromVolume, 4, 4],   // volume back to surface area
       [meaScaleArea, 4, 4],               // areas scale by the square
-      [meaFoldPaper, 3, 3], [meaFrameWidth, 4, 4], [meaSquaresInRectangle, 2, 2]
+      [meaFoldPaper, 3, 3], [meaFrameWidth, 4, 4], [meaSquaresInRectangle, 2, 2],
+      [figCompoundPerimeter, 3, 4]        // L-shape drawn, area or perimeter
     ],
     Geometry: [
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
@@ -2838,7 +3030,9 @@ const QUESTIONS = [];
       [geoRotationCoords, 3, 4],          // rotation about a point
       [geoShapeProperty, 3, 3], [geoShapeSplit, 3, 3],
       [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
-      [geoShadedArea, 4, 4]               // what is left after a cut-out
+      [geoShadedArea, 4, 4],              // what is left after a cut-out
+      [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
+      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4]
     ],
     Statistics: [
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
@@ -2847,7 +3041,9 @@ const QUESTIONS = [];
       [statCorrelation, 1, 1], [statPieFromAngle, 3, 3], [statFreqTotal, 2, 3],
       [statMeanOfFactors, 3, 4],          // list factors, then average them
       [statCombinedMean, 4, 4],           // weighted, not halfway
-      [statMedianFromFreq, 4, 4]          // median out of a frequency table
+      [statMedianFromFreq, 4, 4],         // median out of a frequency table
+      [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
+      [figPieChart, 2, 3], [figVennOnly, 3, 4]
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],

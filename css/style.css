@@ -572,6 +572,17 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
   height: auto;
 }
 
+/* Maths diagrams are drawn at a natural size, so they are centred rather than
+   stretched across the card the way the NVRT figures are. */
+.quiz-main:not(.nvrt-mode) .question-media:not([hidden]) {
+  display: flex;
+  justify-content: center;
+}
+.quiz-main:not(.nvrt-mode) .question-media img {
+  width: auto;
+  max-width: 100%;
+}
+
 /* English mode: same full-width treatment as NVRT, but the question text is a
    comprehension passage, so it keeps its line breaks and drops to a readable
    body size instead of the large bold maths prompt. */
