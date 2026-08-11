@@ -193,6 +193,14 @@
     ["tongue", "tounge", 2], ["twelfth", "twelth", 3], ["unnecessary", "unecessary", 3],
     ["until", "untill", 1], ["vegetable", "vegtable", 1], ["vengeance", "vengance", 4],
     ["vicious", "visious", 3], ["Wednesday", "Wendsday", 1], ["weird", "wierd", 2],
+    /* GL practice papers, question-bank/NewText: the misspellings the papers
+       themselves use. */
+    ["tournament", "tornament", 3], ["pursued", "persued", 3], ["compulsory", "compulsery", 3],
+    ["playful", "playfull", 2], ["climbing", "climing", 2], ["consistent", "consistant", 3],
+    ["anticipation", "antisipation", 3], ["nowhere", "knowhere", 2], ["appearance", "appearence", 2],
+    ["difference", "differance", 2], ["superior", "superiour", 3], ["elaborate", "elabourate", 3],
+    ["obedient", "obediant", 3], ["enthusiastic", "enthusiastick", 2], ["expedition", "expidition", 3],
+    ["significant", "significent", 3], ["attendance", "attendence", 3], ["adorable", "adoreable", 2],
     /* QE Boys scholarship spelling workbook (other-papers/Spelling.pdf):
        110 words grouped by letter pattern. The misspelling for each is the
        error its own pattern invites — -able/-ible and -cial/-tial swapped,
@@ -598,7 +606,18 @@
     { parts: ["My cousins dog", "is bigger than mine,", "but mine", "is fluffier."], bad: 0 },
     { parts: ["There is only one skill", "which you need", "to become a spy,", "determination."], bad: 2 },
     { parts: ["I'd almost forgotten", "how much I loved", "the salty, fresh smell", "of the sea."], bad: -1 },
-    { parts: ["I am leaving soon,", "however, I don't intend", "to be gone", "for long."], bad: 0 }
+    { parts: ["I am leaving soon,", "however, I don't intend", "to be gone", "for long."], bad: 0 },
+    /* GL practice papers, question-bank/NewText. */
+    { parts: ["‘Why don’t you play", "outside today,’", "suggested Tom’s", "aunt."], bad: 1 },
+    { parts: ["Even the best,", "most expensive detergent,", "couldn’t remove", "the mud stains."], bad: 1 },
+    { parts: ["The recipe had two simple stages:", "finely chop the ingredients", "and then blend", "together."], bad: -1 },
+    { parts: ["Caitlin had carelessly lost", "Asaf’s charger", "(his brand", "new one)"], bad: 3 },
+    { parts: ["Looking through my", "parents music collection,", "I was amazed to see", "so many CDs!"], bad: 1 },
+    { parts: ["If we hadnt seen", "the road sign,", "we would have ended", "up in Wales."], bad: 0 },
+    { parts: ["We were lucky to win tickets", "to see The Nutcracker", "this Winter.", "It was wonderful."], bad: 2 },
+    { parts: ["Hippo sweat has", "special properties to protect", "the skin from", "the suns harmful rays."], bad: 3 },
+    { parts: ["The same fluid,", "red in colour", "also moisturises", "and serves as an antibiotic."], bad: 1 },
+    { parts: ["Its true that", "hippos are omnivores,", "but they are not", "gentle creatures."], bad: 0 }
   ];
 
   function punFindSegment(i) {
@@ -1135,7 +1154,18 @@
     { sentence: "I was ______ by my friend's willingness to agree to such demands.", right: "perturbed", wrong: ["peturbed", "purturbed", "pertubed"], level: 4 },
     { sentence: "The bridge had been closed ______ repairs for over a year.", right: "for", wrong: ["since", "during", "by"], level: 2 },
     { sentence: "Hardly ______ we sat down when the fire alarm sounded.", right: "had", wrong: ["did", "have", "were"], level: 4 },
-    { sentence: "Neither the players ______ the coach knew about the change.", right: "nor", wrong: ["or", "and", "but"], level: 3 }
+    { sentence: "Neither the players ______ the coach knew about the change.", right: "nor", wrong: ["or", "and", "but"], level: 3 },
+    /* GL practice paper cloze passage, question-bank/NewText. */
+    { sentence: "Today was my first day at my new school and it ______ awful.", right: "was", wrong: ["be", "were", "does"], level: 2 },
+    { sentence: "It's what we were all worried ______, but I actually did it.", right: "we'd do", wrong: ["we'd done", "I'd do", "we'll do"], level: 4 },
+    { sentence: "Mum ______ drive me to school in her pink van.", right: "had to", wrong: ["has to", "have to", "must have"], level: 3 },
+    { sentence: "What's ______, she kissed me goodbye in front of all the Year 7s.", right: "worse", wrong: ["more worse", "worser", "most bad"], level: 2 },
+    { sentence: "All the Year 7s who ______ waiting to be shown their form rooms saw it.", right: "were", wrong: ["was", "is", "are"], level: 2 },
+    { sentence: "I had to take a detour in order ______ wash the lipstick off my face.", right: "to", wrong: ["too", "that", "for"], level: 3 },
+    { sentence: "I had to wash the lipstick mark ______ my face.", right: "off", wrong: ["of", "onto", "into"], level: 2 },
+    { sentence: "______ lunch, everyone seemed to have forgotten my disastrous start.", right: "By", wrong: ["In", "Until", "To"], level: 3 },
+    { sentence: "Everyone seemed to ______ my disastrous start.", right: "have forgotten", wrong: ["had forgot", "have forgot", "has forgotten"], level: 4 },
+    { sentence: "On each biscuit ______ a word in bright pink icing.", right: "was written", wrong: ["was wrote", "wrote", "write"], level: 4 }
   ];
 
   function wordChoice(i) {
@@ -1144,6 +1174,10 @@
       `Choose the word or words that complete this sentence so that it makes sense and is written in correct English.\n\n"${item.sentence}"`,
       item.right, item.wrong, item.level, i);
   }
+
+  /* The cloze pool outgrew the default variation count once the GL paper items
+     were added, so declare its size or the tail is never reached. */
+  wordChoice.poolSize = WORD_CHOICE_ITEMS.length;
 
   const PRECISION_ITEMS = [
     { sentence: "The crowd ______ through the narrow gate when the gates finally opened.", right: "surged", wrong: ["walked", "went", "moved"], why: "most vivid" },
