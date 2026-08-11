@@ -2308,6 +2308,373 @@ const QUESTIONS = [];
       `${x}`, [`${y}`, `${x + y}`, `${x + 1}`], 4, i);
   }
 
+  /* ═══════════════════ FROM THE NEWTEXT PAPERS ═══════════════════
+     Question shapes taken from the GL practice papers and MKT/QE mocks in
+     question-bank/NewText that the templates above did not already cover. */
+
+  function numRoundLargePlace(i) {
+    const places = [[1000, "thousand"], [10000, "ten thousand"],
+                    [100000, "hundred thousand"], [1000000, "million"]];
+    const [unit, label] = places[i % places.length];
+    const n = 1234567 + 111111 * (i % 9) + 4321 * (i % 7);
+    const ans = Math.round(n / unit) * unit;
+    return mk("Numbers",
+      `What is ${comma(n)} rounded to the nearest ${label}?`,
+      comma(ans), [comma(ans + unit), comma(ans - unit), comma(Math.floor(n / unit) * unit + unit * 2)],
+      i % 4 === 0 ? 3 : 2, i);
+  }
+
+  /* How many three-digit numbers have digits multiplying to a given total.
+     Counted directly so the answer cannot drift from the question. */
+  function numDigitProductCount(i) {
+    const targets = [16, 12, 24, 8, 18, 36, 6, 20];
+    const target = targets[i % targets.length];
+    let count = 0;
+    for (let a = 1; a <= 9; a++) {
+      for (let b = 1; b <= 9; b++) {
+        for (let c = 1; c <= 9; c++) if (a * b * c === target) count++;
+      }
+    }
+    if (count < 3) return null;
+    return mk("Numbers",
+      `How many three-digit numbers have digits that multiply together to give ${target}? (No digit may be zero.)`,
+      `${count}`, [`${count + 1}`, `${count - 1}`, `${count + 3}`], 4, i);
+  }
+
+  function numClosestToTarget(i) {
+    const target = -1;
+    const offsets = [[0.02, 0.11, 0.09, 0.2], [0.01, 0.15, 0.08, 0.3], [0.03, 0.12, 0.07, 0.25]];
+    const set = offsets[i % offsets.length];
+    const values = [target + set[0], target - set[1], target + set[2], target - set[3]];
+    const best = values.reduce((a, b) => Math.abs(b - target) < Math.abs(a - target) ? b : a);
+    const show = v => fmt(Number(v.toFixed(3)));
+    return mk("Numbers",
+      `Which of these numbers is closest to ${target}?`,
+      show(best), values.filter(v => v !== best).map(show), 3, i);
+  }
+
+  /* Two linked statements: solve the second, then feed it into the first. */
+  function algChainSubstitute(i) {
+    const multiple = 2 + (i % 5);
+    const y = 5 + (i % 12);
+    const add = 3 + (i % 9);
+    const x = multiple * y;
+    return mk("Algebra",
+      `x is ${multiple} times y, and y added to ${add} gives ${y + add}. What is x?`,
+      `${x}`, [`${y}`, `${y + add}`, `${multiple * (y + add)}`], 3, i);
+  }
+
+  function algFunctionMachine(i) {
+    const mul = 2 + (i % 5), add = 1 + (i % 9);
+    const inA = 3 + (i % 7), inB = inA + 1 + (i % 4);
+    const outA = mul * inA + add, outB = mul * inB + add;
+    return mk("Algebra",
+      `A number machine multiplies the number put in by ${mul} and then adds ${add}. If ${inA} and ${inB} are put in, what comes out?`,
+      `${outA} and ${outB}`,
+      [`${outB} and ${outA}`, `${mul * (inA + add)} and ${mul * (inB + add)}`, `${outA + 1} and ${outB + 1}`],
+      3, i);
+  }
+
+  /* Buy a batch, lose some to damage, sell the rest at a mark-up. */
+  function pctProfitAfterLoss(i) {
+    const bought = 20 + 10 * (i % 5);
+    const cost = 8 + 2 * (i % 7);
+    const spoiled = 2 + (i % 4);
+    const markup = [25, 50, 20, 10][i % 4];
+    const sellPrice = cost * (1 + markup / 100);
+    const revenue = (bought - spoiled) * sellPrice;
+    const outlay = bought * cost;
+    const profit = revenue - outlay;
+    if (!Number.isInteger(profit) || profit <= 0) return null;
+    return mk("Percentages",
+      `A trader bought ${bought} tickets at £${cost} each. ${spoiled} were damaged and thrown away. The rest were sold at ${markup}% more than they cost. What was the profit?`,
+      fmtMoney(profit),
+      [fmtMoney(revenue), fmtMoney(outlay), fmtMoney(bought * sellPrice - outlay)],
+      4, i);
+  }
+
+  function pctProfitPerItem(i) {
+    const packs = 4 + (i % 6);
+    const perPack = 5 + (i % 8);
+    const costEach = 6 + (i % 9);                // pence, chosen first
+    const packCost = costEach * perPack;         // so the pack price divides exactly
+    const sellEach = costEach + 3 + (i % 8);
+    const profit = sellEach - costEach;
+    return mk("Percentages",
+      `A shop buys pencils in packs of ${perPack} for ${packCost}p a pack and sells them at ${sellEach}p each. How much profit is made on each pencil?`,
+      `${profit}p`, [`${sellEach}p`, `${costEach}p`, `${profit * perPack}p`],
+      3, i);
+  }
+
+  /* Folding halves the longer side each time. */
+  function meaFoldPaper(i) {
+    const folds = 2 + (i % 3);
+    const result = 3 + (i % 9);                  // the length left at the end
+    const longSide = result * Math.pow(2, folds);  // so every fold halves exactly
+    const shortSide = 4 + 2 * (i % 4);
+    return mk("Measurement",
+      `A sheet of paper measures ${longSide} cm by ${shortSide} cm. It is folded in half ${folds} times, each time halving the longer side. How long is the longer side now?`,
+      `${fmt(result)} cm`,
+      [`${fmt(longSide / folds)} cm`, `${fmt(result * 2)} cm`, `${fmt(longSide - folds * 2)} cm`],
+      3, i);
+  }
+
+  /* Outer perimeter = 2(w + h) + 8x for a frame of uniform width x. */
+  function meaFrameWidth(i) {
+    const w = 15 + 5 * (i % 6), h = 10 + 5 * (i % 5);
+    const x = 2 + (i % 5);
+    const outer = 2 * (w + h) + 8 * x;
+    return mk("Measurement",
+      `A picture measuring ${w} cm by ${h} cm is placed in a frame of the same width all the way round. The outer perimeter of the frame is ${outer} cm. How wide is the frame?`,
+      `${x} cm`, [`${x * 2} cm`, `${x + 1} cm`, `${fmt((outer - 2 * (w + h)) / 4)} cm`],
+      4, i);
+  }
+
+  function meaSquaresInRectangle(i) {
+    const side = 2 + (i % 5);
+    const across = 3 + (i % 7), down = 2 + (i % 6);
+    const W = side * across, H = side * down;
+    return mk("Measurement",
+      `How many squares of side ${side} cm fit exactly into a rectangle measuring ${W} cm by ${H} cm?`,
+      `${across * down}`, [`${across + down}`, `${across * down * side}`, `${Math.round(W * H / side)}`],
+      2, i);
+  }
+
+  /* Map scale worked backwards: real distance to distance on the map. */
+  function ratMapReverse(i) {
+    const cmToKm = 2 + (i % 9);
+    const mapCm = 3 + (i % 12);
+    const realKm = cmToKm * mapCm;
+    return mk("Ratio",
+      `On a map, 1 cm represents ${cmToKm} km. Two towns are ${realKm} km apart in real life. How far apart are they on the map?`,
+      `${mapCm} cm`, [`${realKm} cm`, `${fmt(realKm * cmToKm)} cm`, `${mapCm + 1} cm`],
+      3, i);
+  }
+
+  /* Gaps that shrink rather than grow — the mirror of seqQuadraticNext. */
+  function seqQuadraticDecreasing(i) {
+    const first = 20 + 5 * (i % 6);
+    const d1 = 4 + (i % 4), d2 = 1 + (i % 3);
+    const terms = [first];
+    let step = d1;
+    for (let k = 1; k < 6; k++) { terms.push(terms[k - 1] - step); step += d2; }
+    if (terms.some(t => t < -50)) return null;
+    const ans = terms[5];
+    return mk("Sequences",
+      `What is the next number in this sequence?\n${terms.slice(0, 5).join(", ")}, ...`,
+      `${ans}`, [`${terms[4] - d1}`, `${terms[4] - step + d2 * 2}`, `${ans - d2}`],
+      4, i);
+  }
+
+  function logTimeZone(i) {
+    const cities = [["London", "New York", -5], ["London", "Sydney", 9],
+                    ["Sydney", "Chicago", -15], ["London", "Tokyo", 9],
+                    ["New York", "Paris", 6], ["London", "Delhi", 5]];
+    const [from, to, shift] = cities[i % cities.length];
+    const hour = 6 + (i % 16);
+    const raw = ((hour + shift) % 24 + 24) % 24;
+    const pad = h => `${h}`.padStart(2, "0") + ":00";
+    return mk("Logic",
+      `${to} is ${Math.abs(shift)} hours ${shift > 0 ? "ahead of" : "behind"} ${from}. When it is ${pad(hour)} in ${from}, what is the local time in ${to}?`,
+      pad(raw),
+      [pad(((hour - shift) % 24 + 24) % 24), pad((hour + 12) % 24), pad((raw + 1) % 24)],
+      4, i);
+  }
+
+  /* Half of a half, expressed as a capacity. */
+  function fracOfCapacity(i) {
+    const litres = [2.5, 3, 1.5, 4, 5, 2][i % 6];
+    const filled = [1 / 2, 1 / 4, 3 / 4][i % 3];
+    const drunk = [1 / 2, 1 / 4, 3 / 4][(i + 1) % 3];
+    const start = litres * filled;
+    const left = start * (1 - drunk);
+    if (Math.abs(left * 1000 - Math.round(left * 1000)) > 1e-9 || left <= 0) return null;
+    const asFrac = f => (f === 1 / 2 ? "half" : f === 1 / 4 ? "a quarter" : f === 3 / 4 ? "three quarters" : "a third");
+    return mk("Fractions",
+      `A ${fmt(litres)} litre bottle is ${asFrac(filled)} full of water. Joe drinks ${asFrac(drunk)} of what is in it. How much water is left?`,
+      `${fmt(Number(left.toFixed(3)))} litres`,
+      [`${fmt(Number(start.toFixed(3)))} litres`, `${fmt(Number((litres * drunk).toFixed(3)))} litres`,
+       `${fmt(Number((start * drunk).toFixed(3)))} litres`],
+      4, i);
+  }
+
+  /* ═══════════════════ DIAGRAM QUESTIONS ═══════════════════
+     Question types from the papers that cannot be asked in words alone. The
+     figure is drawn by js/diagrams.js and carried on the question as
+     questionImage, the same mechanism the NVRT bank uses, so js/app.js renders
+     it without any change. mkFig() is mk() plus the picture. */
+
+  const D = (typeof window !== "undefined" ? window : globalThis).DIAGRAMS || null;
+
+  const mkFig = (topic, question, correct, distractors, difficulty, seed, figure) => {
+    if (!figure) return null;
+    const q = mk(topic, question, correct, distractors, difficulty, seed);
+    if (q) { q.questionImage = figure.image; q.questionImageAlt = figure.alt; }
+    return q;
+  };
+
+  function figShadedFraction(i) {
+    if (!D) return null;
+    const cols = 3 + (i % 4), rows = 2 + (i % 3);
+    const total = cols * rows;
+    const shaded = 1 + (i % (total - 1));
+    return mkFig("Fractions",
+      "What fraction of this shape is shaded? Give your answer in its simplest form.",
+      simp(shaded, total),
+      [simp(total - shaded, total), simp(shaded, total - shaded), `${shaded}/${shaded + total}`],
+      diff(i, 3), i, D.shadedGrid({ cols, rows, shaded }));
+  }
+
+  function figBarChartTotal(i) {
+    if (!D) return null;
+    const labels = ["Mon", "Tue", "Wed", "Thu"];
+    const values = [4 + (i % 7), 6 + ((i * 3) % 8), 3 + ((i * 5) % 6), 5 + ((i * 7) % 9)];
+    const total = sum(values);
+    return mkFig("Statistics",
+      "The bar chart shows how many books were borrowed each day. How many were borrowed altogether?",
+      `${total}`, [`${total - values[0]}`, `${Math.max(...values)}`, `${total + values[1]}`],
+      diff(i, 3), i, D.barChart({ labels, values, axisLabel: "Books" }));
+  }
+
+  function figBarChartDifference(i) {
+    if (!D) return null;
+    const labels = ["Ash", "Beech", "Elm", "Oak"];
+    const values = [5 + (i % 8), 9 + ((i * 3) % 7), 4 + ((i * 5) % 5), 11 + ((i * 2) % 6)];
+    const gap = Math.max(...values) - Math.min(...values);
+    return mkFig("Statistics",
+      "The bar chart shows how many trees of each kind were counted. What is the difference between the most and the least common?",
+      `${gap}`, [`${Math.max(...values)}`, `${Math.min(...values)}`, `${gap + 2}`],
+      diff(i, 3), i, D.barChart({ labels, values, axisLabel: "Trees" }));
+  }
+
+  function figPictogram(i) {
+    if (!D) return null;
+    const per = [4, 5, 10, 2][i % 4];
+    const rows = [["Monday", 3 + (i % 3)], ["Tuesday", 2 + ((i * 3) % 4)], ["Wednesday", 4 + ((i * 5) % 3)]];
+    const target = rows[i % 3];
+    const ans = target[1] * per;
+    return mkFig("Statistics",
+      `The pictogram shows how many parcels were delivered. How many were delivered on ${target[0]}?`,
+      comma(ans), [comma(target[1]), comma(ans + per), comma(per)],
+      diff(i, 3), i, D.pictogram({ rows, per: `${per} parcels` }));
+  }
+
+  function figPieChart(i) {
+    if (!D) return null;
+    const per = 2 + (i % 6);                       // people per degree
+    const parts = [[120, "Football"], [90, "Netball"], [60, "Hockey"], [90, "Tennis"]];
+    const order = i % 4;
+    const sectors = parts.map((p, k) => [parts[(k + order) % 4][1], p[0]]);
+    const pick = sectors[i % 4];
+    const ans = pick[1] * per;
+    const total = 360 * per;
+    return mkFig("Statistics",
+      `${comma(total)} pupils chose a favourite sport. How many chose ${pick[0]}?`,
+      comma(ans), [comma(total - ans), comma(pick[1]), comma(Math.round(ans / 2))],
+      diff(i, 2), i, D.pieChart(sectors));
+  }
+
+  function figDistanceTimeStationary(i) {
+    if (!D) return null;
+    const d1 = 20 + 10 * (i % 5);
+    const stopFrom = 1 + (i % 2), stopFor = 1 + (i % 3);
+    const points = [[0, 0], [stopFrom, d1], [stopFrom + stopFor, d1], [stopFrom + stopFor + 2, d1 + 40]];
+    return mkFig("Speed",
+      "The graph shows a lorry's journey. For how long was the lorry stopped?",
+      `${stopFor} hour${stopFor > 1 ? "s" : ""}`,
+      [`${stopFrom} hour${stopFrom > 1 ? "s" : ""}`, `${stopFor + 1} hours`, "It did not stop"],
+      diff(i, 2), i, D.distanceTime({ points }));
+  }
+
+  function figDistanceTimeSpeed(i) {
+    if (!D) return null;
+    const speed = 10 * (2 + (i % 6));
+    const hours = 2 + (i % 3);
+    const points = [[0, 0], [hours, speed * hours], [hours + 1, speed * hours], [hours + 3, speed * hours + speed * 2]];
+    return mkFig("Speed",
+      "The graph shows a cyclist's journey. What was her speed during the first part of the journey?",
+      `${speed} km/h`, [`${speed * hours} km/h`, `${speed / 2} km/h`, `${speed + 10} km/h`],
+      diff(i, 3), i, D.distanceTime({ points }));
+  }
+
+  function figVennOnly(i) {
+    if (!D) return null;
+    const onlyA = 4 + (i % 9), both = 2 + (i % 7), onlyB = 3 + ((i * 3) % 8), outside = 1 + (i % 5);
+    const asks = [
+      ["like only football", `${onlyA}`, [`${onlyA + both}`, `${both}`, `${onlyB}`]],
+      ["like both sports", `${both}`, [`${onlyA}`, `${onlyA + both}`, `${onlyB + both}`]],
+      ["like football", `${onlyA + both}`, [`${onlyA}`, `${both}`, `${onlyA + both + onlyB}`]],
+      ["were asked altogether", `${onlyA + both + onlyB + outside}`, [`${onlyA + both + onlyB}`, `${both}`, `${outside}`]]
+    ];
+    const [phrase, ans, wrong] = asks[i % asks.length];
+    return mkFig("Statistics",
+      `The Venn diagram shows which sports a group of pupils like. How many ${phrase}?`,
+      ans, wrong, diff(i, 3), i,
+      D.vennTwo({ labelA: "Football", labelB: "Cricket", onlyA, both, onlyB, outside }));
+  }
+
+  function figCompoundPerimeter(i) {
+    if (!D) return null;
+    const W = 8 + (i % 8), H = 6 + ((i * 3) % 6);
+    const w = 2 + (i % 3), h = 2 + ((i * 2) % 3);
+    if (w >= W || h >= H) return null;
+    /* An L-shape cut from a corner has the same perimeter as the whole
+       rectangle: the two new edges replace exactly what they removed. */
+    const perimeter = 2 * (W + H);
+    const area = W * H - w * h;
+    const askArea = i % 2 === 0;
+    return mkFig("Measurement",
+      askArea ? "What is the area of this L-shaped figure?" : "What is the perimeter of this L-shaped figure?",
+      askArea ? `${area} cm²` : `${perimeter} cm`,
+      askArea ? [`${W * H} cm²`, `${w * h} cm²`, `${perimeter} cm²`]
+              : [`${perimeter - 2 * w} cm`, `${area} cm`, `${perimeter + 2 * h} cm`],
+      askArea ? diff(i, 3) : 4, i, D.lShape({ W, H, w, h }));
+  }
+
+  function figAnglesOnLine(i) {
+    if (!D) return null;
+    const a = 30 + 5 * (i % 12), b = 25 + 5 * ((i * 3) % 10);
+    if (a + b >= 175) return null;
+    const x = 180 - a - b;
+    return mkFig("Geometry",
+      "The angles shown lie on a straight line. What is the size of angle x?",
+      `${x}°`, [`${180 - a}°`, `${a + b}°`, `${360 - a - b}°`],
+      diff(i, 3), i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }], unknownLabel: "x" }));
+  }
+
+  function figAnglesAtPoint(i) {
+    if (!D) return null;
+    const a = 60 + 10 * (i % 8), b = 50 + 10 * ((i * 3) % 7), c = 40 + 10 * ((i * 5) % 6);
+    if (a + b + c >= 350) return null;
+    const x = 360 - a - b - c;
+    return mkFig("Geometry",
+      "The angles shown meet at a point. What is the size of angle x?",
+      `${x}°`, [`${180 - (a + b + c) % 180}°`, `${a + b + c}°`, `${x + 10}°`],
+      4, i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }, { deg: c }], unknownLabel: "x", onLine: false }));
+  }
+
+  function figCoordinatesRead(i) {
+    if (!D) return null;
+    const x = 1 + (i % 7), y = 1 + ((i * 3) % 7);
+    return mkFig("Geometry",
+      "What are the coordinates of point P?",
+      `(${x}, ${y})`, [`(${y}, ${x})`, `(${x + 1}, ${y})`, `(${x}, ${y + 1})`],
+      diff(i, 4), i, D.coordGrid({ points: [[x, y, "P"]] }));
+  }
+
+  function figCoordinatesMidpoint(i) {
+    if (!D) return null;
+    const ax = 1 + (i % 3), ay = 1 + (i % 3);
+    const bx = ax + 2 + 2 * (i % 3), by = ay + 2 + 2 * ((i * 3) % 3);
+    if (bx > 8 || by > 8) return null;
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    if (!Number.isInteger(mx) || !Number.isInteger(my)) return null;
+    return mkFig("Geometry",
+      "What are the coordinates of the midpoint of the line joining A and B?",
+      `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${bx - ax}, ${by - ay})`, `(${mx + 1}, ${my})`],
+      4, i, D.coordGrid({ points: [[ax, ay, "A"], [bx, by, "B"]] }));
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -2316,6 +2683,33 @@ const QUESTIONS = [];
      to give a worked hint using the actual numbers; that wins over this. */
   const METHODS = {
     /* Numbers */
+    figShadedFraction: "Count the shaded squares and the squares altogether, write one over the other, then cancel down by the highest common factor.",
+    figBarChartTotal: "Read the height of every bar off the scale, then add them. Check what one gridline is worth first \u2014 it is not always 1.",
+    figBarChartDifference: "Find the tallest and the shortest bar, read both off the scale, then subtract. Do not count the bars themselves.",
+    figPictogram: "Check the key first to see what one symbol is worth, then multiply by the number of symbols in that row.",
+    figPieChart: "A full circle is 360 degrees. Work out how many the whole chart represents per degree, then multiply by the angle of the sector you need.",
+    figDistanceTimeStationary: "A flat, horizontal line means the distance is not changing, so the object is stopped. Read off where that line begins and ends.",
+    figDistanceTimeSpeed: "Speed is the steepness of the line: the distance covered divided by the time taken. Read both off the axes for that section only.",
+    figVennOnly: "The middle of the overlap counts for both groups. 'Only football' is the left part alone; 'football' altogether means the left part plus the overlap.",
+    figCompoundPerimeter: "For area, take the missing corner away from the whole rectangle. For perimeter, notice the two new edges replace exactly the lengths they removed, so it equals the perimeter of the full rectangle.",
+    figAnglesOnLine: "Angles on a straight line add to 180 degrees, so subtract the ones you are given from 180.",
+    figAnglesAtPoint: "Angles meeting at a point add to 360 degrees, so subtract the ones you are given from 360.",
+    figCoordinatesRead: "Read the across value first and then the up value: x before y. Going up before across is the usual mistake.",
+    figCoordinatesMidpoint: "The midpoint is halfway in each direction, so average the two x values and average the two y values.",
+    numRoundLargePlace: "Find the digit in the place you are rounding to, then look only at the digit immediately to its right. Everything after the rounding place becomes zero.",
+    numDigitProductCount: "Find every set of three digits whose product is the target, then count how many orders each set can be written in. A set of three different digits gives 6 arrangements; two the same gives 3.",
+    numClosestToTarget: "Work out the distance from the target for each option, ignoring whether it is above or below. The smallest distance wins, so -0.98 beats -0.91 when the target is -1.",
+    algChainSubstitute: "Solve the second statement first to find y, then put that value into the first statement to get x. Do not try to do both at once.",
+    algFunctionMachine: "Apply the operations in the order given, to each input separately. Multiplying first and then adding is not the same as adding first.",
+    pctProfitAfterLoss: "Profit is money in minus money out. Work out the total spent on the whole batch, then the money taken from only the items actually sold.",
+    pctProfitPerItem: "Divide the pack price by the number in the pack to find what one costs, then subtract that from the selling price.",
+    meaFoldPaper: "Each fold halves the longer side, so after n folds it has been divided by 2 to the power n. Dividing by the number of folds is the usual mistake.",
+    meaFrameWidth: "The frame adds its width twice to each dimension, so the outer perimeter is the picture's perimeter plus 8 frame widths. Subtract and divide by 8.",
+    meaSquaresInRectangle: "Divide each side of the rectangle by the side of the square to see how many fit across and how many down, then multiply those two counts.",
+    ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
+    seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
+    logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+    fracOfCapacity: "Work out how much is actually in the bottle first, then take the fraction of that amount \u2014 not of the bottle's full capacity.",
     numPlaceValue: "Name the column the digit sits in — units, tens, hundreds, thousands — then multiply the digit by that column's value.",
     numPlaceValueDiff: "Work out what each of the two digits is worth on its own, then subtract the smaller from the larger. Don't subtract the digits themselves.",
     numRounding: "Look only at the digit immediately to the right of the place you are rounding to. 5 or more rounds up, 4 or less rounds down.",
@@ -2544,6 +2938,7 @@ const QUESTIONS = [];
       [numPrimeSumSquare, 4, 4],          // search over a range
       [numFourConsecOdd, 3, 3],
       [numCompareExpressions, 3, 3],      // four calculations, then compare
+      [numRoundLargePlace, 2, 3], [numDigitProductCount, 4, 4], [numClosestToTarget, 3, 3],
       [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
       [numLastDigitPower, 4, 4]           // spot the repeating cycle
     ],
@@ -2563,7 +2958,8 @@ const QUESTIONS = [];
       [fracOfFrac, 3, 3],                 // fraction of a fraction, in words
       [fracReverseTwoStage, 4, 4],        // two fractions removed, worked back
       [fracOfRemainderMoney, 4, 4],       // fraction of what was left
-      [fracBetweenTwo, 4, 4]              // strictly between two fractions
+      [fracBetweenTwo, 4, 4],             // strictly between two fractions
+      [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3]
     ],
     Percentages: [
       [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
@@ -2571,7 +2967,8 @@ const QUESTIONS = [];
       [pctReverse, 2, 3],                 // work back to the original
       [pctChained, 3, 4],                 // percentage of a percentage of a percentage
       [pctSaleChange, 3, 3],              // discount, total, then change
-      [pctVennNeither, 3, 4]              // overlapping sets
+      [pctVennNeither, 3, 4],             // overlapping sets
+      [pctProfitAfterLoss, 4, 4], [pctProfitPerItem, 3, 3]
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
@@ -2587,7 +2984,8 @@ const QUESTIONS = [];
       [algWeightPair, 3, 3],              // sum and difference
       [algTriangleAngles, 4, 4],          // several constraints at once
       [algThreeItemPricing, 4, 4],        // three unknowns
-      [algSimultaneous, 4, 4]             // two equations, two unknowns
+      [algSimultaneous, 4, 4],            // two equations, two unknowns
+      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3]
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -2595,14 +2993,16 @@ const QUESTIONS = [];
       [seqMatchstickNth, 3, 3],           // nth term as an expression
       [seqQuadraticNext, 4, 4],           // the gaps themselves grow
       [seqNthFromTwoTerms, 4, 4],         // rule from two scattered terms
-      [seqFibMissingStart, 4, 4]          // Fibonacci-like, worked backwards
+      [seqFibMissingStart, 4, 4],         // Fibonacci-like, worked backwards
+      [seqQuadraticDecreasing, 4, 4]      // falling terms, growing gaps
     ],
     Ratio: [
       [ratSimplify, 1, 1], [ratSplit, 2, 2], [ratWordTotal, 2, 2],
       [ratDifference, 3, 3], [ratRecipe, 2, 2], [ratMapScale, 2, 2],
       [ratInverseProp, 3, 3],             // inverse proportion
       [ratChained, 4, 4],                 // link two ratios
-      [ratAfterChange, 4, 4]              // ratio before and after a change
+      [ratAfterChange, 4, 4],             // ratio before and after a change
+      [ratMapReverse, 3, 3]
     ],
     Speed: [
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
@@ -2610,7 +3010,8 @@ const QUESTIONS = [];
       [spdGapBetweenTwo, 3, 3],
       [spdAverageTwoLegs, 4, 4],          // average speed is not the mean speed
       [spdCatchUp, 4, 4],                 // closing a head start
-      [spdMeetingPoint, 4, 4]             // travelling towards each other
+      [spdMeetingPoint, 4, 4],            // travelling towards each other
+      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3]
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -2618,7 +3019,9 @@ const QUESTIONS = [];
       [meaOverlapArea, 3, 3],
       [meaCompoundVolume, 4, 4],          // L-shaped cross-section
       [meaSurfaceAreaFromVolume, 4, 4],   // volume back to surface area
-      [meaScaleArea, 4, 4]                // areas scale by the square
+      [meaScaleArea, 4, 4],               // areas scale by the square
+      [meaFoldPaper, 3, 3], [meaFrameWidth, 4, 4], [meaSquaresInRectangle, 2, 2],
+      [figCompoundPerimeter, 3, 4]        // L-shape drawn, area or perimeter
     ],
     Geometry: [
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
@@ -2627,7 +3030,9 @@ const QUESTIONS = [];
       [geoRotationCoords, 3, 4],          // rotation about a point
       [geoShapeProperty, 3, 3], [geoShapeSplit, 3, 3],
       [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
-      [geoShadedArea, 4, 4]               // what is left after a cut-out
+      [geoShadedArea, 4, 4],              // what is left after a cut-out
+      [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
+      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4]
     ],
     Statistics: [
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
@@ -2636,7 +3041,9 @@ const QUESTIONS = [];
       [statCorrelation, 1, 1], [statPieFromAngle, 3, 3], [statFreqTotal, 2, 3],
       [statMeanOfFactors, 3, 4],          // list factors, then average them
       [statCombinedMean, 4, 4],           // weighted, not halfway
-      [statMedianFromFreq, 4, 4]          // median out of a frequency table
+      [statMedianFromFreq, 4, 4],         // median out of a frequency table
+      [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
+      [figPieChart, 2, 3], [figVennOnly, 3, 4]
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
@@ -2653,7 +3060,8 @@ const QUESTIONS = [];
       [logLeapYearPick, 1, 2], [logLeapBirthday, 4, 4],
       [logClockAngleAtHour, 3, 3], [logClockMirror, 3, 3], [logSumAndDiff, 2, 2],
       [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
-      [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2]
+      [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2],
+      [logTimeZone, 4, 4]                 // hours ahead or behind, across midnight
     ]
   };
 
