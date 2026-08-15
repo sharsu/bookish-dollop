@@ -1668,10 +1668,35 @@ const QUESTIONS = [];
     const ans = anticlockwise ? [cx - dy, cy + dx] : [cx + dy, cy - dx];
     const wrongWay = anticlockwise ? [cx + dy, cy - dx] : [cx - dy, cy + dx];
     const pt = ([x, y]) => `(${x}, ${y})`;
-    return mk("Geometry",
+    const q = mk("Geometry",
       `A shape is rotated 90° ${anticlockwise ? "anticlockwise" : "clockwise"} about the point ${pt([cx, cy])}. One corner of the shape is at ${pt([px, py])}. What are its new coordinates?`,
       pt(ans), [pt(wrongWay), pt([-px, -py]), pt([py, px])],
       diff(i, 3), i);
+    if (!q) return null;
+
+    /* Give the child the formula and then substitute into it. "Swap and flip"
+       on its own is useless: the whole difficulty is knowing WHICH of the two
+       numbers changes sign, and that is the only thing telling the two
+       directions apart. */
+    const sign = n => (n < 0 ? `${n}` : `+ ${n}`);
+    const swapped = anticlockwise ? [-dy, dx] : [dy, -dx];
+    q.explain =
+      `A quarter turn ${anticlockwise ? "anticlockwise" : "clockwise"} about the centre (h, k) sends (x, y) to ` +
+      (anticlockwise ? `(−(y − k) + h,  (x − h) + k).` : `((y − k) + h,  −(x − h) + k).`) + "\n" +
+      `Step 1 — how far the point is from the centre: across = ${px} − ${cx} = ${dx}, up = ${py} − ${cy} = ${dy}.\n` +
+      `Step 2 — swap those two, then change the sign of the ${anticlockwise ? "first" : "second"} one: ` +
+      `(${dx}, ${dy}) becomes (${swapped[0]}, ${swapped[1]}).\n` +
+      `Step 3 — add the centre back on: (${swapped[0]} ${sign(cx)}, ${swapped[1]} ${sign(cy)}) = ${pt(ans)}.`;
+
+    /* The centre and the corner drawn on a grid, so the child can see what is
+       being turned around what. */
+    if (D && cx <= 8 && cy <= 8 && px <= 8 && py <= 8) {
+      const figure = D.coordGrid({ points: [[cx, cy, "centre"], [px, py, "corner"]] });
+      q.questionImage = figure.image;
+      q.questionImageAlt = `A coordinate grid with the centre of rotation marked at ${pt([cx, cy])} ` +
+                           `and the corner of the shape at ${pt([px, py])}.`;
+    }
+    return q;
   }
 
   /* Two identical rectangles laid one over the other, overlap given. */
@@ -2834,7 +2859,7 @@ const QUESTIONS = [];
     meaUnitConvert: "Decide whether the new unit is bigger or smaller, then multiply or divide by the right power of ten. Check the answer looks sensible.",
     meaAreaPerim: "Perimeter is the distance all the way round; area is the space inside. Add for perimeter, multiply for area.",
     meaVolumeCube: "Volume of a cube is the side length multiplied by itself three times.",
-    meaTempDiff: "Count up to zero and then on past it, adding the two parts together.",
+    meaTempDiff: "Difference = warmer − colder. Subtracting a negative adds it, so 5 − (−3) becomes 5 + 3 = 8. Counting up to zero and on past it gives the same answer, but the subtraction is quicker and does not slip.",
     meaInchConvert: "Convert in the order the question sets out, one unit at a time, and check what unit the answer is wanted in.",
     meaMoneyChange: "Work out each amount, add them, then subtract from the money handed over. Keep everything in the same units.",
     meaOverlapArea: "Add both rectangles, then subtract the overlap once — it was counted twice, once in each rectangle.",

@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(git commit -m ' *)",
+      "Bash(cat c:/LocalWorkFolder/ExamPrep/js/questions-nvrt-generated.js >> c:/LocalWorkFolder/ExamPrep/js/questions-nvrt.js && wc -l c:/LocalWorkFolder/ExamPrep/js/questions-nvrt.js)",
+      "Bash(rm \"c:/LocalWorkFolder/ExamPrep/js/questions-nvrt-generated.js\" && ls c:/LocalWorkFolder/ExamPrep/js/)",
+      "Bash(node -c \"c:/LocalWorkFolder/ExamPrep/js/app.js\")",
+      "Bash(sed 's/.*\\\\.//')",
+      "Bash(python -c \"import pypdf; print\\(pypdf.__version__\\)\")",
+      "Bash(python scripts/pdf_extract.py \"C:/LocalWorkFolder/question-bank/other-papers/Berry English 1.pdf\" --stdout)",
+      "Bash(where tesseract *)",
+      "Bash(python -c \"import pytesseract; print\\('pytesseract ok'\\)\")",
+      "Bash(python -c \"import fitz; print\\('pymupdf ok'\\)\")",
+      "Bash(python -c \"import pdfplumber; print\\('pdfplumber ok'\\)\")",
+      "Bash(python scripts/pdf_extract.py \"C:/LocalWorkFolder/question-bank\" --recursive --clean --force --output-dir \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/qb-text\")",
+      "Bash(rm -rf __TRACKED_VAR__/t3)",
+      "Bash(python scripts/pdf_extract.py C:/LocalWorkFolder/question-bank --recursive --output-dir __TRACKED_VAR__/t3)",
+      "Bash(python -m pip install --quiet cryptography)",
+      "Bash(python -c \"import cryptography; print\\('cryptography', cryptography.__version__\\)\")",
+      "Bash(node -e \"global.window=global; require\\('./js/questions-english.js'\\); console.log\\('parses OK,', ENGLISH_QUESTIONS.length, 'questions'\\)\")",
+      "Bash(node -e \"global.window=global; require\\('./js/questions-english.js'\\); console.log\\('parses OK,', ENGLISH_QUESTIONS.length,'questions'\\)\")",
+      "Bash(node \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/verify.js\")",
+      "Bash(node \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/difficulty-config.js\")",
+      "Bash(node \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/grouping.js\")",
+      "Bash(python \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/add_medium.py\")",
+      "Bash(python \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/categorise.py\")",
+      "Bash(sed -n '/function punFindSegment/,/^  }/p' js/questions-english.js)",
+      "Bash(sed -n '/const mkE = /,/^  };/p' js/questions-english.js)",
+      "Bash(node \"C:/Users/sudhe/AppData/Local/Temp/claude/c--LocalWorkFolder-ExamPrep/fb04af8d-dad6-4667-a4eb-a210099c322c/scratchpad/passages.js\")"
+    ],
+    "additionalDirectories": [
+      "c:\\LocalWorkFolder\\ExamPrep\\js"
+    ]
+  }
+}
