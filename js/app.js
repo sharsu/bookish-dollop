@@ -915,9 +915,7 @@ class ExamApp {
     // DOM
     this.testTypeScreen = document.getElementById("test-type-screen");
     this.setupScreen = document.getElementById("setup-screen");
-    this.studyLibraryScreen = document.getElementById("study-library-screen");
     this.studyTopicScreen = document.getElementById("study-topic-screen");
-    this.studyConceptScreen = document.getElementById("study-concept-screen");
     this.quizScreen = document.getElementById("quiz-screen");
     this.resultsScreen = document.getElementById("results-screen");
     this.progressScreen = document.getElementById("progress-screen");
@@ -927,7 +925,6 @@ class ExamApp {
     this.setupTitle = document.getElementById("setup-title");
     this.setupSubtitle = document.getElementById("setup-subtitle");
     this.studyLibraryGrid = document.getElementById("study-library-grid");
-    this.studyConceptGrid = document.getElementById("study-concept-grid");
     this.setupError = document.getElementById("setup-error");
     this.parentDashboardReturnScreen = "setup";
 
@@ -994,37 +991,40 @@ class ExamApp {
     document.querySelectorAll("[data-test-type]").forEach(button => {
       button.addEventListener("click", () => this.chooseTestType(button.dataset.testType));
     });
-    this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("setup-back-btn")?.addEventListener("click", () => this.returnToTestTypeMenu());
-    document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
 
-    /* Revision */
+    /* ── Learn & Practise ──
+       Both entry points open the same merged library: the one on the main menu
+       and the one on the setup screen, which used to lead to Learn Topics. */
+    this.learnTopicsBtn?.addEventListener("click", () => this.openSkillLibrary());
     document.getElementById("revise-entry-btn")?.addEventListener("click", () => this.openSkillLibrary());
     document.getElementById("revise-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("revise-skill-back-btn")?.addEventListener("click", () => this.openSkillLibrary());
+
+    /* Topic page */
+    document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    this.studyLibraryGrid?.addEventListener("click", event => {
+      const topicButton = event.target.closest("[data-study-topic]");
+      if (topicButton) this.openStudyTopic(topicButton.dataset.studyTopic);
+    });
+
+    /* Skill page and practice. Back always lands on the topic the skill sits
+       in, so a child who came in through Geometry returns to Geometry. */
+    document.getElementById("revise-skill-back-btn")?.addEventListener("click", () => this.returnToSkillTopic());
     document.getElementById("revise-start-practice-btn")?.addEventListener("click", () => this.startSkillPractice());
     document.getElementById("revise-next-btn")?.addEventListener("click", () => this.advancePractice());
     document.getElementById("revise-recap-btn")?.addEventListener("click", () => this.openSkillCard(this.currentSkill && this.currentSkill.id));
-    document.getElementById("revise-practice-quit-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-practice-quit-btn")?.addEventListener("click", () => this.returnToSkillTopic());
     document.getElementById("revise-again-btn")?.addEventListener("click", () => this.startSkillPractice());
-    document.getElementById("revise-summary-skills-btn")?.addEventListener("click", () => this.openSkillLibrary());
-    document.getElementById("revise-library-screen")?.addEventListener("click", event => {
-      const tile = event.target.closest("[data-skill-id]");
-      if (tile) this.openSkillCard(tile.dataset.skillId);
-    });
-    document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openStudyLibrary());
-    document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("study-concept-topic-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
-    document.getElementById("study-concept-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    this.studyLibraryGrid?.addEventListener("click", event => {
-      const topicButton = event.target.closest("[data-study-topic]");
-      if (!topicButton) return;
-      this.openStudyTopic(topicButton.dataset.studyTopic);
-    });
-    this.studyConceptGrid?.addEventListener("click", event => {
-      const conceptButton = event.target.closest("[data-study-concept]");
-      if (!conceptButton) return;
-      this.openStudyConcept(conceptButton.dataset.studyTopic, conceptButton.dataset.studyConcept);
+    document.getElementById("revise-summary-skills-btn")?.addEventListener("click", () => this.returnToSkillTopic());
+
+    /* Skill tiles appear both on the topic page and in the weak-spot panel on
+       the topic list, so both screens delegate the same click. */
+    ["revise-library-screen", "study-topic-screen"].forEach(id => {
+      document.getElementById(id)?.addEventListener("click", event => {
+        const tile = event.target.closest("[data-skill-id]");
+        if (tile) this.openSkillCard(tile.dataset.skillId);
+      });
     });
     document.getElementById("prev-btn")?.addEventListener("click", () => this.previousQuestion());
     document.getElementById("next-btn")?.addEventListener("click", () => this.nextQuestion());
@@ -1758,9 +1758,17 @@ class ExamApp {
   renderStudyLibrary() {
     if (!this.studyLibraryGrid) return;
 
+    const skillCounts = new Map();
+    getSkills().forEach(skill => {
+      skillCounts.set(skill.topic, (skillCounts.get(skill.topic) || 0) + 1);
+    });
+
     this.studyLibraryGrid.innerHTML = "";
-    CONFIG.topics.forEach(topic => {
+    /* Only topics that can actually be practised. A tile leading to an empty
+       list would be a dead end, which is the thing this merge set out to fix. */
+    CONFIG.topics.filter(topic => skillCounts.get(topic)).forEach(topic => {
       const guide = this.getStudyGuide(topic);
+      const count = skillCounts.get(topic);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "study-topic-button";
@@ -1780,72 +1788,56 @@ class ExamApp {
 
       const link = document.createElement("span");
       link.className = "study-topic-button-link";
-      link.textContent = "Open topic menu →";
+      link.textContent = `${count} skill${count === 1 ? "" : "s"} →`;
 
       button.append(icon, title, text, link);
       this.studyLibraryGrid.appendChild(button);
     });
   }
 
-  renderStudyConceptMenu(topic) {
-    if (!this.studyConceptGrid) return;
+  /* The topic page now lists skills rather than concepts, because a skill is
+     the thing a child practises. The concept teaching has not gone away — it
+     moved onto the skill page, where it sits next to the practice. */
+  renderTopicSkillMenu(topic) {
+    const grid = document.getElementById("study-topic-skill-grid");
+    if (!grid) return;
 
-    const guide = this.getStudyGuide(topic);
-    this.studyConceptGrid.innerHTML = "";
-
-    guide.concepts.forEach(concept => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "study-concept-button";
-      button.dataset.studyTopic = topic;
-      button.dataset.studyConcept = concept.slug;
-
-      const title = document.createElement("span");
-      title.className = "study-concept-button-title";
-      title.textContent = concept.title;
-
-      const text = document.createElement("span");
-      text.className = "study-concept-button-text";
-      text.textContent = concept.summary || `Open ${concept.title}.`;
-
-      const link = document.createElement("span");
-      link.className = "study-concept-button-link";
-      link.textContent = "Open sub-topic →";
-
-      button.append(title, text, link);
-      this.studyConceptGrid.appendChild(button);
-    });
+    const mastery = loadSkillMastery();
+    grid.innerHTML = "";
+    getSkills()
+      .filter(skill => skill.topic === topic)
+      .forEach(skill => grid.appendChild(this.buildSkillTile(skill, mastery)));
   }
 
-  getStudyConcept(topic, conceptSlug) {
-    const guide = this.getStudyGuide(topic);
-    return guide.concepts.find(concept => concept.slug === conceptSlug) || guide.concepts[0];
-  }
-
-  openStudyLibrary() {
-    if (normalizeTestType(this.selectedTestType) !== "maths") return;
-    this.setHistorySlug(false);
-    this.currentStudyTopic = "";
-    this.currentStudyConcept = "";
-    this.setupError?.setAttribute("hidden", "");
-    this.renderStudyLibrary();
-    this.showScreen("study-library");
+  /* A skill may draw on more than one concept, and a few draw on one filed
+     under another topic — negatives are taught under Numbers but practised
+     under BIDMAS. "Topic/slug" says so explicitly. */
+  getSkillConcepts(skill) {
+    if (!skill || !Array.isArray(skill.concepts)) return [];
+    return skill.concepts
+      .map(ref => {
+        const [topic, slug] = ref.includes("/") ? ref.split("/") : [skill.topic, ref];
+        const guide = getStudyGuideRegistry()[topic];
+        if (!guide || !Array.isArray(guide.concepts)) return null;
+        return guide.concepts.find(concept => concept.slug === slug) || null;
+      })
+      .filter(Boolean);
   }
 
   renderStudyTopic(topic) {
     const guide = this.getStudyGuide(topic);
-    const conceptCount = guide.concepts.length;
+    const skillCount = getSkills().filter(skill => skill.topic === topic).length;
 
     document.getElementById("study-topic-icon").textContent = guide.icon || "📘";
     document.getElementById("study-topic-title").textContent = guide.topic || topic;
     document.getElementById("study-topic-summary").textContent = guide.summary || "A quick topic guide.";
     document.getElementById("study-topic-intro").textContent = guide.intro || "Take this topic one step at a time.";
     document.getElementById("study-topic-key-idea").textContent = guide.keyIdea || "Think carefully and check your answer.";
-    document.getElementById("study-topic-menu-hint").textContent = conceptCount === 1
-      ? "This topic currently has one detailed page. Open it below."
-      : `Choose one of the ${conceptCount} sub-topics below to revise in detail.`;
+    document.getElementById("study-topic-menu-hint").textContent = skillCount === 1
+      ? "This topic has one skill. Open it to read about it and then practise."
+      : `Choose one of the ${skillCount} skills below to read about and then practise.`;
 
-    this.renderStudyConceptMenu(topic);
+    this.renderTopicSkillMenu(topic);
 
     const visual = document.getElementById("study-topic-visual");
     if (visual) {
@@ -1868,50 +1860,12 @@ class ExamApp {
     this.showScreen("study-topic");
   }
 
-  renderStudyConcept(topic, conceptSlug) {
-    const guide = this.getStudyGuide(topic);
-    const concept = this.getStudyConcept(topic, conceptSlug);
-
-    document.getElementById("study-concept-icon").textContent = guide.icon || "📘";
-    document.getElementById("study-concept-topic").textContent = guide.topic || topic;
-    document.getElementById("study-concept-title").textContent = concept.title;
-    document.getElementById("study-concept-summary").textContent = concept.summary || guide.summary || "A detailed study guide.";
-
-    this.renderStudyParagraphs("study-concept-explanation", concept.explanation);
-    this.renderStudyList("study-concept-steps", concept.steps);
-    this.renderStudyList("study-concept-tips", concept.tips);
-    this.renderStudyExamples("study-concept-examples", concept.examples);
-
-    const visual = document.getElementById("study-concept-visual");
-    if (visual) {
-      visual.innerHTML = concept.visual || guide.visual || "";
-      const label = concept.visualLabel || guide.visualLabel;
-      if (label) {
-        visual.setAttribute("role", "img");
-        visual.setAttribute("aria-label", label);
-      } else {
-        visual.removeAttribute("role");
-        visual.removeAttribute("aria-label");
-      }
-    }
-  }
-
-  openStudyConcept(topic, conceptSlug) {
-    this.setHistorySlug(false);
-    this.currentStudyTopic = topic;
-    this.currentStudyConcept = conceptSlug;
-    this.renderStudyConcept(topic, conceptSlug);
-    this.showScreen("study-concept");
-  }
-
-  returnToStudyTopicMenu() {
-    if (!this.currentStudyTopic) {
-      this.openStudyLibrary();
-      return;
-    }
-
-    this.currentStudyConcept = "";
-    this.openStudyTopic(this.currentStudyTopic);
+  /* Back from a skill lands on its topic, not the whole library, so a child
+     who came in through Geometry carries on down the Geometry list. */
+  returnToSkillTopic() {
+    const topic = (this.currentSkill && this.currentSkill.topic) || this.currentStudyTopic;
+    if (topic) this.openStudyTopic(topic);
+    else this.openSkillLibrary();
   }
 
   returnToSetupMenu() {
@@ -1926,14 +1880,18 @@ class ExamApp {
 
   openSkillLibrary() {
     this.practice = null;
+    this.currentStudyTopic = "";
+    this.setHistorySlug(false);
+    this.setupError?.setAttribute("hidden", "");
     this.renderSkillLibrary();
     this.showScreen("revise-library");
   }
 
+  /* The library is a list of topics, with anything the last few papers showed
+     up as weak pulled to the top so it is the first thing offered. */
   renderSkillLibrary() {
     const mastery = loadSkillMastery();
 
-    /* Weak spots first, drawn from the last few papers. */
     const weak = findWeakSkills(this.studentName);
     const weakPanel = document.getElementById("revise-weak-panel");
     const weakGrid = document.getElementById("revise-weak-grid");
@@ -1947,31 +1905,7 @@ class ExamApp {
       }
     }
 
-    const list = document.getElementById("revise-topic-list");
-    if (!list) return;
-    list.innerHTML = "";
-
-    const byTopic = new Map();
-    getSkills().forEach(skill => {
-      if (!byTopic.has(skill.topic)) byTopic.set(skill.topic, []);
-      byTopic.get(skill.topic).push(skill);
-    });
-
-    byTopic.forEach((skills, topic) => {
-      const section = document.createElement("div");
-      section.className = "topic-breakdown";
-
-      const heading = document.createElement("h2");
-      const guide = this.getStudyGuide(topic);
-      heading.textContent = `${guide.icon || "📘"}  ${topic}`;
-      section.appendChild(heading);
-
-      const grid = document.createElement("div");
-      grid.className = "revise-skill-grid";
-      skills.forEach(skill => grid.appendChild(this.buildSkillTile(skill, mastery)));
-      section.appendChild(grid);
-      list.appendChild(section);
-    });
+    this.renderStudyLibrary();
   }
 
   buildSkillTile(skill, mastery) {
@@ -1999,15 +1933,64 @@ class ExamApp {
     return button;
   }
 
+  /* The teaching that used to live on its own concept screen. Every block
+     hides itself when the concept has nothing for it, so a thin concept does
+     not leave an empty heading on the page. */
+  renderSkillTeaching(skill) {
+    const concepts = this.getSkillConcepts(skill);
+    const show = (id, hasContent) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (hasContent) el.removeAttribute("hidden");
+      else el.setAttribute("hidden", "");
+    };
+
+    const paragraphs = concepts.flatMap(c => (c.explanation || []));
+    this.renderStudyParagraphs("revise-skill-explanation", paragraphs);
+    show("revise-skill-explain-wrap", paragraphs.length);
+
+    const steps = concepts.flatMap(c => (c.steps || []));
+    const tips = concepts.flatMap(c => (c.tips || []));
+    this.renderStudyList("revise-skill-steps", steps);
+    this.renderStudyList("revise-skill-tips", tips);
+    show("revise-skill-steps-wrap", steps.length);
+    show("revise-skill-tips-wrap", tips.length);
+    show("revise-skill-guide-grid", steps.length || tips.length);
+
+    const examples = concepts.flatMap(c => (c.examples || []));
+    this.renderStudyExamples("revise-skill-examples", examples);
+    show("revise-skill-examples-wrap", examples.length);
+
+    /* One picture only. Several stacked diagrams push the practice button off
+       the screen and none of them is the one the child came for. */
+    const withVisual = concepts.find(c => c.visual);
+    const visual = document.getElementById("revise-skill-visual");
+    if (visual) {
+      visual.innerHTML = withVisual ? withVisual.visual : "";
+      const label = withVisual && withVisual.visualLabel;
+      if (label) {
+        visual.setAttribute("role", "img");
+        visual.setAttribute("aria-label", label);
+      } else {
+        visual.removeAttribute("role");
+        visual.removeAttribute("aria-label");
+      }
+    }
+    show("revise-skill-visual-wrap", !!withVisual);
+  }
+
   openSkillCard(skillId) {
     const skill = getSkillById(skillId);
     if (!skill) return;
     this.currentSkill = skill;
+    this.currentStudyTopic = skill.topic;
 
     const pool = getSkillQuestions(skill);
     document.getElementById("revise-skill-topic").textContent = skill.topic;
     document.getElementById("revise-skill-title").textContent = skill.title;
     document.getElementById("revise-skill-idea").textContent = skill.idea;
+
+    this.renderSkillTeaching(skill);
 
     /* The rule and the worked example are lifted from a real question, so the
        card can never drift away from what the practice actually asks. */
@@ -2301,12 +2284,9 @@ class ExamApp {
       this.progressScreen?.setAttribute("hidden", "");
     }
 
-    if (name === "study-library") {
-      this.studyLibraryScreen?.removeAttribute("hidden");
-    } else {
-      this.studyLibraryScreen?.setAttribute("hidden", "");
-    }
-
+    /* Learn & Practise: topic list → topic page → skill page → practice.
+       The old study-library and study-concept screens are gone; their content
+       lives on the topic list and the skill page respectively. */
     if (name === "study-topic") {
       this.studyTopicScreen?.removeAttribute("hidden");
     } else {
@@ -2319,12 +2299,6 @@ class ExamApp {
       if (name === screen) el.removeAttribute("hidden");
       else el.setAttribute("hidden", "");
     });
-
-    if (name === "study-concept") {
-      this.studyConceptScreen?.removeAttribute("hidden");
-    } else {
-      this.studyConceptScreen?.setAttribute("hidden", "");
-    }
 
     console.log(`Screen switched to: ${name}`);
   }
