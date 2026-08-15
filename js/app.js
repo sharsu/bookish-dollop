@@ -997,6 +997,21 @@ class ExamApp {
     this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("setup-back-btn")?.addEventListener("click", () => this.returnToTestTypeMenu());
     document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+
+    /* Revision */
+    document.getElementById("revise-entry-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+    document.getElementById("revise-skill-back-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-start-practice-btn")?.addEventListener("click", () => this.startSkillPractice());
+    document.getElementById("revise-next-btn")?.addEventListener("click", () => this.advancePractice());
+    document.getElementById("revise-recap-btn")?.addEventListener("click", () => this.openSkillCard(this.currentSkill && this.currentSkill.id));
+    document.getElementById("revise-practice-quit-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-again-btn")?.addEventListener("click", () => this.startSkillPractice());
+    document.getElementById("revise-summary-skills-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-library-screen")?.addEventListener("click", event => {
+      const tile = event.target.closest("[data-skill-id]");
+      if (tile) this.openSkillCard(tile.dataset.skillId);
+    });
     document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     document.getElementById("study-concept-topic-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
@@ -2297,6 +2312,13 @@ class ExamApp {
     } else {
       this.studyTopicScreen?.setAttribute("hidden", "");
     }
+
+    ["revise-library", "revise-skill", "revise-practice"].forEach(screen => {
+      const el = document.getElementById(`${screen}-screen`);
+      if (!el) return;
+      if (name === screen) el.removeAttribute("hidden");
+      else el.setAttribute("hidden", "");
+    });
 
     if (name === "study-concept") {
       this.studyConceptScreen?.removeAttribute("hidden");
