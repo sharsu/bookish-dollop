@@ -1430,6 +1430,7 @@
           const q = gen(v + gIdx * 13);
           if (!q) continue;
           if (span) q.difficulty = lo + (v % span);
+          q.template = gen.name;
           if (!q.explain && METHODS[gen.name]) q.explain = METHODS[gen.name];
           ENGLISH_QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }

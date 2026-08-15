@@ -162,6 +162,137 @@ class DrawingPad {
 }
 
 const SUPER_HARD_DIFFICULTY = 4;
+
+/* ═══════════════════ REVISION ═══════════════════
+   A skill is a named idea backed by question templates (see js/skills.js).
+   Revising one means reading a short card and then practising, easiest
+   question first. Practice deliberately uses every difficulty level, unlike a
+   paper, which is configured to start at Medium. */
+
+const SKILL_MASTERY_KEY = "mathsExamPrepSkillMastery";
+const PRACTICE_LENGTH = 8;
+const WEAK_SPOT_WINDOW = 5;      // how many recent papers to read
+const WEAK_SPOT_LIMIT = 6;       // how many skills to suggest
+
+function getSkills() {
+  const root = typeof window !== "undefined" ? window : globalThis;
+  return Array.isArray(root.SKILLS) ? root.SKILLS : [];
+}
+
+function getSkillById(id) {
+  return getSkills().find(skill => skill.id === id) || null;
+}
+
+function getSkillQuestions(skill) {
+  if (!skill) return [];
+  const pool = getValidQuestionPool(getQuestionBankForTestType("maths"));
+  return pool.filter(q => skill.templates.includes(q.template));
+}
+
+/* The practice ladder: easiest first, hardest last, spread across the levels
+   this skill actually has. A skill that is intrinsically hard — rotating about
+   a point, say — has no Easy questions, and inventing some would only teach the
+   wrong thing, so its ladder starts wherever it genuinely starts. */
+function buildSkillPractice(skill, shuffleArray, count = PRACTICE_LENGTH) {
+  const pool = getSkillQuestions(skill);
+  if (!pool.length) return [];
+
+  const byLevel = new Map();
+  pool.forEach(q => {
+    if (!byLevel.has(q.difficulty)) byLevel.set(q.difficulty, []);
+    byLevel.get(q.difficulty).push(q);
+  });
+  const levels = [...byLevel.keys()].sort((a, b) => a - b);
+  levels.forEach(level => byLevel.set(level, shuffleArray(byLevel.get(level))));
+
+  /* Some skills are hard all the way through — average speed, linking ratios.
+     Rather than invent easy questions that would teach the wrong thing, open
+     with two from the skill this one builds on, so the run still starts gently. */
+  let warmUp = [];
+  if (levels[0] >= 3 && skill.warmUp) {
+    const easier = getSkillQuestions(getSkillById(skill.warmUp))
+      .filter(q => q.difficulty <= 2)
+      .sort((a, b) => a.difficulty - b.difficulty);
+    warmUp = shuffleArray(easier).slice(0, 2).sort((a, b) => a.difficulty - b.difficulty);
+  }
+
+  // Deal round-robin so every level is represented, then sort into a ladder.
+  const picked = [];
+  for (let round = 0; picked.length < count; round += 1) {
+    let added = false;
+    levels.forEach(level => {
+      const bucket = byLevel.get(level);
+      if (picked.length < count && bucket[round]) { picked.push(bucket[round]); added = true; }
+    });
+    if (!added) break;
+  }
+  return warmUp.concat(picked.slice(0, Math.max(0, count - warmUp.length)))
+               .sort((a, b) => a.difficulty - b.difficulty);
+}
+
+/* ── Mastery ──
+   Kept in its own store, deliberately separate from the exam results: practice
+   must never move the score history a parent reads to judge readiness. */
+function loadSkillMastery() {
+  const storage = getStorage();
+  if (!storage) return {};
+  try {
+    const parsed = JSON.parse(storage.getItem(SKILL_MASTERY_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.warn("Could not read skill mastery:", error);
+    return {};
+  }
+}
+
+function saveSkillMastery(mastery) {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(SKILL_MASTERY_KEY, JSON.stringify(mastery));
+  } catch (error) {
+    console.warn("Could not save skill mastery:", error);
+  }
+}
+
+/* Green needs the hardest question in the run answered correctly, so "solid"
+   cannot be earned on the easy ones alone. */
+function gradeSkillAttempt(questions, answers) {
+  const total = questions.length;
+  const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+  const hardest = questions.reduce((max, q) => Math.max(max, q.difficulty), 0);
+  const hardestRight = questions.every((q, i) => q.difficulty !== hardest || answers[i] === q.answer);
+  if (correct === total) return "green";
+  if (correct >= Math.ceil(total * 0.75) && hardestRight) return "green";
+  if (correct >= Math.ceil(total / 2)) return "amber";
+  return "red";
+}
+
+/* ── Weak spots ──
+   Read off the exam history, which records the templates a child got wrong.
+   Practice itself writes nothing here. */
+function findWeakSkills(studentName) {
+  const results = loadStoredResults()
+    .filter(result => matchesTestType(result, "maths"))
+    .filter(result => !studentName || result.studentName === studentName)
+    .slice(0, WEAK_SPOT_WINDOW);
+
+  const misses = {};
+  results.forEach(result => {
+    (result.wrongTemplates || []).forEach(name => { misses[name] = (misses[name] || 0) + 1; });
+  });
+  if (!Object.keys(misses).length) return [];
+
+  return getSkills()
+    .map(skill => ({
+      skill,
+      score: skill.templates.reduce((sum, name) => sum + (misses[name] || 0), 0)
+    }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, WEAK_SPOT_LIMIT)
+    .map(entry => entry.skill);
+}
 const ACTIVE_EXAM_STORAGE_KEY = "mathsExamPrepActiveExam";
 const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
@@ -778,6 +909,8 @@ class ExamApp {
     this.examInProgress = false;
     this.currentStudyTopic = "";
     this.currentStudyConcept = "";
+    this.currentSkill = null;
+    this.practice = null;
 
     // DOM
     this.testTypeScreen = document.getElementById("test-type-screen");
@@ -1331,7 +1464,13 @@ class ExamApp {
       percentage,
       timeTakenSeconds: timeTaken,
       superHardCount: this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length,
-      topicBreakdown
+      topicBreakdown,
+      /* The templates that were answered wrongly, so revision can point at the
+         exact skill rather than the whole topic. Names only — small enough to
+         keep, and the questions themselves are regenerated anyway. */
+      wrongTemplates: this.quizQuestions
+        .map((q, idx) => (idx in this.answers && this.answers[idx] !== q.answer ? q.template : null))
+        .filter(Boolean)
     };
   }
 
@@ -1766,6 +1905,286 @@ class ExamApp {
     this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
     this.showScreen(this.selectedTestType ? "setup" : "test-type");
+  }
+
+  /* ═══════════════════ REVISION ═══════════════════ */
+
+  openSkillLibrary() {
+    this.practice = null;
+    this.renderSkillLibrary();
+    this.showScreen("revise-library");
+  }
+
+  renderSkillLibrary() {
+    const mastery = loadSkillMastery();
+
+    /* Weak spots first, drawn from the last few papers. */
+    const weak = findWeakSkills(this.studentName);
+    const weakPanel = document.getElementById("revise-weak-panel");
+    const weakGrid = document.getElementById("revise-weak-grid");
+    if (weakPanel && weakGrid) {
+      weakGrid.innerHTML = "";
+      if (weak.length) {
+        weak.forEach(skill => weakGrid.appendChild(this.buildSkillTile(skill, mastery)));
+        weakPanel.removeAttribute("hidden");
+      } else {
+        weakPanel.setAttribute("hidden", "");
+      }
+    }
+
+    const list = document.getElementById("revise-topic-list");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const byTopic = new Map();
+    getSkills().forEach(skill => {
+      if (!byTopic.has(skill.topic)) byTopic.set(skill.topic, []);
+      byTopic.get(skill.topic).push(skill);
+    });
+
+    byTopic.forEach((skills, topic) => {
+      const section = document.createElement("div");
+      section.className = "topic-breakdown";
+
+      const heading = document.createElement("h2");
+      const guide = this.getStudyGuide(topic);
+      heading.textContent = `${guide.icon || "📘"}  ${topic}`;
+      section.appendChild(heading);
+
+      const grid = document.createElement("div");
+      grid.className = "revise-skill-grid";
+      skills.forEach(skill => grid.appendChild(this.buildSkillTile(skill, mastery)));
+      section.appendChild(grid);
+      list.appendChild(section);
+    });
+  }
+
+  buildSkillTile(skill, mastery) {
+    const state = (mastery[skill.id] || {}).state || "new";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `revise-skill-tile revise-skill-${state}`;
+    button.dataset.skillId = skill.id;
+
+    const dot = document.createElement("span");
+    dot.className = "revise-skill-dot";
+    dot.setAttribute("aria-hidden", "true");
+    button.appendChild(dot);
+
+    const title = document.createElement("span");
+    title.className = "revise-skill-title";
+    title.textContent = skill.title;
+    button.appendChild(title);
+
+    const status = document.createElement("span");
+    status.className = "revise-skill-status";
+    status.textContent = { green: "Solid", amber: "Getting there", red: "Needs work", new: "Not tried yet" }[state];
+    button.appendChild(status);
+
+    return button;
+  }
+
+  openSkillCard(skillId) {
+    const skill = getSkillById(skillId);
+    if (!skill) return;
+    this.currentSkill = skill;
+
+    const pool = getSkillQuestions(skill);
+    document.getElementById("revise-skill-topic").textContent = skill.topic;
+    document.getElementById("revise-skill-title").textContent = skill.title;
+    document.getElementById("revise-skill-idea").textContent = skill.idea;
+
+    /* The rule and the worked example are lifted from a real question, so the
+       card can never drift away from what the practice actually asks. */
+    const easiest = pool.slice().sort((a, b) => a.difficulty - b.difficulty)[0];
+    const rule = document.getElementById("revise-skill-rule");
+    rule.textContent = easiest && easiest.explain ? easiest.explain : skill.idea;
+
+    const exampleQ = document.getElementById("revise-skill-example");
+    const exampleA = document.getElementById("revise-skill-answer");
+    const figure = document.getElementById("revise-skill-figure");
+    figure.innerHTML = "";
+    if (easiest) {
+      exampleQ.textContent = easiest.question;
+      exampleA.textContent = `Answer: ${easiest.options[easiest.answer]}`;
+      if (easiest.questionImage) {
+        const img = document.createElement("img");
+        img.src = easiest.questionImage;
+        img.alt = easiest.questionImageAlt || "Example diagram";
+        figure.appendChild(img);
+        figure.removeAttribute("hidden");
+      } else {
+        figure.setAttribute("hidden", "");
+      }
+    }
+
+    /* A method that names the usual mistake gets its own warning panel. */
+    const trapWrap = document.getElementById("revise-skill-trap-wrap");
+    const trap = document.getElementById("revise-skill-trap");
+    const hardest = pool.slice().sort((a, b) => b.difficulty - a.difficulty)[0];
+    const trapText = hardest && hardest.explain !== (easiest && easiest.explain) ? hardest.explain : "";
+    if (trapText && /mistake|trap|not the|never|forget|do not|does not/i.test(trapText)) {
+      trap.textContent = trapText;
+      trapWrap.removeAttribute("hidden");
+    } else {
+      trapWrap.setAttribute("hidden", "");
+    }
+
+    this.showScreen("revise-skill");
+  }
+
+  startSkillPractice() {
+    const skill = this.currentSkill;
+    if (!skill) return;
+    const questions = buildSkillPractice(skill, arr => this.shuffleArray(arr));
+    if (!questions.length) return;
+
+    this.practice = { skill, questions, answers: {}, index: 0, locked: false };
+    document.getElementById("revise-summary").setAttribute("hidden", "");
+    document.getElementById("revise-practice-actions").removeAttribute("hidden");
+    document.getElementById("revise-practice-skill").textContent = skill.topic;
+    document.getElementById("revise-practice-title").textContent = skill.title;
+    this.renderPracticeQuestion();
+    this.showScreen("revise-practice");
+  }
+
+  renderPracticeQuestion() {
+    const state = this.practice;
+    if (!state) return;
+    const question = state.questions[state.index];
+    state.locked = false;
+
+    document.getElementById("revise-practice-count").textContent =
+      `${state.index + 1} / ${state.questions.length}`;
+    const level = document.getElementById("revise-practice-level");
+    const meta = getDifficultyMeta(question.difficulty);
+    level.textContent = meta.label;
+    level.className = `q-difficulty-badge ${meta.css}`;
+
+    /* A ladder of pips, so the child can see the questions getting harder. */
+    const ladder = document.getElementById("revise-ladder");
+    ladder.innerHTML = "";
+    state.questions.forEach((q, i) => {
+      const pip = document.createElement("span");
+      const answered = i in state.answers;
+      const right = answered && state.answers[i] === q.answer;
+      pip.className = "revise-pip" +
+        (i === state.index ? " revise-pip-current" : "") +
+        (answered ? (right ? " revise-pip-right" : " revise-pip-wrong") : "");
+      pip.title = getDifficultyMeta(q.difficulty).label;
+      ladder.appendChild(pip);
+    });
+
+    document.getElementById("revise-practice-question").textContent = question.question;
+
+    const media = document.getElementById("revise-practice-media");
+    media.innerHTML = "";
+    if (question.questionImage) {
+      const img = document.createElement("img");
+      img.src = question.questionImage;
+      img.alt = question.questionImageAlt || "Question diagram";
+      media.appendChild(img);
+      media.removeAttribute("hidden");
+    } else {
+      media.setAttribute("hidden", "");
+    }
+
+    const options = document.getElementById("revise-practice-options");
+    options.innerHTML = "";
+    question.options.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<span class="option-label">${String.fromCharCode(65 + idx)}</span> ${opt}`;
+      btn.addEventListener("click", () => this.answerPracticeQuestion(idx));
+      options.appendChild(btn);
+    });
+
+    document.getElementById("revise-feedback").setAttribute("hidden", "");
+  }
+
+  /* Immediate feedback: this is revision, not a test. */
+  answerPracticeQuestion(choice) {
+    const state = this.practice;
+    if (!state || state.locked) return;
+    state.locked = true;
+    state.answers[state.index] = choice;
+
+    const question = state.questions[state.index];
+    const right = choice === question.answer;
+
+    const buttons = [...document.getElementById("revise-practice-options").children];
+    buttons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === question.answer) btn.classList.add("option-right");
+      else if (idx === choice) btn.classList.add("option-wrong");
+    });
+
+    const verdict = document.getElementById("revise-feedback-verdict");
+    verdict.textContent = right ? "✓ That's right" : "✗ Not quite";
+    verdict.className = `revise-feedback-verdict ${right ? "is-right" : "is-wrong"}`;
+
+    const answerLine = document.getElementById("revise-feedback-answer");
+    answerLine.textContent = right ? "" : `The answer is ${question.options[question.answer]}.`;
+    answerLine.hidden = right;
+
+    const methodWrap = document.getElementById("revise-feedback-method");
+    if (!right && question.explain) {
+      document.getElementById("revise-feedback-method-text").textContent = question.explain;
+      methodWrap.removeAttribute("hidden");
+    } else {
+      methodWrap.setAttribute("hidden", "");
+    }
+
+    document.getElementById("revise-next-btn").textContent =
+      state.index === state.questions.length - 1 ? "See how I did →" : "Next →";
+    document.getElementById("revise-feedback").removeAttribute("hidden");
+
+    // Redraw the ladder so the pip just answered takes its colour.
+    const ladder = document.getElementById("revise-ladder");
+    [...ladder.children].forEach((pip, i) => {
+      if (i !== state.index) return;
+      pip.classList.remove("revise-pip-current");
+      pip.classList.add(right ? "revise-pip-right" : "revise-pip-wrong");
+    });
+  }
+
+  advancePractice() {
+    const state = this.practice;
+    if (!state) return;
+    if (state.index < state.questions.length - 1) {
+      state.index += 1;
+      this.renderPracticeQuestion();
+    } else {
+      this.finishPractice();
+    }
+  }
+
+  finishPractice() {
+    const state = this.practice;
+    if (!state) return;
+    const { skill, questions, answers } = state;
+    const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+    const grade = gradeSkillAttempt(questions, answers);
+
+    const mastery = loadSkillMastery();
+    mastery[skill.id] = { state: grade, at: new Date().toISOString() };
+    saveSkillMastery(mastery);
+
+    const hardest = questions.reduce((max, q) => Math.max(max, q.difficulty), 0);
+    const hardestRight = questions.every((q, i) => q.difficulty !== hardest || answers[i] === q.answer);
+
+    document.getElementById("revise-summary-icon").textContent =
+      grade === "green" ? "🌟" : grade === "amber" ? "🎯" : "📖";
+    document.getElementById("revise-summary-verdict").textContent =
+      grade === "green" ? "You've got this" : grade === "amber" ? "Nearly there" : "Worth another go";
+    document.getElementById("revise-summary-detail").textContent =
+      `${correct} out of ${questions.length} correct. ` +
+      (hardestRight ? `You got the ${getDifficultyMeta(hardest).label} one right.`
+                    : `The ${getDifficultyMeta(hardest).label} one caught you — try this skill again tomorrow.`);
+
+    document.getElementById("revise-feedback").setAttribute("hidden", "");
+    document.getElementById("revise-practice-actions").setAttribute("hidden", "");
+    document.getElementById("revise-summary").removeAttribute("hidden");
   }
 
   openParentDashboard(fromScreen = "setup", syncHash = true) {

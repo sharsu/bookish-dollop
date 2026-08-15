@@ -20,6 +20,7 @@
         <button class="btn btn-primary btn-large" data-test-type="maths">➗ Maths Test</button>
         <button class="btn btn-secondary btn-large" data-test-type="nvrt">🧩 NVRT Test</button>
         <button class="btn btn-secondary btn-large" data-test-type="english">📖 English Test</button>
+        <button id="revise-entry-btn" class="btn btn-learn btn-large">🧠 Revise a Skill</button>
       </div>
     </div>
   </div>
@@ -144,6 +145,117 @@
       <div class="results-actions">
         <button id="study-concept-topic-btn" class="btn btn-secondary btn-large">← Back to Topic Menu</button>
         <button id="study-concept-menu-btn" class="btn btn-learn btn-large">🏠 Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REVISION: SKILL LIBRARY ══════════════ -->
+  <div id="revise-library-screen" class="screen" hidden>
+    <div class="results-card study-card">
+      <div class="results-header">
+        <div class="trophy">🧠</div>
+        <h1>Revise a Skill</h1>
+        <p class="results-name">Pick one thing to go over. You will get a short practice at the end.</p>
+      </div>
+
+      <div id="revise-weak-panel" class="revise-weak" hidden>
+        <h2>Worth a look</h2>
+        <p class="revise-weak-copy">These came up in your recent papers and did not go well.</p>
+        <div id="revise-weak-grid" class="revise-skill-grid"></div>
+      </div>
+
+      <div id="revise-topic-list"></div>
+
+      <div class="results-actions">
+        <button id="revise-library-back-btn" class="btn btn-secondary btn-large">← Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REVISION: SKILL CARD ══════════════ -->
+  <div id="revise-skill-screen" class="screen" hidden>
+    <div class="results-card study-card study-topic-card">
+      <div class="results-header">
+        <p id="revise-skill-topic" class="study-concept-badge">Topic</p>
+        <h1 id="revise-skill-title">Skill</h1>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>What this is</h2>
+        <p id="revise-skill-idea" class="study-copy"></p>
+      </div>
+
+      <div class="revise-rule">
+        <span class="revise-rule-heading">How to do it</span>
+        <p id="revise-skill-rule" class="revise-rule-text"></p>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>Worked example</h2>
+        <p id="revise-skill-example" class="revise-example-q"></p>
+        <div id="revise-skill-figure" class="question-media" hidden></div>
+        <p id="revise-skill-answer" class="revise-example-a"></p>
+      </div>
+
+      <div id="revise-skill-trap-wrap" class="revise-trap" hidden>
+        <span class="revise-trap-heading">Watch out</span>
+        <p id="revise-skill-trap" class="revise-trap-text"></p>
+      </div>
+
+      <div class="results-actions">
+        <button id="revise-start-practice-btn" class="btn btn-primary btn-large">▶ Practise this</button>
+        <button id="revise-skill-back-btn" class="btn btn-secondary btn-large">← All Skills</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REVISION: PRACTICE ══════════════ -->
+  <div id="revise-practice-screen" class="screen" hidden>
+    <div class="results-card study-card">
+      <div class="revise-practice-head">
+        <div>
+          <p id="revise-practice-skill" class="study-concept-badge">Skill</p>
+          <h1 id="revise-practice-title">Practice</h1>
+        </div>
+        <div class="revise-practice-progress">
+          <span id="revise-practice-count" class="revise-practice-count">1 / 8</span>
+          <span id="revise-practice-level" class="q-difficulty-badge"></span>
+        </div>
+      </div>
+
+      <div class="revise-ladder" id="revise-ladder"></div>
+
+      <div class="question-card revise-question-card">
+        <p id="revise-practice-question" class="question-text"></p>
+        <div id="revise-practice-media" class="question-media" hidden></div>
+        <div id="revise-practice-options" class="options-container"></div>
+      </div>
+
+      <div id="revise-feedback" class="revise-feedback" hidden>
+        <p id="revise-feedback-verdict" class="revise-feedback-verdict"></p>
+        <p id="revise-feedback-answer" class="revise-feedback-answer"></p>
+        <div id="revise-feedback-method" class="revise-method" hidden>
+          <span class="revise-rule-heading">How to do it</span>
+          <p id="revise-feedback-method-text" class="revise-rule-text"></p>
+        </div>
+        <div class="revise-feedback-actions">
+          <button id="revise-recap-btn" class="btn btn-secondary">📖 Show me again</button>
+          <button id="revise-next-btn" class="btn btn-primary">Next →</button>
+        </div>
+      </div>
+
+      <div id="revise-summary" class="revise-summary" hidden>
+        <div class="trophy" id="revise-summary-icon">🎯</div>
+        <h2 id="revise-summary-verdict"></h2>
+        <p id="revise-summary-detail" class="results-name"></p>
+        <div class="results-actions">
+          <button id="revise-again-btn" class="btn btn-primary btn-large">🔄 Practise Again</button>
+          <button id="revise-summary-skills-btn" class="btn btn-secondary btn-large">← All Skills</button>
+        </div>
+      </div>
+
+      <div class="results-actions" id="revise-practice-actions">
+        <button id="revise-practice-quit-btn" class="btn btn-secondary">Stop practising</button>
       </div>
     </div>
   </div>
@@ -378,6 +490,7 @@
   <script src="js/passages-english.js"></script>
   <script src="js/questions-english.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/skills.js"></script>
   <script src="maths/study-guides.js"></script>
   <script src="maths/Numbers/guide.js"></script>
   <script src="maths/Decimals/guide.js"></script>

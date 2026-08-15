@@ -3076,6 +3076,7 @@ const QUESTIONS = [];
           const q = gen(v + gIdx * 13);
           if (!q) continue;
           q.difficulty = lo + (v % span);
+          q.template = gen.name;
           if (!q.explain && METHODS[gen.name]) q.explain = METHODS[gen.name];
           QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }
