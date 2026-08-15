@@ -2803,7 +2803,7 @@ const QUESTIONS = [];
     bidPowers: "Powers come after brackets but before multiplying and dividing. Square the number first.",
     bidMixed: "Brackets, Indices, Division and Multiplication, then Addition and Subtraction — and left to right within each pair.",
     bidNegative: "Do the multiplication first. Two negatives multiplied give a positive; a negative and a positive give a negative.",
-    bidTempChange: "Count the gap in two parts: up to zero, then on past it. Adding those gives the whole difference.",
+    bidTempChange: "The size of the drop = starting temperature − finishing temperature. Subtracting a negative adds it, so a drop from 12°C to −11°C is 12 − (−11) = 12 + 11 = 23°C.",
     bidNestedBrackets: "Start with the innermost bracket and work outwards, dealing with the power before you divide.",
     bidMissingOperator: "Test each pair of operations, remembering that × and ÷ are done before + and −. Only one pair gives the target.",
     bidInsertBrackets: "Work out what each bracket position would give, then match against the target. Brackets change which operation happens first.",
@@ -2824,7 +2824,7 @@ const QUESTIONS = [];
 
     /* Sequences */
     seqArithNext: "Find the difference between terms and continue it.",
-    seqArithNth: "Find the common difference, then step on from a term you know rather than writing out every term.",
+    seqArithNth: "The nth term is the first term + (n − 1) × the common difference. So the 20th term of a sequence starting at 5 going up in 3s is 5 + 19 × 3 = 62 — no need to write out all twenty.",
     seqArithNthFormula: "The number in front of n is the common difference. Then work out what to add or subtract to make the first term come out right.",
     seqFibLike: "Each term is the two before it added together.",
     seqGeomNext: "Divide one term by the one before to find what it is being multiplied by, then multiply on.",
@@ -2877,7 +2877,10 @@ const QUESTIONS = [];
     geoRotSymmetry: "Count how many times the shape looks the same in one full turn. For a regular polygon it equals the number of sides.",
     geoPrismFEV: "Use the formulas for an n-gonal prism: faces F = n + 2, edges E = 3n, vertices V = 2n. Counting only works for small bases.",
     geoCuboidMissingEdge: "Volume is length × width × height, so divide the volume by the two edges you know.",
-    geoRotationCoords: "Work relative to the centre of rotation, not the origin. Find how far across and up the point is from the centre, then swap and flip those steps according to the direction.",
+    /* geoRotationCoords and geoPrismFEV build their own explain, because a
+       worked substitution beats a general sentence. These entries are the
+       fallback if that ever stops happening, so they must not drift. */
+    geoRotationCoords: "About the centre (h, k): anticlockwise sends (x, y) to (−(y − k) + h, (x − h) + k); clockwise sends it to ((y − k) + h, −(x − h) + k). Take the centre off, swap the two, negate the first for anticlockwise or the second for clockwise, then add the centre back.",
     geoShapeProperty: "Check each statement against the shape one at a time. The question asks which is NOT true, so three will be correct.",
     geoShapeSplit: "Picture the cut. Count the sides of the piece that is left and check whether any are parallel or equal.",
     geoPolygonFromAngleSum: "The angles add to (sides − 2) × 180°, so divide the total by 180 and add 2.",
