@@ -2700,6 +2700,301 @@ const QUESTIONS = [];
       4, i, D.coordGrid({ points: [[ax, ay, "A"], [bx, by, "B"]] }));
   }
 
+  /* ═══════════════════ FROM THE AUGUST QE/EPP PAPERS ═══════════════════
+     Shapes the QE Boys and Examberry papers set repeatedly that the bank had
+     no template for. Each answer is recomputed from the printed question in
+     verify.js rather than trusted. */
+
+  const COMPASS = ["north", "north-east", "east", "south-east",
+                   "south", "south-west", "west", "north-west"];
+
+  /* "You are facing south and turn clockwise through three right angles." */
+  function geoCompassTurn(i) {
+    const from = i % 8;
+    const quarters = 1 + (i % 3);                     // a full turn would be no turn at all
+    const clockwise = i % 2 === 0;
+    const step = quarters * 2;                        // a right angle is two points
+    const to = ((from + (clockwise ? step : -step)) % 8 + 8) % 8;
+
+    /* Turning the wrong way is the mistake worth offering, but for a two-right-
+       angle turn it lands on the same point as the answer, so the distractors
+       are collected by hand and de-duplicated rather than assumed distinct. */
+    const wrongWay = ((from + (clockwise ? -step : step)) % 8 + 8) % 8;
+    const options = [];
+    [wrongWay, (to + 1) % 8, (to + 7) % 8, (to + 4) % 8].forEach(k => {
+      if (k !== to && !options.includes(COMPASS[k])) options.push(COMPASS[k]);
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `You are facing ${COMPASS[from]}. You turn ${clockwise ? "clockwise" : "anticlockwise"} ` +
+      `through ${["one", "two", "three"][quarters - 1]} right angle${quarters > 1 ? "s" : ""}. ` +
+      `Which direction are you facing now?`,
+      COMPASS[to], options.slice(0, 3),
+      diff(i, 3), i);
+  }
+
+  /* The smaller of the two angles between two of the eight compass points. */
+  function geoCompassAngle(i) {
+    const from = i % 8;
+    const to = (from + 1 + (i % 7)) % 8;
+    const gap = Math.abs(to - from);
+    const points = Math.min(gap, 8 - gap);
+    const ans = points * 45;
+    if (ans === 0) return null;
+    return mk("Geometry",
+      `You are facing ${COMPASS[from]}. What is the smallest angle you must turn through to face ${COMPASS[to]}?`,
+      `${ans}°`,
+      [`${360 - ans}°`, `${gap * 45}°`, `${ans === 180 ? 90 : 180}°`],
+      diff(i, 3), i);
+  }
+
+  /* Fourth vertex of a parallelogram. Naming the vertices in order makes the
+     answer unique: ABCD has AC and BD sharing a midpoint, so D = A + C - B.
+     Without the ordering there are three possible answers. */
+  function geoParallelogramVertex(i) {
+    const ax = i % 4, ay = 1 + (i % 3);
+    const bx = ax + 2 + (i % 4), by = ay;
+    const cx = bx + 1 + (i % 3), cy = by + 2 + (i % 4);
+    const dx = ax + cx - bx, dy = ay + cy - by;
+    const pt = (x, y) => `(${x}, ${y})`;
+    return mk("Geometry",
+      `Three vertices of a parallelogram ABCD are A${pt(ax, ay)}, B${pt(bx, by)} and C${pt(cx, cy)}. ` +
+      `What are the coordinates of D?`,
+      pt(dx, dy),
+      [pt(bx + cx - ax, by + cy - ay), pt(ax + bx - cx, ay + by - cy), pt(dy, dx)],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Three lengths make a triangle only if the two shorter ones together beat
+     the longest. Every distractor genuinely fails that test. */
+  function geoTriangleInequality(i) {
+    const set = (a, b, c) => `${a} cm, ${b} cm, ${c} cm`;
+    const s = 2 + (i % 5);
+    const good = [s + 2, s + 3, s + 4];
+    const candidates = [[1, s + 1, s + 3], [2, s + 2, s + 5], [1, 1, s + 3], [2, 3, s + 6]];
+    const seen = new Set();
+    const options = [];
+    candidates.forEach(([a, b, c]) => {
+      if (a + b > c) return;                          // must genuinely fail
+      const t = set(a, b, c);
+      if (!seen.has(t)) { seen.add(t); options.push(t); }
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `Which of these sets of three lengths could be the sides of a triangle?`,
+      set(good[0], good[1], good[2]), options.slice(0, 3),
+      diff(i, 2) + 2, i);
+  }
+
+  /* Lines of symmetry of the named shapes, which the papers ask for combined. */
+  const SYMMETRY_LINES = {
+    square: 4, rectangle: 2, rhombus: 2, kite: 1, parallelogram: 0,
+    "equilateral triangle": 3, "isosceles triangle": 1, "regular pentagon": 5,
+    "regular hexagon": 6, "regular octagon": 8
+  };
+
+  function geoSymmetryCombined(i) {
+    const names = Object.keys(SYMMETRY_LINES);
+    const a = names[i % names.length];
+    const b = names[(i + 3 + (i % 4)) % names.length];
+    if (a === b) return null;
+    const x = SYMMETRY_LINES[a], y = SYMMETRY_LINES[b];
+    const sum = i % 2 === 0;
+    const ans = sum ? x + y : x * y;
+    return mk("Geometry",
+      `What is the ${sum ? "sum" : "product"} of the number of lines of symmetry of ${article(a)} ${a} ` +
+      `and the number of lines of symmetry of ${article(b)} ${b}?`,
+      `${ans}`,
+      [`${sum ? x * y : x + y}`, `${ans + 1}`, `${Math.abs(x - y)}`],
+      diff(i, 3) + 1, i);
+  }
+
+  /* Capital letters with a mirror line straight down the middle. */
+  const VERTICAL_SYMMETRY = ["A", "H", "I", "M", "O", "T", "U", "V", "W", "X", "Y"];
+  const NO_VERTICAL_SYMMETRY = ["B", "C", "D", "E", "F", "G", "J", "K", "L",
+                                "N", "P", "Q", "R", "S", "Z"];
+
+  function geoSymmetryLetters(i) {
+    const pick = (arr, n, off) => Array.from({ length: n }, (_, k) => arr[(off + k * 3) % arr.length]);
+    const good = pick(VERTICAL_SYMMETRY, 3, i);
+    if (new Set(good).size < 3) return null;
+    const options = [];
+    for (let k = 1; k <= 3; k++) {
+      const two = pick(VERTICAL_SYMMETRY, 2, i + k);
+      const bad = NO_VERTICAL_SYMMETRY[(i + k * 5) % NO_VERTICAL_SYMMETRY.length];
+      const trio = two.concat(bad);
+      if (new Set(trio).size === 3) options.push(trio.join(", "));
+    }
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `Which of these sets of capital letters all have a vertical line of symmetry?`,
+      good.join(", "), options, diff(i, 3) + 1, i);
+  }
+
+  /* A polygon carrying one reflex angle. The angle sum still holds, which is
+     the whole point: the reflex angle is not an exception to the rule. */
+  function geoPolygonMissingAngle(i) {
+    const sides = 5 + (i % 2);                        // pentagon or hexagon
+    const total = (sides - 2) * 180;
+    const given = [];
+    let running = 0;
+    for (let k = 0; k < sides - 2; k++) {
+      const a = 80 + ((i + k * 7) % 40);
+      given.push(a); running += a;
+    }
+    const reflex = 190 + ((i * 3) % 60);
+    given.push(reflex); running += reflex;
+    const ans = total - running;
+    if (ans < 20 || ans > 175) return null;
+    const named = sides === 5 ? "pentagon" : "hexagon";
+    return mk("Geometry",
+      `${sides - 1} of the ${sides} interior angles of a ${named} are ` +
+      `${given.slice(0, -1).join("°, ")}° and ${reflex}°. What is the size of the last angle?`,
+      `${ans}°`,
+      [`${ans + 10}°`, `${total - running + 30}°`, `${180 - (ans % 180)}°`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* The reflex angle between the hands: 360 minus the smaller one. */
+  function logClockReflexAngle(i) {
+    const hour = 1 + (i % 12);
+    const minute = [0, 30, 15, 45][i % 4];
+    const hourHand = (hour % 12) * 30 + minute * 0.5;
+    const minuteHand = minute * 6;
+    const raw = Math.abs(hourHand - minuteHand);
+    const small = Math.min(raw, 360 - raw);
+    const ans = 360 - small;
+    if (small === 0 || small === 180) return null;    // no distinct reflex angle
+    const show = n => `${Number.isInteger(n) ? n : n.toFixed(1)}°`;
+    return mk("Logic",
+      `What is the size of the reflex angle between the hands of a clock at ` +
+      `${`${hour}`.padStart(2, "0")}:${`${minute}`.padStart(2, "0")}?`,
+      show(ans), [show(small), show(ans - 30), show(small + 180)],
+      diff(i, 2) + 2, i);
+  }
+
+  /* The papers print this as "2x = 64", meaning 2 to the power x. */
+  function algPowerEquation(i) {
+    const base = [2, 3, 5, 2, 4, 10][i % 6];
+    const exp = base === 2 ? 3 + (i % 5) : base === 3 ? 2 + (i % 3) : 2 + (i % 2);
+    const value = base ** exp;
+    return mk("Algebra",
+      `If ${base}^x = ${comma(value)}, what is the value of x?`,
+      `${exp}`,
+      [`${value / base}`, `${exp + 1}`, `${base}`],
+      diff(i, 3) + 1, i);
+  }
+
+  /* "40 ÷ N = 3 remainder 4" rearranges to 40 = 3N + 4. */
+  function algRemainderDivisor(i) {
+    const divisor = 6 + (i % 9);
+    const quotient = 2 + (i % 5);
+    const remainder = 1 + (i % (divisor - 1));
+    if (remainder >= divisor) return null;
+    const total = divisor * quotient + remainder;
+    return mk("Algebra",
+      `${total} ÷ N = ${quotient} remainder ${remainder}. What is the value of N?`,
+      `${divisor}`,
+      [`${quotient}`, `${Math.floor(total / quotient)}`, `${divisor + 1}`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* An integer trapped between two neighbours of a multiple: 41 < 3y < 43
+     leaves 3y = 42 as the only possibility. */
+  function algInequalityInteger(i) {
+    const mult = 3 + (i % 6);
+    const y = 4 + (i % 12);
+    const product = mult * y;
+    const lo = product - 1, hi = product + 1;
+    const nearMiss = y > 1 ? y - 1 : y + 2;
+    return mk("Algebra",
+      `${lo} < ${mult}y < ${hi}, where y is a whole number. What is the value of y?`,
+      `${y}`,
+      [`${y + 1}`, `${product}`, `${nearMiss}`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Building the expression rather than evaluating it. */
+  function algExpressionChange(i) {
+    const count = 2 + (i % 6);
+    const note = [5, 10, 20][i % 3];
+    const pence = note * 100;
+    return mk("Algebra",
+      `A pen costs p pence. Ravi buys ${count} pens and pays with a £${note} note. ` +
+      `Which expression shows his change, in pence?`,
+      `${comma(pence)} − ${count}p`,
+      [`${count}p − ${comma(pence)}`, `${comma(pence)} − p`, `${comma(pence * count)} − ${count}p`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Words to digits. The trap is the empty hundreds column, which invites a
+     nought too few or too many. */
+  const UNITS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                 "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                 "seventeen", "eighteen", "nineteen"];
+  const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+  function spellUnder1000(n) {
+    if (n === 0) return "";
+    const parts = [];
+    if (n >= 100) { parts.push(`${UNITS[Math.floor(n / 100)]} hundred`); n %= 100; }
+    if (n) {
+      if (parts.length) parts.push("and");
+      if (n < 20) parts.push(UNITS[n]);
+      else parts.push(TENS[Math.floor(n / 10)] + (n % 10 ? `-${UNITS[n % 10]}` : ""));
+    }
+    return parts.join(" ");
+  }
+
+  function numWordsToDigits(i) {
+    const thousands = 100 + (i * 37) % 900;
+    const rest = 1 + (i * 53) % 99;                   // deliberately under 100
+    const value = thousands * 1000 + rest;
+    const words = `${spellUnder1000(thousands)} thousand and ${spellUnder1000(rest)}`;
+    return mk("Numbers",
+      `Which of these is the number "${words}"?`,
+      comma(value),
+      [comma(thousands * 1000 + rest * 10), comma(thousands * 1000 + rest * 100),
+       comma(thousands * 100 + rest)],
+      diff(i, 3) + 1, i);
+  }
+
+  /* A translation followed by a rotation, in the order given. Doing them the
+     other way round lands somewhere else, which is the distractor. */
+  function geoTransformCompose(i) {
+    const px = 1 + (i % 5), py = 2 + (i % 4);
+    const down = 1 + (i % 6);
+    const clockwise = i % 2 === 0;
+    const midY = py - down;
+    const ans = clockwise ? [midY, -px] : [-midY, px];
+    const pt = ([x, y]) => `(${x}, ${y})`;
+    return mk("Geometry",
+      `The point ${pt([px, py])} is moved down ${down} unit${down > 1 ? "s" : ""}, then rotated ` +
+      `90° ${clockwise ? "clockwise" : "anticlockwise"} about the origin. Where does it end up?`,
+      pt(ans),
+      [pt(clockwise ? [-midY, px] : [midY, -px]), pt([px, midY]), pt([-ans[0], -ans[1]])],
+      4, i);
+  }
+
+  /* One angle of a scalene triangle is given. The other two add to the rest,
+     are different, and are both smaller, so the median sits strictly between
+     half the remainder and the whole remainder. */
+  function statMedianAngleTriangle(i) {
+    const largest = 96 + (i % 40);
+    const rest = 180 - largest;
+    const low = rest / 2;
+    const ans = Math.floor(low) + 1 + (i % 3);
+    if (!(ans > low && ans < rest && ans < largest)) return null;
+    const bad = [Math.floor(low) - 2 - (i % 3), rest + 2 + (i % 4), largest + 5];
+    if (bad.some(b => b > low && b < rest)) return null;   // a distractor must be wrong
+    if (new Set(bad).size < 3 || bad.some(b => b <= 0)) return null;
+    return mk("Statistics",
+      `One angle of a scalene triangle is ${largest}°. Which of these could be the median ` +
+      `of the three angles of the triangle?`,
+      `${ans}°`, bad.map(b => `${b}°`),
+      4, i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -2734,6 +3029,23 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* August QE/EPP papers */
+    geoCompassTurn: "The eight compass points are 45° apart, so one right angle is two points round. Count that many points in the direction of the turn, wrapping past north.",
+    geoCompassAngle: "Count the points between the two directions, then multiply by 45°. Going the short way round is always 4 points or fewer.",
+    geoParallelogramVertex: "In a parallelogram ABCD the diagonals cross at the same midpoint, so D = A + C − B. Add A and C, then take B away, one coordinate at a time.",
+    geoTriangleInequality: "The two shorter sides added together must be longer than the longest side. If they are equal or shorter the shape collapses flat.",
+    geoSymmetryCombined: "Work out each shape separately first. Square 4, rectangle 2, rhombus 2, kite 1, parallelogram 0, equilateral triangle 3, isosceles triangle 1, and a regular polygon has as many as it has sides.",
+    geoSymmetryLetters: "Picture a mirror straight down the middle of each letter. A, H, I, M, O, T, U, V, W, X and Y match; B, C, D, E and K have a line across instead, not down.",
+    geoPolygonMissingAngle: "The interior angles still add to (sides − 2) × 180° — 540° for a pentagon, 720° for a hexagon. A reflex angle is no exception, so add what you are given and subtract from the total.",
+    geoTransformCompose: "Do the two steps in the order written. Move the point first, then rotate that new position — rotating first lands somewhere else.",
+    logClockReflexAngle: "Find the smaller angle first: the minute hand is at 6° a minute and the hour hand at 30° an hour plus 0.5° a minute. The reflex angle is 360° minus that.",
+    algPowerEquation: "Ask how many times the base multiplies by itself to reach the total. Keep doubling or tripling and count the steps: 2, 4, 8, 16, 32, 64 is six steps, so x = 6.",
+    algRemainderDivisor: "Turn it back into a multiplication: total = N × quotient + remainder. Take the remainder off the total, then divide by the quotient.",
+    algInequalityInteger: "Only one multiple of the number in front of y sits between the two ends. Find it, then divide by that number.",
+    algExpressionChange: "Change = what you handed over − what you spent, so put the money in first. Work in pence throughout: £20 is 2,000p, not 20.",
+    numWordsToDigits: "Write the thousands, then fill every column down to the units. \"and forty-two\" means the hundreds column is empty, so it needs a nought as a place holder.",
+    statMedianAngleTriangle: "The other two angles add to 180° minus the one you are given, and they are different, so the larger of them — the median — must be more than half that remainder and less than all of it.",
     fracOfCapacity: "Work out how much is actually in the bottle first, then take the fraction of that amount \u2014 not of the bottle's full capacity.",
     numPlaceValue: "Name the column the digit sits in — units, tens, hundreds, thousands — then multiply the digit by that column's value.",
     numPlaceValueDiff: "Work out what each of the two digits is worth on its own, then subtract the smaller from the larger. Don't subtract the digits themselves.",
@@ -2968,7 +3280,8 @@ const QUESTIONS = [];
       [numCompareExpressions, 3, 3],      // four calculations, then compare
       [numRoundLargePlace, 2, 3], [numDigitProductCount, 4, 4], [numClosestToTarget, 3, 3],
       [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
-      [numLastDigitPower, 4, 4]           // spot the repeating cycle
+      [numLastDigitPower, 4, 4],  // spot the repeating cycle
+      [numWordsToDigits, 2, 2]            // words to digits, empty hundreds column
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -3013,7 +3326,12 @@ const QUESTIONS = [];
       [algTriangleAngles, 4, 4],          // several constraints at once
       [algThreeItemPricing, 4, 4],        // three unknowns
       [algSimultaneous, 4, 4],            // two equations, two unknowns
-      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3]
+      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3],
+      /* August QE/EPP papers */
+      [algPowerEquation, 2, 3],           // 2^x = 64
+      [algExpressionChange, 3, 3],        // build the expression, do not evaluate
+      [algRemainderDivisor, 3, 3],        // 40 / N = 3 remainder 4
+      [algInequalityInteger, 3, 4]        // 41 < 3y < 43
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -3060,7 +3378,16 @@ const QUESTIONS = [];
       [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
       [geoShadedArea, 4, 4],              // what is left after a cut-out
       [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
-      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4]
+      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4],
+      /* August QE/EPP papers */
+      [geoCompassTurn, 2, 3],             // direction after turning right angles
+      [geoCompassAngle, 2, 3],            // smallest turn between compass points
+      [geoSymmetryCombined, 2, 3],        // lines of symmetry of two named shapes
+      [geoSymmetryLetters, 2, 3],         // vertical mirror line in capitals
+      [geoParallelogramVertex, 3, 4],     // fourth vertex from three
+      [geoTriangleInequality, 3, 4],      // can these lengths make a triangle
+      [geoPolygonMissingAngle, 3, 4],     // angle sum with a reflex angle
+      [geoTransformCompose, 4, 4]         // translate, then rotate
     ],
     Statistics: [
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
@@ -3071,7 +3398,8 @@ const QUESTIONS = [];
       [statCombinedMean, 4, 4],           // weighted, not halfway
       [statMedianFromFreq, 4, 4],         // median out of a frequency table
       [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
-      [figPieChart, 2, 3], [figVennOnly, 3, 4]
+      [figPieChart, 2, 3], [figVennOnly, 3, 4],
+      [statMedianAngleTriangle, 4, 4]     // which value could be the median
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
@@ -3089,7 +3417,8 @@ const QUESTIONS = [];
       [logClockAngleAtHour, 3, 3], [logClockMirror, 3, 3], [logSumAndDiff, 2, 2],
       [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
       [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2],
-      [logTimeZone, 4, 4]                 // hours ahead or behind, across midnight
+      [logTimeZone, 4, 4],                // hours ahead or behind, across midnight
+      [logClockReflexAngle, 3, 4]         // the reflex angle between the hands
     ]
   };
 
