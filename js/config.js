@@ -14,11 +14,9 @@ const CONFIG = {
      A missing row, or a missing/invalid value inside one, falls back to
      defaultQuestions / defaultTimeLimit above. */
   papers: {
-    /* 45 minutes each, matching the QE Boys papers, which run 45 for English
-       and 45 for Maths. Maths and NVRT were 40, so those go slightly up. */
-    maths:   { questions: 60, timeLimit: 45 },   // minutes
-    nvrt:    { questions: 60, timeLimit: 45 },
-    english: { questions: 65, timeLimit: 45 }
+    maths:   { questions: 60, timeLimit: 40 },   // minutes
+    nvrt:    { questions: 60, timeLimit: 40 },
+    english: { questions: 65, timeLimit: 45 }    // as the QE English paper runs
   },
 
   /* Topic display names – must match QUESTIONS[i].topic exactly */
