@@ -584,8 +584,12 @@ function dedupeByPrintedQuestion(pool) {
        collapsed 363 spelling questions to 61. */
     const stem = String(q.question).trim();
     const selfContained = /\d/.test(stem);
+    /* Sorted, because mk() rotates which slot holds the answer: the same
+       question with its options in a different order is the same question, and
+       joining them in printed order let it through twice. */
+    const options = (q.options || []).map(o => String(o).trim()).slice().sort().join("~");
     const key = [stem,
-                 selfContained ? "" : (q.options || []).map(o => String(o).trim()).join("~"),
+                 selfContained ? "" : options,
                  q.questionImage || q.questionImageAlt || ""].join("|");
     if (seen.has(key)) return false;
     seen.add(key);

@@ -55,9 +55,15 @@ const QUESTIONS = [];
     if (frac) {
       const den = Number(frac[2]), num = Number(frac[1]);
       if (den < 3) return null;                  // no room for a proper alternative
+      /* Cancelled down, so an invented option is written the same way as a
+         real one: nudging 1/12 to "2/12" left an uncancelled fraction sitting
+         beside three cancelled ones. */
       for (let delta = 1; delta < den; delta++) {
         for (const cand of [num + delta, num - delta]) {
-          if (cand > 0 && cand < den && cand !== num) return `${cand}/${den}`;
+          if (cand > 0 && cand < den && cand !== num) {
+            const shown = simp(cand, den);
+            if (shown !== `${num}/${den}`) return shown;
+          }
         }
       }
       return null;
@@ -1445,8 +1451,8 @@ const QUESTIONS = [];
   function probIndependent(i) {
     const aPool = [0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
     const bPool = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
-    const a = aPool[i % aPool.length];
-    const b = bPool[(i * 3 + 1) % bPool.length];
+    const a = aPool[axis(i, 0, 9)];
+    const b = bPool[axis(i, 1, 9)];
     const ans = +(a * b).toFixed(3);
     return mk("Probability",
       `P(A) = ${fmt(a)}, P(B) = ${fmt(b)}. If independent, find P(A and B).`,
@@ -2264,7 +2270,7 @@ const QUESTIONS = [];
 
   function probTwoDiceSum(i) {
     const ways = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
-    const target = 4 + (i % 8);
+    const target = 2 + (i % 11);
     const n = ways[target];
     return mk("Probability",
       `Two fair six-sided dice are rolled and their scores are added. What is the probability that the total is ${target}?`,
@@ -2274,7 +2280,7 @@ const QUESTIONS = [];
   }
 
   function probAtLeastOne(i) {
-    const flips = 3 + (i % 3);
+    const flips = 2 + (i % 5);
     const total = 2 ** flips;
     return mk("Probability",
       `A fair coin is flipped ${flips} times. What is the probability of getting at least one head?`,
@@ -3133,6 +3139,407 @@ const QUESTIONS = [];
       4, i);
   }
 
+  /* ═══════════════════ COUNTING PRINCIPLE ═══════════════════
+     The topic had no generators at all - only 44 hand-written questions - so it
+     was the one topic that could not fill a paper. These are pitched at Hard and
+     Super Hard, which is where the QE and EPP papers set them.
+
+     Every distractor is a named mistake: allowing repeats when the question
+     forbids them, ignoring order when it matters, or forgetting the restricted
+     position. */
+
+  /* Two parameters taken off the same modulus move together, so 50 seeds
+     collapse to a handful of questions. axis() splits one seed into
+     independent digits: axis(i, 0, 6) and axis(i, 1, 6) roam freely. */
+  const axis = (i, place, span) => Math.floor(i / span ** place) % span;
+
+  const fact = n => { let r = 1; for (let k = 2; k <= n; k++) r *= k; return r; };
+  const nPr = (n, r) => { let v = 1; for (let k = 0; k < r; k++) v *= (n - k); return v; };
+  const nCr = (n, r) => Math.round(nPr(n, r) / fact(r));
+
+  /* A rotation of 1-9 cut to length, so there are many more sets than a fixed
+     list would give, while every set stays free of 0. */
+  const digitSet = (i, n) => {
+    const all = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const off = i % 9;
+    return Array.from({ length: n }, (_, k) => all[(off + k) % 9]).sort((a, b) => a - b);
+  };
+  const listDigits = ds => ds.slice(0, -1).join(", ") + " and " + ds[ds.length - 1];
+
+  /* n digits, choose k, order matters, nothing reused: n x (n-1) x ... */
+  function countArrangeNoRepeat(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9) * 3 + axis(i, 0, 3), n);
+    const k = 3 + axis(i, 2, 2);
+    if (k >= n) return null;
+    const ans = nPr(n, k);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit may be used more than once?`,
+      comma(ans),
+      [comma(n ** k),                        // let the digits repeat
+       comma(nCr(n, k)),                     // ignored the order
+       comma(fact(n)),                       // arranged all of them
+       comma(nPr(n, k) / k)],
+      3 + (i % 2), i);
+  }
+
+  /* The same count, but zero is in the set and may not lead. */
+  function countArrangeFirstRestrict(i) {
+    const n = 5 + axis(i, 0, 4);
+    const ds = [0, ...digitSet(axis(i, 1, 9), n - 1)];
+    const k = 3 + axis(i, 2, 2);
+    if (k >= n) return null;
+    const ans = (n - 1) * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit is repeated and the number cannot begin with 0?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // forgot the leading-zero rule
+       comma((n - 1) ** k),
+       comma(nPr(n - 1, k)),                 // left 0 out altogether
+       comma(ans - nPr(n - 1, k - 1))],
+      3 + (i % 2), i);
+  }
+
+  /* An even number has to end in an even digit, so that place is filled first. */
+  function countEvenNoRepeat(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9), n);
+    const k = 3;
+    const evens = ds.filter(d => d % 2 === 0).length;
+    const odds = n - evens;
+    if (!evens || !odds || k >= n) return null;
+    const ans = evens * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit even numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit is repeated?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // ignored the "even" rule
+       comma(odds * nPr(n - 1, k - 1)),      // filled the last place with an odd digit
+       comma(evens * nPr(n - 1, k - 1) / 2),
+       comma(evens * n ** (k - 1))],
+      4, i);
+  }
+
+  /* Bigger than a round hundred: only the leading digit is constrained. */
+  function countGreaterThan(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9), n);
+    const k = 3;
+    const t = ds[1 + (axis(i, 2, 3) % (n - 2))];
+    const big = ds.filter(d => d >= t).length;
+    if (big < 2 || big === n) return null;
+    const ans = big * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers greater than ${t}00 can be made from the digits ` +
+      `${listDigits(ds)} if no digit is repeated?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // ignored the size rule
+       comma((big - 1) * nPr(n - 1, k - 1)), // missed the boundary digit
+       comma(big * nPr(n - 1, k)),
+       comma((n - big) * nPr(n - 1, k - 1))],
+      4, i);
+  }
+
+  /* Letters may repeat, digits may not - two rules in one question. */
+  function countPlateLettersDigits(i) {
+    const letters = 1 + axis(i, 0, 3), digits = 2 + axis(i, 1, 3);
+    const ans = 26 ** letters * nPr(10, digits);
+    return mk("Counting Principle",
+      `A code is made from ${letters} letter${letters > 1 ? "s" : ""} followed by ` +
+      `${digits} digit${digits > 1 ? "s" : ""}. The letters may be repeated but the digits ` +
+      `may not. How many different codes are possible?`,
+      comma(ans),
+      [comma(26 ** letters * 10 ** digits),  // let the digits repeat too
+       comma(nPr(26, letters) * nPr(10, digits)),
+       comma(26 * letters * 10 * digits),
+       comma(26 ** letters * 9 ** digits)],
+      3 + (i % 2), i);
+  }
+
+  /* Choosing a group: order does not matter, so divide the arrangements out. */
+  function countChooseCommittee(i) {
+    const n = 6 + axis(i, 0, 6), k = 2 + axis(i, 1, 3);
+    if (k >= n) return null;
+    const ans = nCr(n, k);
+    const roles = ["a team", "a committee", "a panel", "a group"][i % 4];
+    return mk("Counting Principle",
+      `${roles.charAt(0).toUpperCase() + roles.slice(1)} of ${k} is chosen from ${n} people. ` +
+      `The order of choosing does not matter. How many different selections are possible?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // counted the orders as different
+       comma(n ** k),
+       comma(nCr(n, k - 1)),
+       comma(nCr(n, k) * k)],
+      3 + (i % 2), i);
+  }
+
+  /* Handshakes are pairs, so each one gets counted twice before halving. */
+  function countHandshakes(i) {
+    const n = 5 + (i % 16);
+    const ans = nCr(n, 2);
+    return mk("Counting Principle",
+      `Everyone in a group of ${n} people shakes hands exactly once with everyone else. ` +
+      `How many handshakes take place altogether?`,
+      comma(ans),
+      [comma(n * (n - 1)),                   // counted each handshake twice
+       comma(n * n),
+       comma(n - 1),
+       comma(nCr(n, 2) + n)],
+      3, i);
+  }
+
+  /* Repeated letters cannot be told apart, so the arrangements divide out. */
+  const REPEAT_WORDS = ["BANANA", "LEVEL", "ERROR", "PEPPER", "LETTER", "SUCCESS",
+                        "COFFEE", "BALLOON", "TOMATO", "ADDRESS"];
+
+  function countWordRepeatedLetters(i) {
+    const word = REPEAT_WORDS[i % REPEAT_WORDS.length];
+    const counts = {};
+    word.split("").forEach(c => { counts[c] = (counts[c] || 0) + 1; });
+    const repeats = Object.values(counts).filter(c => c > 1);
+    if (!repeats.length) return null;
+    const divisor = Object.values(counts).reduce((p, c) => p * fact(c), 1);
+    const ans = fact(word.length) / divisor;
+    return mk("Counting Principle",
+      `How many different arrangements are there of all the letters of the word ${word}?`,
+      comma(ans),
+      [comma(fact(word.length)),             // treated the repeats as different
+       comma(ans * 2),
+       comma(fact(word.length) / 2),
+       comma(ans / 2)],
+      4, i);
+  }
+
+  /* Round a table there is no first seat, so one person is fixed. */
+  function countCircular(i) {
+    const n = 4 + (i % 7);
+    const ans = fact(n - 1);
+    return mk("Counting Principle",
+      `In how many different ways can ${n} people be seated around a round table, ` +
+      `if seatings that are rotations of each other count as the same?`,
+      comma(ans),
+      [comma(fact(n)),                       // treated it as a row
+       comma(fact(n - 2)),
+       comma(fact(n - 1) / 2),
+       comma(n * (n - 1))],
+      4, i);
+  }
+
+  /* Routes on a grid: choose which of the moves are the sideways ones. */
+  function countGridPaths(i) {
+    const right = 2 + axis(i, 0, 4), down = 2 + axis(i, 1, 4);
+    const ans = nCr(right + down, right);
+    return mk("Counting Principle",
+      `A counter starts in the top-left corner of a grid and must reach the bottom-right ` +
+      `corner by moving ${right} squares right and ${down} squares down, in any order. ` +
+      `How many different routes are there?`,
+      comma(ans),
+      [comma(right * down),
+       comma(right + down),
+       comma(fact(right + down)),            // forgot the moves of a kind are alike
+       comma(nCr(right + down, right) * 2)],
+      4, i);
+  }
+
+  /* ═══════════════════ HARDER PROBABILITY ═══════════════════
+     The topic had 123 questions a paper could use, only 31 of them above
+     Medium. These add the two-stage and complement work the papers actually
+     set. Fractions are always given in their lowest terms, and every distractor
+     is itself a probability. */
+
+  /* Two picks, nothing put back: the second denominator has shrunk. */
+  function probTwoSameColour(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    if (r < 2) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Two are taken out at random ` +
+      `without replacement. What is the probability that both are red?`,
+      simp(r * (r - 1), n * (n - 1)),
+      [simp(r * r, n * n),                   // treated the picks as independent
+       simp(r * (r - 1), n * n),             // shrank the top but not the bottom
+       simp(r, n),                           // answered for one pick
+       simp(2 * r * (r - 1), n * (n - 1))],
+      3 + (i % 2), i);
+  }
+
+  /* One of each: the two orders both count. */
+  function probOneOfEach(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Two are taken out at random ` +
+      `without replacement. What is the probability of getting one of each colour?`,
+      simp(2 * r * b, n * (n - 1)),
+      [simp(r * b, n * (n - 1)),             // counted only one order
+       simp(2 * r * b, n * n),
+       simp(r * b, n * n),
+       simp(r + b, n * (n - 1))],
+      4, i);
+  }
+
+  /* Conditional: the first pick has already happened. */
+  function probConditionalSecond(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    if (r < 2) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. One counter is taken out and it is red. ` +
+      `It is not put back. What is the probability that the next counter taken is also red?`,
+      simp(r - 1, n - 1),
+      [simp(r, n),                           // ignored the counter already taken
+       simp(r, n - 1),                       // shrank the bag but not the reds
+       simp(r - 1, n),                       // shrank the reds but not the bag
+       simp(b, n - 1)],
+      3 + (i % 2), i);
+  }
+
+  /* A two-way count in words: the overlap has to be taken off one group. */
+  function probTwoWayTable(i) {
+    const total = 24 + 4 * (i % 5);
+    const girls = Math.floor(total / 2) + 1 + (i % 3);
+    const boys = total - girls;
+    const glasses = 8 + (i % 5);
+    const girlsGlasses = 3 + (i % 4);
+    const boysGlasses = glasses - girlsGlasses;
+    if (boysGlasses < 1 || girlsGlasses > girls || boysGlasses > boys) return null;
+    return mk("Probability",
+      `In a class of ${total} pupils, ${girls} are girls. ${glasses} pupils wear glasses, ` +
+      `and ${girlsGlasses} of those are girls. One pupil is chosen at random. What is the ` +
+      `probability that the pupil is a boy who wears glasses?`,
+      simp(boysGlasses, total),
+      [simp(glasses, total),                 // all the glasses-wearers
+       simp(girlsGlasses, total),            // the girls instead
+       simp(boys, total),                    // all the boys
+       simp(boysGlasses, boys)],             // out of the boys, not the class
+      3 + (i % 2), i);
+  }
+
+  /* Two spinners: count the pairs that make the total. */
+  function probTwoSpinnersSum(i) {
+    const a = 3 + axis(i, 0, 3), b = 3 + axis(i, 1, 4);
+    const t = 3 + (axis(i, 2, 5) % (a + b - 3));
+    let ways = 0;
+    for (let x = 1; x <= a; x++) for (let y = 1; y <= b; y++) if (x + y === t) ways++;
+    if (!ways || ways === a * b) return null;
+    return mk("Probability",
+      `One spinner is numbered 1 to ${a} and another is numbered 1 to ${b}. Both are spun ` +
+      `and the two numbers are added. What is the probability that the total is ${t}?`,
+      simp(ways, a * b),
+      [simp(1, a * b),                       // thought there was only one way
+       simp(ways, a + b),                    // added the sections instead
+       simp(ways + 1, a * b),
+       simp(t, a * b)],
+      4, i);
+  }
+
+  /* Working backwards from the probability to the number added. */
+  function probAddToTarget(i) {
+    const r = 2 + axis(i, 0, 4), b = 3 + axis(i, 1, 4), x = 1 + axis(i, 2, 4);
+    const n = r + b;
+    const target = simp(r + x, n + x);
+    if (simp(r, n) === target) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Some more red counters are added, and ` +
+      `the probability of picking a red counter becomes ${target}. How many red counters ` +
+      `were added?`,
+      `${x}`,
+      [`${x + 1}`, `${x - 1 > 0 ? x - 1 : x + 2}`, `${x * 2}`, `${b - x > 0 ? b - x : x + 3}`],
+      4, i);
+  }
+
+  /* "Not all the same" is quicker as 1 minus the two ways they can match. */
+  function probNotAllSame(i) {
+    /* A die as well as a coin, and a wider range of throws: with only a coin
+       and three lengths this produced three distinct questions in total. */
+    const useDie = i % 3 === 2;
+    const trials = useDie ? 2 + (i % 2) : 3 + (i % 4);
+    const faces = useDie ? 6 : 2;
+    const total = faces ** trials;
+    const same = faces;                      // one way per face to match throughout
+    const thing = useDie ? `A fair die is rolled ${trials} times`
+                         : `A fair coin is flipped ${trials} times`;
+    return mk("Probability",
+      `${thing}. What is the probability that the results are NOT all the same?`,
+      simp(total - same, total),
+      [simp(same, total),                    // the chance they ARE all the same
+       simp(total - 1, total),               // took off only one way
+       simp(1, total),
+       simp(total - same, total - 1)],
+      4, i);
+  }
+
+  /* Independent events, worked backwards to the missing one. */
+  function probFindOtherIndependent(i) {
+    const pool = [[0.4, 0.1, 0.25], [0.5, 0.2, 0.4], [0.8, 0.2, 0.25], [0.6, 0.3, 0.5],
+                  [0.25, 0.1, 0.4], [0.5, 0.35, 0.7], [0.4, 0.3, 0.75], [0.8, 0.6, 0.75],
+                  [0.2, 0.1, 0.5], [0.5, 0.1, 0.2], [0.4, 0.2, 0.5], [0.6, 0.15, 0.25],
+                  [0.8, 0.4, 0.5], [0.5, 0.4, 0.8], [0.25, 0.2, 0.8], [0.6, 0.45, 0.75],
+                  [0.2, 0.05, 0.25], [0.4, 0.16, 0.4], [0.5, 0.05, 0.1], [0.8, 0.16, 0.2]];
+    const [pa, pab, pb] = pool[i % pool.length];
+    return mk("Probability",
+      `A and B are independent events. P(A) = ${fmt(pa)} and P(A and B) = ${fmt(pab)}. ` +
+      `What is P(B)?`,
+      `${fmt(pb)}`,
+      /* Every candidate has to be a probability itself: pa + pab reached 1.4. */
+      [`${fmt(+(pa * pab).toFixed(3))}`,     // multiplied instead of divided
+       `${fmt(+(pa - pab).toFixed(3))}`,     // subtracted
+       `${fmt(pa)}`, `${fmt(pab)}`,
+       `${fmt(+(1 - pb).toFixed(3))}`],
+      3 + (i % 2), i);
+  }
+
+  /* Three picks, nothing put back: three shrinking denominators. */
+  function probThreeDrawsAllSame(i) {
+    const r = 3 + axis(i, 0, 5), b = 2 + axis(i, 1, 5);
+    const n = r + b;
+    if (r < 3) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Three are taken out at random without ` +
+      `replacement. What is the probability that all three are red?`,
+      simp(r * (r - 1) * (r - 2), n * (n - 1) * (n - 2)),
+      [simp(r * r * r, n * n * n),           // treated the picks as independent
+       simp(r * (r - 1) * (r - 2), n * n * n),
+       simp(r * (r - 1), n * (n - 1)),       // stopped after two picks
+       simp(3 * r, n * (n - 1) * (n - 2))],
+      4, i);
+  }
+
+  /* "At least one" is the complement of "none at all". */
+  /* `phrase` reads after "at least one", so it carries no article of its own. */
+  const AT_LEAST_EVENTS = [
+    { phrase: "6", miss: 5 },
+    { phrase: "even number", miss: 3 },
+    { phrase: "number greater than 4", miss: 4 },
+    { phrase: "1 or 2", miss: 4 }
+  ];
+
+  function probAtLeastOneSix(i) {
+    /* Several events, not just a six: two variants was not enough to fill a
+       revision run once duplicates were dropped. */
+    const ev = AT_LEAST_EVENTS[axis(i, 0, 4)];
+    const rolls = 2 + (axis(i, 1, 4) % 2);   // same span, so genuinely independent
+    const total = 6 ** rolls;
+    const none = ev.miss ** rolls;
+    return mk("Probability",
+      `A fair die is rolled ${rolls} times. What is the probability of getting ` +
+      `at least one ${ev.phrase}?`,
+      simp(total - none, total),
+      /* Each candidate is kept only while it is still a probability: adding the
+         single chances gave 6/6 for "1 or 2" over three rolls, and
+         (total - none)/none reached 3 for an even number. */
+      [[none, total],                        // the chance of missing every time
+       [6 - ev.miss, 6],                     // answered for one roll
+       [(6 - ev.miss) * rolls, 6],           // added the single chances
+       [total - none - 1, total],
+       [none + 1, total]]
+        .filter(([a, b]) => a > 0 && a < b)
+        .map(([a, b]) => simp(a, b)),
+      3 + (i % 2), i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -3167,6 +3574,28 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* Counting Principle, and the harder probability work */
+    countArrangeNoRepeat: "Fill the places one at a time and multiply. With nothing reused the choices shrink by one each time: 6 digits into 4 places is 6 × 5 × 4 × 3 = 360, not 6 to the power 4.",
+    countArrangeFirstRestrict: "Deal with the restricted place first. The leading digit has one fewer choice because 0 is barred, then the remaining places draw from everything left including 0: 6 x (6 x 5 x 4).",
+    countEvenNoRepeat: "An even number must end in an even digit, so fill the units place first: count the even digits available, then arrange the rest into the places in front.",
+    countGreaterThan: "Only the leading digit decides whether the number clears the threshold. Count how many digits are big enough, then arrange the others freely behind it.",
+    countPlateLettersDigits: "Take the two rules separately and multiply the results. Letters that may repeat keep all 26 choices every time; digits that may not lose one each time.",
+    countChooseCommittee: "Order does not matter, so count the arrangements and then divide by the number of ways the chosen group could itself be ordered: 8 x 7 x 6 for three places, divided by 3 x 2 x 1.",
+    countHandshakes: "Every handshake involves two people, so n x (n - 1) counts each one twice - once from each end. Halve it: n(n - 1) / 2.",
+    countWordRepeatedLetters: "Start with the arrangements of all the letters, then divide by the arrangements of each repeated letter among itself. BANANA is 6! divided by 3! for the As and 2! for the Ns, giving 60.",
+    countCircular: "Round a table there is no first seat, so fix one person and arrange the rest relative to them: (n - 1)! rather than n!.",
+    countGridPaths: "Every route uses the same moves in a different order, so it is a choosing question: out of all the moves, choose which ones go right. 3 right and 2 down is 5 moves, choose 2, which is 10.",
+    probTwoSameColour: "Multiply the two picks, but the bag has changed in between: one fewer of that colour on top and one fewer counter altogether underneath.",
+    probOneOfEach: "Red then blue and blue then red are both 'one of each', so work out one order and double it.",
+    probConditionalSecond: "The first pick has already happened, so start from the bag as it is now: one fewer red and one fewer counter altogether.",
+    probTwoWayTable: "Split the group into the four boxes before you start. The glasses-wearers who are boys are the glasses-wearers minus the girls among them; that count goes over the whole class.",
+    probTwoSpinnersSum: "The total number of outcomes is the two spinners multiplied. Then list the pairs that make the target and count them - do not guess that there is only one.",
+    probAddToTarget: "Work backwards. Adding x reds makes the probability (r + x) over (total + x); set that equal to the target fraction and solve for x. Cross-multiplying is quickest.",
+    probNotAllSame: "Go at it backwards: there are only two ways they can all match, all heads or all tails. Take those off the total and the rest is your answer.",
+    probFindOtherIndependent: "For independent events P(A and B) = P(A) x P(B), so P(B) is P(A and B) divided by P(A). Dividing, not subtracting.",
+    probThreeDrawsAllSame: "Three picks, and the bag shrinks at every one: r/(n) x (r-1)/(n-1) x (r-2)/(n-2). Both the top and the bottom come down by one each time.",
+    probAtLeastOneSix: "'At least one' is much quicker backwards. The chance of no six in one roll is 5/6, so for n rolls it is (5/6) to the power n. Take that from 1.",
 
     /* August QE/EPP papers */
     geoCompassTurn: "The eight compass points are 45° apart, so one right angle is two points round. Count that many points in the direction of the turn, wrapping past north.",
@@ -3539,12 +3968,37 @@ const QUESTIONS = [];
       [figPieChart, 2, 3], [figVennOnly, 3, 4],
       [statMedianAngleTriangle, 4, 4]     // which value could be the median
     ],
+    "Counting Principle": [
+      /* The topic had only hand-written questions before, and none that a
+         generator could vary. Pitched where the papers set it. */
+      [countHandshakes, 3, 3],                // pairs, so halve the double count
+      [countArrangeNoRepeat, 3, 4],           // n x (n-1) x (n-2)
+      [countArrangeFirstRestrict, 3, 4],      // zero may not lead
+      [countPlateLettersDigits, 3, 4],        // letters repeat, digits do not
+      [countChooseCommittee, 3, 4],           // order does not matter
+      [countEvenNoRepeat, 4, 4],              // fill the restricted place first
+      [countGreaterThan, 4, 4],               // only the leading digit is bound
+      [countWordRepeatedLetters, 4, 4],       // divide the repeats out
+      [countCircular, 4, 4],                  // no first seat round a table
+      [countGridPaths, 4, 4]                  // choose which moves go sideways
+    ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
       [probExpected, 2, 2], [probIndependent, 3, 3],
       [probWithoutReplacement, 3, 4],     // the pool changes between picks
       [probTwoDiceSum, 4, 4],             // count the favourable pairs
-      [probAtLeastOne, 4, 4]              // easier via the complement
+      [probAtLeastOne, 4, 4],             // easier via the complement
+      /* Harder two-stage and complement work */
+      [probTwoSameColour, 3, 4],          // both red, nothing put back
+      [probConditionalSecond, 3, 4],      // the first pick has already happened
+      [probTwoWayTable, 3, 4],            // overlap taken off one group
+      [probFindOtherIndependent, 3, 4],   // worked backwards to the missing one
+      [probAtLeastOneSix, 3, 4],          // complement of "none at all"
+      [probOneOfEach, 4, 4],              // both orders count
+      [probTwoSpinnersSum, 4, 4],         // count the pairs making the total
+      [probAddToTarget, 4, 4],            // backwards from the probability
+      [probNotAllSame, 4, 4],             // 1 minus the two matching ways
+      [probThreeDrawsAllSame, 4, 4]       // three shrinking denominators
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
