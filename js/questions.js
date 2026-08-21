@@ -48,7 +48,26 @@ const QUESTIONS = [];
      indistinguishable in shape from a real one. Returns null when the answer
      holds no number to shift. */
   const nudge = (text, step) => {
-    const match = `${text}`.match(/-?\d[\d,]*(?:\.\d+)?/);
+    /* A bare fraction is nudged within its own bounds. Shifting the numerator
+       blindly turned 2/5 into 7/5, so probability questions offered 7/5 and
+       1/1 as options and shaded-shape questions offered 19/1. */
+    const frac = `${text}`.trim().match(/^(\d+)\/(\d+)$/);
+    if (frac) {
+      const den = Number(frac[2]), num = Number(frac[1]);
+      if (den < 3) return null;                  // no room for a proper alternative
+      for (let delta = 1; delta < den; delta++) {
+        for (const cand of [num + delta, num - delta]) {
+          if (cand > 0 && cand < den && cand !== num) return `${cand}/${den}`;
+        }
+      }
+      return null;
+    }
+
+    /* A thousands separator is a comma followed by exactly three digits. The
+       looser [\d,]* also swallowed the comma in a coordinate pair, so nudging
+       "(-1, 1)" matched "-1," and produced "(6 1)" - a malformed option that
+       shipped in two templates. */
+    const match = `${text}`.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
     if (!match) return null;
     const raw = match[0];
     const value = Number(raw.replace(/,/g, ""));
@@ -63,13 +82,40 @@ const QUESTIONS = [];
   /* mk(topic, question, correct, distractors, difficulty, seed) → MCQ object.
      Returns null if four genuinely distinct options cannot be built, so the
      driver drops the question rather than shipping a filler option. */
+  /* "1/6" and "2/6" are the same answer however differently they are printed,
+     so options are compared by value as well as by text. Without this a
+     question can ship with two correct options, which is unanswerable. */
+  const optionValue = text => {
+    const t = `${text}`.replace(/[£$,%\s]/g, "")
+      .replace(/°|cm2|cm3|cm|km\/h|km|mph|kg|ml|litres?|m|g|p$/gi, "");
+    if (/^-?\d+\/\d+$/.test(t)) {
+      const [a, b] = t.split("/").map(Number);
+      return b ? `#${a / b}` : null;
+    }
+    return /^-?\d*\.?\d+$/.test(t) ? `#${Number(t)}` : null;
+  };
+
   const mk = (topic, question, correct, distractors, difficulty, seed) => {
     const uniq = [];
-    [correct, ...distractors].map(v => `${v}`).forEach(v => { if (!uniq.includes(v)) uniq.push(v); });
+    const values = new Set();
+    [correct, ...distractors].map(v => `${v}`).forEach(v => {
+      if (uniq.includes(v)) return;
+      const val = optionValue(v);
+      if (val !== null && values.has(val)) return;   // same number, different text
+      if (val !== null) values.add(val);
+      uniq.push(v);
+    });
 
+    /* The padding loop must apply the same value test as the list above, not
+       just a string test: nudging 7/12 produced 8/12 while 2/3 was already an
+       option, and the two are the same number. */
     for (let pad = 1; uniq.length < 4 && pad <= 40; pad++) {
       const cand = nudge(uniq[0], pad * 3 + difficulty);
-      if (cand && !uniq.includes(cand)) uniq.push(cand);
+      if (!cand || uniq.includes(cand)) continue;
+      const val = optionValue(cand);
+      if (val !== null && values.has(val)) continue;
+      if (val !== null) values.add(val);
+      uniq.push(cand);
     }
     if (uniq.length < 4) return null;
 
@@ -99,7 +145,10 @@ const QUESTIONS = [];
     return mk("Numbers",
       `What is the value of the digit ${target} in the number ${comma(num)}?`,
       comma(ans),
-      [comma(target), comma(ans * 10), comma(target * 10 ** (pos + 1))],
+      /* ans is target x 10^pos, so "ans * 10" and "target x 10^(pos+1)" are
+         the same number; and at pos 0 the face value IS the answer. */
+      [comma(ans * 10), comma(ans * 100),
+       pos > 0 ? comma(target) : comma(target * 1000)],
       diff(i, 4), i);
   }
 
@@ -116,7 +165,10 @@ const QUESTIONS = [];
     return mk("Numbers",
       `In the number ${comma(num)}, what is the difference between the place values of the two ${d}s?`,
       comma(ans),
-      [comma(ans + 10 ** lo * d), comma(ans - 10 ** lo), comma(d * 10 ** hi)],
+      /* ans is d x 10^hi - d x 10^lo, so "ans + 10^lo x d" is d x 10^hi:
+         the first and third distractors were the same number. */
+      [comma(d * 10 ** hi), comma(ans - 10 ** lo),
+       comma(10 ** hi - 10 ** lo)],
       diff(i), i);
   }
 
@@ -301,7 +353,13 @@ const QUESTIONS = [];
     return mk("Numbers",
       `Using each of the digits ${digits.join(", ")} once, what is the smallest even ${digits.length}-digit number you can make?`,
       `${comma(ans)}`,
-      [comma(ans + 10), comma(ans - 10), comma(Number([...rest.slice(0, -1), rest[rest.length - 1], units].join("")))],
+      /* Rebuilding rest in its own order just reproduced the answer. Putting
+         the two largest of the remaining digits the wrong way round is the
+         mistake a child actually makes. */
+      [comma(ans + 10), comma(ans - 10),
+       comma(Number([...rest.slice(0, -2), rest[rest.length - 1],
+                     rest[rest.length - 2], units].join(""))),
+       comma(Number([units, ...rest].join("")))],
       diff(i, 3), i);
   }
 
@@ -394,8 +452,13 @@ const QUESTIONS = [];
     const dp = (i % 3) + 1;
     const raw = 1.2345 + 0.731 * (i % 9) + 0.0123 * (i % 7);
     const ans = +raw.toFixed(dp);
+    /* The number must be printed with more decimals than the question asks for,
+       and fmt() caps at three, so it cannot be used here. */
+    const shown = Number(raw.toFixed(dp + 2));
+    const shownDp = (`${shown}`.split(".")[1] || "").length;
+    if (shownDp <= dp) return null;
     return mk("Decimals",
-      `Round ${fmt(+raw.toFixed(4))} to ${dp} decimal place${dp === 1 ? "" : "s"}.`,
+      `Round ${shown} to ${dp} decimal place${dp === 1 ? "" : "s"}.`,
       `${fmt(ans)}`,
       [`${fmt(ans + 10 ** -dp)}`, `${fmt(ans - 10 ** -dp)}`, `${fmt(+raw.toFixed(dp + 1))}`],
       diff(i, 4), i);
@@ -436,7 +499,9 @@ const QUESTIONS = [];
     const c = a * b;
     const ans = c / (b * 10);
     return mk("Decimals", `Given that ${a} × ${b} = ${c}, work out ${c} ÷ ${b * 10}.`,
-      `${fmt(ans)}`, [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt(a / 10)}`], diff(i, 4), i);
+      /* ans is a/10, so offering a/10 as a distractor offered the answer. */
+      `${fmt(ans)}`, [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt(ans * 100)}`],
+      diff(i, 4), i);
   }
 
   function decPriceChange(i) {
@@ -447,7 +512,11 @@ const QUESTIONS = [];
     return mk("Decimals",
       `A price of £${fmt(v)} is increased by ${p}% and then reduced by ${q}%. What is the final price?`,
       `£${fmt(final)}`,
-      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 + p / 100 - q / 100))}`, `£${fmt(v * (1 - q / 100))}`],
+      /* The first two were the same expression written differently. Treating
+         the two changes as one net change is the real mistake; so is
+         applying only one of them. */
+      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 - q / 100))}`,
+       `£${fmt(v * (1 + p / 100))}`, `£${fmt(v)}`],
       diff(i, 3), i);
   }
 
@@ -671,7 +740,8 @@ const QUESTIONS = [];
     const a = 2 + (i % 5), b = 3 + (i % 4), c = 2 + (i % 5);
     const ans = -a + b * -c;
     return mk("BIDMAS", `What is −${a} + ${b} × (−${c})?`, `${ans}`,
-      [`${ans + 2}`, `${a + b * c}`, `${-(a + b * c)}`], diff(i, 4), i);
+      /* ans is -(a + bc), so the third distractor was the answer itself. */
+      [`${ans + 2}`, `${a + b * c}`, `${b * c - a}`], diff(i, 4), i);
   }
 
   function bidTempChange(i) {
@@ -730,6 +800,9 @@ const QUESTIONS = [];
   function algSolveBothSides(i) {
     const x = 2 + (i % 7);
     const a = 3 + (i % 4), c = 1 + (i % 3);
+    /* With a === c the two sides become identical and every x is a solution,
+       which is not a question. It happened once every twelve seeds. */
+    if (a <= c) return null;
     const b = 1 + (i % 5), d = (a - c) * x + b;
     return mk("Algebra", `Solve: ${a}x + ${b} = ${c}x + ${d}`, `x = ${x}`,
       [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${b + d}`], diff(i, 3), i);
@@ -1272,20 +1345,23 @@ const QUESTIONS = [];
 
   function probBagPick(i) {
     const r = 2 + (i % 6), b = 3 + ((i + 1) % 7);
+    if (r === b) return null;               // the other colour would be the answer
     const total = r + b;
     const askRed = i % 2 === 0;
     const numerator = askRed ? r : b;
     return mk("Probability",
       `A bag has ${r} red and ${b} blue balls. What is the probability of picking ${askRed ? "red" : "blue"}?`,
       simp(numerator, total),
-      [simp(askRed ? b : r, total), simp(numerator, numerator), simp(numerator + 1, total)],
+      [simp(askRed ? b : r, total),          // the other colour
+       simp(numerator + 1, total),           // miscounted by one
+       simp(numerator, total - 1)],          // forgot to count its own colour
       diff(i, 4), i);
   }
 
   function probDie(i) {
     const targets = [
       { q: "rolling a 4", a: "1/6", d: ["1/3", "1/2", "1/4"] },
-      { q: "rolling a 2", a: "1/6", d: ["1/3", "1/2", "2/6"] },
+      { q: "rolling a 2", a: "1/6", d: ["1/3", "1/2", "1/5"] },
       { q: "rolling a 5", a: "1/6", d: ["5/6", "1/2", "1/5"] },
       { q: "rolling an even number", a: "1/2", d: ["1/3", "1/6", "2/3"] },
       { q: "rolling an odd number", a: "1/2", d: ["1/3", "2/3", "1/6"] },
@@ -1342,8 +1418,16 @@ const QUESTIONS = [];
       `Given P(success) = ${fmt(p)}, what is P(failure)?`,
       `If P(event) = ${fmt(p)}, the probability of the event not happening is:`
     ]);
+    /* Offsetting the answer must not walk outside 0..1: with p = 0.05 the old
+       "ans + 0.1" distractor was 1.05, which is not a probability. */
+    const near = [];
+    [0.1, -0.1, 0.05, -0.05, 0.2, -0.2].forEach(d => {
+      const v = +(ans + d).toFixed(3);
+      if (v > 0 && v < 1 && v !== ans && v !== p && !near.includes(`${fmt(v)}`)) near.push(`${fmt(v)}`);
+    });
+    if (near.length < 2) return null;
     return mk("Probability", wording,
-      `${fmt(ans)}`, [`${fmt(p)}`, `${fmt(ans + 0.1)}`, `${fmt(ans - 0.1)}`],
+      `${fmt(ans)}`, [`${fmt(p)}`, near[0], near[1]],
       diff(i, 5), i);
   }
 
@@ -1366,7 +1450,9 @@ const QUESTIONS = [];
     const ans = +(a * b).toFixed(3);
     return mk("Probability",
       `P(A) = ${fmt(a)}, P(B) = ${fmt(b)}. If independent, find P(A and B).`,
-      `${fmt(ans)}`, [`${fmt(a + b)}`, `${fmt(ans + 0.05)}`, `${fmt(Math.max(a, b))}`],
+      `${fmt(ans)}`,
+      [a + b <= 1 ? `${fmt(a + b)}` : `${fmt(+Math.abs(a - b).toFixed(3))}`,
+       `${fmt(+(ans + 0.05).toFixed(3))}`, `${fmt(Math.max(a, b))}`],
       diff(i, 3), i);
   }
 
@@ -1597,7 +1683,8 @@ const QUESTIONS = [];
     return mk("Logic",
       `If C + A + T + S = ${base} and C + A + T + S + S = ${base + extra}, what is C + A + T?`,
       `${base - extra}`,
-      [`${base}`, `${extra}`, `${base - extra + extra}`],
+      /* base - extra + extra is just base, so two distractors were equal. */
+      [`${base}`, `${extra}`, `${base + extra}`],
       diff(i, 3), i);
   }
 
@@ -2053,7 +2140,10 @@ const QUESTIONS = [];
     return mk("Sequences",
       `What is the next term in this sequence?\n${terms.slice(0, 5).join(", ")}, ...`,
       `${ans}`,
-      [`${terms[4] + step - d2}`, `${terms[4] + d1}`, `${ans + d2}`],
+      /* The loop leaves step at d1 + 5*d2, so "step - d2" is exactly the gap
+         used to reach the answer - the first distractor was the answer, every
+         time. Repeating the previous gap is the mistake worth offering. */
+      [`${terms[4] + d1 + 3 * d2}`, `${terms[4] + d1}`, `${ans + d2}`, `${ans - d2}`],
       4, i);
   }
 
@@ -2076,7 +2166,9 @@ const QUESTIONS = [];
     const t3 = t1 + t2, t4 = t2 + t3, t5 = t3 + t4, t6 = t4 + t5;
     return mk("Sequences",
       `In this sequence each term is the sum of the two terms before it. The 3rd, 4th, 5th and 6th terms are ${t3}, ${t4}, ${t5} and ${t6}. What is the 1st term?`,
-      `${t1}`, [`${t2}`, `${t3 - t1}`, `${Math.abs(t2 - t1)}`], 4, i);
+      /* t3 - t1 is t2, so two distractors were the same number. */
+      `${t1}`, [`${t2}`, `${t5 - t4}`, `${Math.abs(t2 - t1)}`, `${t2 + 1}`],
+      4, i);
   }
 
   /* ── Speed ── */
@@ -2136,7 +2228,11 @@ const QUESTIONS = [];
     return mk("Measurement",
       `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting ${article(w)} ${w} cm by ${h} cm rectangle out of the corner of ${article(W)} ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
       `${comma(ans)} cm³`,
-      [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`, `${comma(ans + w * h * len)} cm³`],
+      /* ans + w x h x len is exactly W x H x len, so the third distractor was
+         the first. Forgetting to multiply the cut-out by the length is a
+         different slip. */
+      [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`,
+       `${comma(ans + w * h)} cm³`, `${comma(area * (len - 1))} cm³`],
       4, i);
   }
 
@@ -2248,7 +2344,8 @@ const QUESTIONS = [];
     return mk("Geometry",
       `The interior angles of a regular polygon add up to ${comma(total)}°. How many sides does it have?`,
       `${sides}`,
-      [`${sides - 2}`, `${sides + 2}`, `${Math.round(total / 180)}`],
+      /* total is (sides - 2) x 180, so total / 180 IS sides - 2. */
+      [`${sides - 2}`, `${sides + 2}`, `${sides - 1}`],
       4, i);
   }
 
@@ -2451,7 +2548,10 @@ const QUESTIONS = [];
     const outer = 2 * (w + h) + 8 * x;
     return mk("Measurement",
       `A picture measuring ${w} cm by ${h} cm is placed in a frame of the same width all the way round. The outer perimeter of the frame is ${outer} cm. How wide is the frame?`,
-      `${x} cm`, [`${x * 2} cm`, `${x + 1} cm`, `${fmt((outer - 2 * (w + h)) / 4)} cm`],
+      /* (outer - 2(w+h))/4 is 2x, the first distractor. Dividing the whole
+         outer perimeter by 4 is the mistake worth offering instead. */
+      `${x} cm`, [`${x * 2} cm`, `${x + 1} cm`, `${fmt(outer / 4)} cm`,
+                  `${fmt(outer / 8)} cm`],
       4, i);
   }
 
@@ -2461,7 +2561,9 @@ const QUESTIONS = [];
     const W = side * across, H = side * down;
     return mk("Measurement",
       `How many squares of side ${side} cm fit exactly into a rectangle measuring ${W} cm by ${H} cm?`,
-      `${across * down}`, [`${across + down}`, `${across * down * side}`, `${Math.round(W * H / side)}`],
+      /* W x H / side is across x down x side written another way. Forgetting
+         to divide at all is a different mistake, and a real one. */
+      `${across * down}`, [`${across + down}`, `${across * down * side}`, `${W * H}`],
       2, i);
   }
 
@@ -2543,10 +2645,21 @@ const QUESTIONS = [];
     const cols = 3 + (i % 4), rows = 2 + (i % 3);
     const total = cols * rows;
     const shaded = 1 + (i % (total - 1));
+    if (shaded + 1 >= total) return null;   // the "one more" distractor would be 1/1
     return mkFig("Fractions",
       "What fraction of this shape is shaded? Give your answer in its simplest form.",
       simp(shaded, total),
-      [simp(total - shaded, total), simp(shaded, total - shaded), `${shaded}/${shaded + total}`],
+      /* "shaded/total" is only a distinct option when the answer cancels
+         down; otherwise it IS the answer, which left this template padding
+         every question. The extra candidates cover that case. */
+      [simp(total - shaded, total),          // counted the unshaded squares
+       `${shaded}/${total}`,                 // right count, never cancelled down
+       simp(shaded + 1, total),              // miscounted by one
+       simp(shaded - 1, total),              // miscounted the other way
+       /* shaded against unshaded, but only while that is still under 1: with
+          half the shape shaded it reads 3/3, which is the whole shape. */
+       ...(shaded < total - shaded ? [`${shaded}/${total - shaded}`] : [])],
+
       diff(i, 3), i, D.shadedGrid({ cols, rows, shaded }));
   }
 
@@ -2674,7 +2787,11 @@ const QUESTIONS = [];
     const x = 360 - a - b - c;
     return mkFig("Geometry",
       "The angles shown meet at a point. What is the size of angle x?",
-      `${x}°`, [`${180 - (a + b + c) % 180}°`, `${a + b + c}°`, `${x + 10}°`],
+      /* 180 - (a+b+c) mod 180 is 360 - (a+b+c) once the three angles pass
+         180, so it was the answer in 49 of 50 questions. Using 180 instead
+         of 360, or missing an angle out, are the real errors. */
+      `${x}°`, [`${a + b + c}°`, `${x + 10}°`, `${360 - a - b}°`,
+                `${Math.abs(180 - a - b - c)}°`],
       4, i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }, { deg: c }], unknownLabel: "x", onLine: false }));
   }
 
@@ -2741,10 +2858,18 @@ const QUESTIONS = [];
     const points = Math.min(gap, 8 - gap);
     const ans = points * 45;
     if (ans === 0) return null;
+    /* Every distractor must itself be a turn between compass points, so they
+       are drawn from the multiples of 45 and de-duplicated against the answer
+       rather than assumed distinct. */
+    const options = [];
+    [360 - ans, gap * 45, 45, 90, 135, 180, 225].forEach(v => {
+      const label = `${v}°`;
+      if (v !== ans && v > 0 && v < 360 && !options.includes(label)) options.push(label);
+    });
+    if (options.length < 3) return null;
     return mk("Geometry",
       `You are facing ${COMPASS[from]}. What is the smallest angle you must turn through to face ${COMPASS[to]}?`,
-      `${ans}°`,
-      [`${360 - ans}°`, `${gap * 45}°`, `${ans === 180 ? 90 : 180}°`],
+      `${ans}°`, options.slice(0, 3),
       diff(i, 3), i);
   }
 
@@ -2968,11 +3093,24 @@ const QUESTIONS = [];
     const midY = py - down;
     const ans = clockwise ? [midY, -px] : [-midY, px];
     const pt = ([x, y]) => `(${x}, ${y})`;
+    const rotate = ([x, y]) => (clockwise ? [y, -x] : [-y, x]);
+
+    /* The three mistakes worth offering: turning the wrong way, doing the two
+       steps in the wrong order, and forgetting the move altogether. */
+    const wrongWay = clockwise ? [-midY, px] : [midY, -px];
+    const rotatedFirst = rotate([px, py]);
+    const wrongOrder = [rotatedFirst[0], rotatedFirst[1] - down];
+    const forgotMove = rotatedFirst;
+    const options = [];
+    [wrongWay, wrongOrder, forgotMove, [px, midY]].forEach(cand => {
+      const label = pt(cand);
+      if (label !== pt(ans) && !options.includes(label)) options.push(label);
+    });
+    if (options.length < 3) return null;
     return mk("Geometry",
       `The point ${pt([px, py])} is moved down ${down} unit${down > 1 ? "s" : ""}, then rotated ` +
       `90° ${clockwise ? "clockwise" : "anticlockwise"} about the origin. Where does it end up?`,
-      pt(ans),
-      [pt(clockwise ? [-midY, px] : [midY, -px]), pt([px, midY]), pt([-ans[0], -ans[1]])],
+      pt(ans), options.slice(0, 3),
       4, i);
   }
 

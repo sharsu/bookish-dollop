@@ -185,7 +185,7 @@ function getSkillById(id) {
 
 function getSkillQuestions(skill) {
   if (!skill) return [];
-  const pool = getValidQuestionPool(getQuestionBankForTestType("maths"));
+  const pool = dedupeByPrintedQuestion(getValidQuestionPool(getQuestionBankForTestType("maths")));
   return pool.filter(q => skill.templates.includes(q.template));
 }
 
@@ -558,6 +558,26 @@ function getAllowedDifficulties(testType) {
 /* `allowed` is optional: resuming a saved exam re-validates the questions the
    child is already partway through, and must not drop any of them even if the
    allowed range has been narrowed since that paper was started. */
+/* Templates cycle a fixed list of items across their 50 variations, so the same
+   question exists in the bank several times over under different ids. Selection
+   works by id, so nothing stopped one paper printing the same question twice -
+   it happened in 4 of 40 generated papers. Identity is the printed question plus
+   its figure, since diagram questions share a stem and differ only in the
+   picture. Keeping one copy of each also stops a revision run repeating itself.
+
+   Applied where questions are SELECTED, never where they are validated: a
+   resumed paper is validated against this too, and silently dropping one of its
+   questions would corrupt an attempt already in progress. */
+function dedupeByPrintedQuestion(pool) {
+  const seen = new Set();
+  return pool.filter(q => {
+    const key = String(q.question).trim() + "|" + (q.questionImage || q.questionImageAlt || "");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function getValidQuestionPool(pool, allowed) {
   if (!Array.isArray(pool)) return [];
   return pool.filter(q =>
@@ -739,7 +759,7 @@ function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
 
 function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const allowed = getAllowedDifficulties(options.testType);
-  const rangePool = getValidQuestionPool(pool, allowed);
+  const rangePool = dedupeByPrintedQuestion(getValidQuestionPool(pool, allowed));
 
   /* Fix the comprehension passages up front and draw only from those, so the
      paper is guaranteed the configured number of passages across categories
