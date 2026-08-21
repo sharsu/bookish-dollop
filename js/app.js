@@ -162,6 +162,137 @@ class DrawingPad {
 }
 
 const SUPER_HARD_DIFFICULTY = 4;
+
+/* ═══════════════════ REVISION ═══════════════════
+   A skill is a named idea backed by question templates (see js/skills.js).
+   Revising one means reading a short card and then practising, easiest
+   question first. Practice deliberately uses every difficulty level, unlike a
+   paper, which is configured to start at Medium. */
+
+const SKILL_MASTERY_KEY = "mathsExamPrepSkillMastery";
+const PRACTICE_LENGTH = 8;
+const WEAK_SPOT_WINDOW = 5;      // how many recent papers to read
+const WEAK_SPOT_LIMIT = 6;       // how many skills to suggest
+
+function getSkills() {
+  const root = typeof window !== "undefined" ? window : globalThis;
+  return Array.isArray(root.SKILLS) ? root.SKILLS : [];
+}
+
+function getSkillById(id) {
+  return getSkills().find(skill => skill.id === id) || null;
+}
+
+function getSkillQuestions(skill) {
+  if (!skill) return [];
+  const pool = dedupeByPrintedQuestion(getValidQuestionPool(getQuestionBankForTestType("maths")));
+  return pool.filter(q => skill.templates.includes(q.template));
+}
+
+/* The practice ladder: easiest first, hardest last, spread across the levels
+   this skill actually has. A skill that is intrinsically hard — rotating about
+   a point, say — has no Easy questions, and inventing some would only teach the
+   wrong thing, so its ladder starts wherever it genuinely starts. */
+function buildSkillPractice(skill, shuffleArray, count = PRACTICE_LENGTH) {
+  const pool = getSkillQuestions(skill);
+  if (!pool.length) return [];
+
+  const byLevel = new Map();
+  pool.forEach(q => {
+    if (!byLevel.has(q.difficulty)) byLevel.set(q.difficulty, []);
+    byLevel.get(q.difficulty).push(q);
+  });
+  const levels = [...byLevel.keys()].sort((a, b) => a - b);
+  levels.forEach(level => byLevel.set(level, shuffleArray(byLevel.get(level))));
+
+  /* Some skills are hard all the way through — average speed, linking ratios.
+     Rather than invent easy questions that would teach the wrong thing, open
+     with two from the skill this one builds on, so the run still starts gently. */
+  let warmUp = [];
+  if (levels[0] >= 3 && skill.warmUp) {
+    const easier = getSkillQuestions(getSkillById(skill.warmUp))
+      .filter(q => q.difficulty <= 2)
+      .sort((a, b) => a.difficulty - b.difficulty);
+    warmUp = shuffleArray(easier).slice(0, 2).sort((a, b) => a.difficulty - b.difficulty);
+  }
+
+  // Deal round-robin so every level is represented, then sort into a ladder.
+  const picked = [];
+  for (let round = 0; picked.length < count; round += 1) {
+    let added = false;
+    levels.forEach(level => {
+      const bucket = byLevel.get(level);
+      if (picked.length < count && bucket[round]) { picked.push(bucket[round]); added = true; }
+    });
+    if (!added) break;
+  }
+  return warmUp.concat(picked.slice(0, Math.max(0, count - warmUp.length)))
+               .sort((a, b) => a.difficulty - b.difficulty);
+}
+
+/* ── Mastery ──
+   Kept in its own store, deliberately separate from the exam results: practice
+   must never move the score history a parent reads to judge readiness. */
+function loadSkillMastery() {
+  const storage = getStorage();
+  if (!storage) return {};
+  try {
+    const parsed = JSON.parse(storage.getItem(SKILL_MASTERY_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    console.warn("Could not read skill mastery:", error);
+    return {};
+  }
+}
+
+function saveSkillMastery(mastery) {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(SKILL_MASTERY_KEY, JSON.stringify(mastery));
+  } catch (error) {
+    console.warn("Could not save skill mastery:", error);
+  }
+}
+
+/* Green needs the hardest question in the run answered correctly, so "solid"
+   cannot be earned on the easy ones alone. */
+function gradeSkillAttempt(questions, answers) {
+  const total = questions.length;
+  const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+  const hardest = questions.reduce((max, q) => Math.max(max, q.difficulty), 0);
+  const hardestRight = questions.every((q, i) => q.difficulty !== hardest || answers[i] === q.answer);
+  if (correct === total) return "green";
+  if (correct >= Math.ceil(total * 0.75) && hardestRight) return "green";
+  if (correct >= Math.ceil(total / 2)) return "amber";
+  return "red";
+}
+
+/* ── Weak spots ──
+   Read off the exam history, which records the templates a child got wrong.
+   Practice itself writes nothing here. */
+function findWeakSkills(studentName) {
+  const results = loadStoredResults()
+    .filter(result => matchesTestType(result, "maths"))
+    .filter(result => !studentName || result.studentName === studentName)
+    .slice(0, WEAK_SPOT_WINDOW);
+
+  const misses = {};
+  results.forEach(result => {
+    (result.wrongTemplates || []).forEach(name => { misses[name] = (misses[name] || 0) + 1; });
+  });
+  if (!Object.keys(misses).length) return [];
+
+  return getSkills()
+    .map(skill => ({
+      skill,
+      score: skill.templates.reduce((sum, name) => sum + (misses[name] || 0), 0)
+    }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, WEAK_SPOT_LIMIT)
+    .map(entry => entry.skill);
+}
 const ACTIVE_EXAM_STORAGE_KEY = "mathsExamPrepActiveExam";
 const ACTIVE_EXAM_SAVE_VERSION = 1;
 const RESULTS_STORAGE_KEY = "mathsExamPrepResults";
@@ -427,6 +558,45 @@ function getAllowedDifficulties(testType) {
 /* `allowed` is optional: resuming a saved exam re-validates the questions the
    child is already partway through, and must not drop any of them even if the
    allowed range has been narrowed since that paper was started. */
+/* Templates cycle a fixed list of items across their 50 variations, so the same
+   question exists in the bank several times over under different ids. Selection
+   works by id, so nothing stopped one paper printing the same question twice -
+   it happened in 4 of 40 generated papers. Identity is the printed question plus
+   its figure, since diagram questions share a stem and differ only in the
+   picture. Keeping one copy of each also stops a revision run repeating itself.
+
+   Applied where questions are SELECTED, never where they are validated: a
+   resumed paper is validated against this too, and silently dropping one of its
+   questions would corrupt an attempt already in progress. */
+function dedupeByPrintedQuestion(pool) {
+  const seen = new Set();
+  return pool.filter(q => {
+    /* Whether the options belong in the identity depends on where the question
+       keeps its content.
+
+       A self-contained stem states its own numbers - "A fair coin is flipped 3
+       times..." - so it is one question however its distractors are dressed,
+       and printing it twice in a paper is a repeat.
+
+       A generic stem carries none: "Which of these four words is spelled
+       incorrectly?" is a frame, and the words in the options are the question.
+       Several of those in one paper is normal, and keying on the stem alone
+       collapsed 363 spelling questions to 61. */
+    const stem = String(q.question).trim();
+    const selfContained = /\d/.test(stem);
+    /* Sorted, because mk() rotates which slot holds the answer: the same
+       question with its options in a different order is the same question, and
+       joining them in printed order let it through twice. */
+    const options = (q.options || []).map(o => String(o).trim()).slice().sort().join("~");
+    const key = [stem,
+                 selfContained ? "" : options,
+                 q.questionImage || q.questionImageAlt || ""].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function getValidQuestionPool(pool, allowed) {
   if (!Array.isArray(pool)) return [];
   return pool.filter(q =>
@@ -608,7 +778,7 @@ function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
 
 function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const allowed = getAllowedDifficulties(options.testType);
-  const rangePool = getValidQuestionPool(pool, allowed);
+  const rangePool = dedupeByPrintedQuestion(getValidQuestionPool(pool, allowed));
 
   /* Fix the comprehension passages up front and draw only from those, so the
      paper is guaranteed the configured number of passages across categories
@@ -778,13 +948,13 @@ class ExamApp {
     this.examInProgress = false;
     this.currentStudyTopic = "";
     this.currentStudyConcept = "";
+    this.currentSkill = null;
+    this.practice = null;
 
     // DOM
     this.testTypeScreen = document.getElementById("test-type-screen");
     this.setupScreen = document.getElementById("setup-screen");
-    this.studyLibraryScreen = document.getElementById("study-library-screen");
     this.studyTopicScreen = document.getElementById("study-topic-screen");
-    this.studyConceptScreen = document.getElementById("study-concept-screen");
     this.quizScreen = document.getElementById("quiz-screen");
     this.resultsScreen = document.getElementById("results-screen");
     this.progressScreen = document.getElementById("progress-screen");
@@ -794,7 +964,6 @@ class ExamApp {
     this.setupTitle = document.getElementById("setup-title");
     this.setupSubtitle = document.getElementById("setup-subtitle");
     this.studyLibraryGrid = document.getElementById("study-library-grid");
-    this.studyConceptGrid = document.getElementById("study-concept-grid");
     this.setupError = document.getElementById("setup-error");
     this.parentDashboardReturnScreen = "setup";
 
@@ -861,22 +1030,40 @@ class ExamApp {
     document.querySelectorAll("[data-test-type]").forEach(button => {
       button.addEventListener("click", () => this.chooseTestType(button.dataset.testType));
     });
-    this.learnTopicsBtn?.addEventListener("click", () => this.openStudyLibrary());
     document.getElementById("setup-back-btn")?.addEventListener("click", () => this.returnToTestTypeMenu());
-    document.getElementById("study-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openStudyLibrary());
+
+    /* ── Learn & Practise ──
+       Both entry points open the same merged library: the one on the main menu
+       and the one on the setup screen, which used to lead to Learn Topics. */
+    this.learnTopicsBtn?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-entry-btn")?.addEventListener("click", () => this.openSkillLibrary());
+    document.getElementById("revise-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
+
+    /* Topic page */
+    document.getElementById("study-topic-topics-btn")?.addEventListener("click", () => this.openSkillLibrary());
     document.getElementById("study-topic-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
-    document.getElementById("study-concept-topic-btn")?.addEventListener("click", () => this.returnToStudyTopicMenu());
-    document.getElementById("study-concept-menu-btn")?.addEventListener("click", () => this.returnToSetupMenu());
     this.studyLibraryGrid?.addEventListener("click", event => {
       const topicButton = event.target.closest("[data-study-topic]");
-      if (!topicButton) return;
-      this.openStudyTopic(topicButton.dataset.studyTopic);
+      if (topicButton) this.openStudyTopic(topicButton.dataset.studyTopic);
     });
-    this.studyConceptGrid?.addEventListener("click", event => {
-      const conceptButton = event.target.closest("[data-study-concept]");
-      if (!conceptButton) return;
-      this.openStudyConcept(conceptButton.dataset.studyTopic, conceptButton.dataset.studyConcept);
+
+    /* Skill page and practice. Back always lands on the topic the skill sits
+       in, so a child who came in through Geometry returns to Geometry. */
+    document.getElementById("revise-skill-back-btn")?.addEventListener("click", () => this.returnToSkillTopic());
+    document.getElementById("revise-start-practice-btn")?.addEventListener("click", () => this.startSkillPractice());
+    document.getElementById("revise-next-btn")?.addEventListener("click", () => this.advancePractice());
+    document.getElementById("revise-recap-btn")?.addEventListener("click", () => this.openSkillCard(this.currentSkill && this.currentSkill.id));
+    document.getElementById("revise-practice-quit-btn")?.addEventListener("click", () => this.returnToSkillTopic());
+    document.getElementById("revise-again-btn")?.addEventListener("click", () => this.startSkillPractice());
+    document.getElementById("revise-summary-skills-btn")?.addEventListener("click", () => this.returnToSkillTopic());
+
+    /* Skill tiles appear both on the topic page and in the weak-spot panel on
+       the topic list, so both screens delegate the same click. */
+    ["revise-library-screen", "study-topic-screen"].forEach(id => {
+      document.getElementById(id)?.addEventListener("click", event => {
+        const tile = event.target.closest("[data-skill-id]");
+        if (tile) this.openSkillCard(tile.dataset.skillId);
+      });
     });
     document.getElementById("prev-btn")?.addEventListener("click", () => this.previousQuestion());
     document.getElementById("next-btn")?.addEventListener("click", () => this.nextQuestion());
@@ -1331,7 +1518,13 @@ class ExamApp {
       percentage,
       timeTakenSeconds: timeTaken,
       superHardCount: this.quizQuestions.filter(q => q.difficulty >= SUPER_HARD_DIFFICULTY).length,
-      topicBreakdown
+      topicBreakdown,
+      /* The templates that were answered wrongly, so revision can point at the
+         exact skill rather than the whole topic. Names only — small enough to
+         keep, and the questions themselves are regenerated anyway. */
+      wrongTemplates: this.quizQuestions
+        .map((q, idx) => (idx in this.answers && this.answers[idx] !== q.answer ? q.template : null))
+        .filter(Boolean)
     };
   }
 
@@ -1604,9 +1797,17 @@ class ExamApp {
   renderStudyLibrary() {
     if (!this.studyLibraryGrid) return;
 
+    const skillCounts = new Map();
+    getSkills().forEach(skill => {
+      skillCounts.set(skill.topic, (skillCounts.get(skill.topic) || 0) + 1);
+    });
+
     this.studyLibraryGrid.innerHTML = "";
-    CONFIG.topics.forEach(topic => {
+    /* Only topics that can actually be practised. A tile leading to an empty
+       list would be a dead end, which is the thing this merge set out to fix. */
+    CONFIG.topics.filter(topic => skillCounts.get(topic)).forEach(topic => {
       const guide = this.getStudyGuide(topic);
+      const count = skillCounts.get(topic);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "study-topic-button";
@@ -1626,72 +1827,56 @@ class ExamApp {
 
       const link = document.createElement("span");
       link.className = "study-topic-button-link";
-      link.textContent = "Open topic menu →";
+      link.textContent = `${count} skill${count === 1 ? "" : "s"} →`;
 
       button.append(icon, title, text, link);
       this.studyLibraryGrid.appendChild(button);
     });
   }
 
-  renderStudyConceptMenu(topic) {
-    if (!this.studyConceptGrid) return;
+  /* The topic page now lists skills rather than concepts, because a skill is
+     the thing a child practises. The concept teaching has not gone away — it
+     moved onto the skill page, where it sits next to the practice. */
+  renderTopicSkillMenu(topic) {
+    const grid = document.getElementById("study-topic-skill-grid");
+    if (!grid) return;
 
-    const guide = this.getStudyGuide(topic);
-    this.studyConceptGrid.innerHTML = "";
-
-    guide.concepts.forEach(concept => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "study-concept-button";
-      button.dataset.studyTopic = topic;
-      button.dataset.studyConcept = concept.slug;
-
-      const title = document.createElement("span");
-      title.className = "study-concept-button-title";
-      title.textContent = concept.title;
-
-      const text = document.createElement("span");
-      text.className = "study-concept-button-text";
-      text.textContent = concept.summary || `Open ${concept.title}.`;
-
-      const link = document.createElement("span");
-      link.className = "study-concept-button-link";
-      link.textContent = "Open sub-topic →";
-
-      button.append(title, text, link);
-      this.studyConceptGrid.appendChild(button);
-    });
+    const mastery = loadSkillMastery();
+    grid.innerHTML = "";
+    getSkills()
+      .filter(skill => skill.topic === topic)
+      .forEach(skill => grid.appendChild(this.buildSkillTile(skill, mastery)));
   }
 
-  getStudyConcept(topic, conceptSlug) {
-    const guide = this.getStudyGuide(topic);
-    return guide.concepts.find(concept => concept.slug === conceptSlug) || guide.concepts[0];
-  }
-
-  openStudyLibrary() {
-    if (normalizeTestType(this.selectedTestType) !== "maths") return;
-    this.setHistorySlug(false);
-    this.currentStudyTopic = "";
-    this.currentStudyConcept = "";
-    this.setupError?.setAttribute("hidden", "");
-    this.renderStudyLibrary();
-    this.showScreen("study-library");
+  /* A skill may draw on more than one concept, and a few draw on one filed
+     under another topic — negatives are taught under Numbers but practised
+     under BIDMAS. "Topic/slug" says so explicitly. */
+  getSkillConcepts(skill) {
+    if (!skill || !Array.isArray(skill.concepts)) return [];
+    return skill.concepts
+      .map(ref => {
+        const [topic, slug] = ref.includes("/") ? ref.split("/") : [skill.topic, ref];
+        const guide = getStudyGuideRegistry()[topic];
+        if (!guide || !Array.isArray(guide.concepts)) return null;
+        return guide.concepts.find(concept => concept.slug === slug) || null;
+      })
+      .filter(Boolean);
   }
 
   renderStudyTopic(topic) {
     const guide = this.getStudyGuide(topic);
-    const conceptCount = guide.concepts.length;
+    const skillCount = getSkills().filter(skill => skill.topic === topic).length;
 
     document.getElementById("study-topic-icon").textContent = guide.icon || "📘";
     document.getElementById("study-topic-title").textContent = guide.topic || topic;
     document.getElementById("study-topic-summary").textContent = guide.summary || "A quick topic guide.";
     document.getElementById("study-topic-intro").textContent = guide.intro || "Take this topic one step at a time.";
     document.getElementById("study-topic-key-idea").textContent = guide.keyIdea || "Think carefully and check your answer.";
-    document.getElementById("study-topic-menu-hint").textContent = conceptCount === 1
-      ? "This topic currently has one detailed page. Open it below."
-      : `Choose one of the ${conceptCount} sub-topics below to revise in detail.`;
+    document.getElementById("study-topic-menu-hint").textContent = skillCount === 1
+      ? "This topic has one skill. Open it to read about it and then practise."
+      : `Choose one of the ${skillCount} skills below to read about and then practise.`;
 
-    this.renderStudyConceptMenu(topic);
+    this.renderTopicSkillMenu(topic);
 
     const visual = document.getElementById("study-topic-visual");
     if (visual) {
@@ -1714,50 +1899,12 @@ class ExamApp {
     this.showScreen("study-topic");
   }
 
-  renderStudyConcept(topic, conceptSlug) {
-    const guide = this.getStudyGuide(topic);
-    const concept = this.getStudyConcept(topic, conceptSlug);
-
-    document.getElementById("study-concept-icon").textContent = guide.icon || "📘";
-    document.getElementById("study-concept-topic").textContent = guide.topic || topic;
-    document.getElementById("study-concept-title").textContent = concept.title;
-    document.getElementById("study-concept-summary").textContent = concept.summary || guide.summary || "A detailed study guide.";
-
-    this.renderStudyParagraphs("study-concept-explanation", concept.explanation);
-    this.renderStudyList("study-concept-steps", concept.steps);
-    this.renderStudyList("study-concept-tips", concept.tips);
-    this.renderStudyExamples("study-concept-examples", concept.examples);
-
-    const visual = document.getElementById("study-concept-visual");
-    if (visual) {
-      visual.innerHTML = concept.visual || guide.visual || "";
-      const label = concept.visualLabel || guide.visualLabel;
-      if (label) {
-        visual.setAttribute("role", "img");
-        visual.setAttribute("aria-label", label);
-      } else {
-        visual.removeAttribute("role");
-        visual.removeAttribute("aria-label");
-      }
-    }
-  }
-
-  openStudyConcept(topic, conceptSlug) {
-    this.setHistorySlug(false);
-    this.currentStudyTopic = topic;
-    this.currentStudyConcept = conceptSlug;
-    this.renderStudyConcept(topic, conceptSlug);
-    this.showScreen("study-concept");
-  }
-
-  returnToStudyTopicMenu() {
-    if (!this.currentStudyTopic) {
-      this.openStudyLibrary();
-      return;
-    }
-
-    this.currentStudyConcept = "";
-    this.openStudyTopic(this.currentStudyTopic);
+  /* Back from a skill lands on its topic, not the whole library, so a child
+     who came in through Geometry carries on down the Geometry list. */
+  returnToSkillTopic() {
+    const topic = (this.currentSkill && this.currentSkill.topic) || this.currentStudyTopic;
+    if (topic) this.openStudyTopic(topic);
+    else this.openSkillLibrary();
   }
 
   returnToSetupMenu() {
@@ -1766,6 +1913,315 @@ class ExamApp {
     this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
     this.showScreen(this.selectedTestType ? "setup" : "test-type");
+  }
+
+  /* ═══════════════════ REVISION ═══════════════════ */
+
+  openSkillLibrary() {
+    this.practice = null;
+    this.currentStudyTopic = "";
+    this.setHistorySlug(false);
+    this.setupError?.setAttribute("hidden", "");
+    this.renderSkillLibrary();
+    this.showScreen("revise-library");
+  }
+
+  /* The library is a list of topics, with anything the last few papers showed
+     up as weak pulled to the top so it is the first thing offered. */
+  renderSkillLibrary() {
+    const mastery = loadSkillMastery();
+
+    const weak = findWeakSkills(this.studentName);
+    const weakPanel = document.getElementById("revise-weak-panel");
+    const weakGrid = document.getElementById("revise-weak-grid");
+    if (weakPanel && weakGrid) {
+      weakGrid.innerHTML = "";
+      if (weak.length) {
+        weak.forEach(skill => weakGrid.appendChild(this.buildSkillTile(skill, mastery)));
+        weakPanel.removeAttribute("hidden");
+      } else {
+        weakPanel.setAttribute("hidden", "");
+      }
+    }
+
+    this.renderStudyLibrary();
+  }
+
+  buildSkillTile(skill, mastery) {
+    const state = (mastery[skill.id] || {}).state || "new";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `revise-skill-tile revise-skill-${state}`;
+    button.dataset.skillId = skill.id;
+
+    const dot = document.createElement("span");
+    dot.className = "revise-skill-dot";
+    dot.setAttribute("aria-hidden", "true");
+    button.appendChild(dot);
+
+    const title = document.createElement("span");
+    title.className = "revise-skill-title";
+    title.textContent = skill.title;
+    button.appendChild(title);
+
+    const status = document.createElement("span");
+    status.className = "revise-skill-status";
+    status.textContent = { green: "Solid", amber: "Getting there", red: "Needs work", new: "Not tried yet" }[state];
+    button.appendChild(status);
+
+    return button;
+  }
+
+  /* The teaching that used to live on its own concept screen. Every block
+     hides itself when the concept has nothing for it, so a thin concept does
+     not leave an empty heading on the page. */
+  renderSkillTeaching(skill) {
+    const concepts = this.getSkillConcepts(skill);
+    const show = (id, hasContent) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (hasContent) el.removeAttribute("hidden");
+      else el.setAttribute("hidden", "");
+    };
+
+    const paragraphs = concepts.flatMap(c => (c.explanation || []));
+    this.renderStudyParagraphs("revise-skill-explanation", paragraphs);
+    show("revise-skill-explain-wrap", paragraphs.length);
+
+    const steps = concepts.flatMap(c => (c.steps || []));
+    const tips = concepts.flatMap(c => (c.tips || []));
+    this.renderStudyList("revise-skill-steps", steps);
+    this.renderStudyList("revise-skill-tips", tips);
+    show("revise-skill-steps-wrap", steps.length);
+    show("revise-skill-tips-wrap", tips.length);
+    show("revise-skill-guide-grid", steps.length || tips.length);
+
+    const examples = concepts.flatMap(c => (c.examples || []));
+    this.renderStudyExamples("revise-skill-examples", examples);
+    show("revise-skill-examples-wrap", examples.length);
+
+    /* One picture only. Several stacked diagrams push the practice button off
+       the screen and none of them is the one the child came for. */
+    const withVisual = concepts.find(c => c.visual);
+    const visual = document.getElementById("revise-skill-visual");
+    if (visual) {
+      visual.innerHTML = withVisual ? withVisual.visual : "";
+      const label = withVisual && withVisual.visualLabel;
+      if (label) {
+        visual.setAttribute("role", "img");
+        visual.setAttribute("aria-label", label);
+      } else {
+        visual.removeAttribute("role");
+        visual.removeAttribute("aria-label");
+      }
+    }
+    show("revise-skill-visual-wrap", !!withVisual);
+  }
+
+  openSkillCard(skillId) {
+    const skill = getSkillById(skillId);
+    if (!skill) return;
+    this.currentSkill = skill;
+    this.currentStudyTopic = skill.topic;
+
+    const pool = getSkillQuestions(skill);
+    document.getElementById("revise-skill-topic").textContent = skill.topic;
+    document.getElementById("revise-skill-title").textContent = skill.title;
+    document.getElementById("revise-skill-idea").textContent = skill.idea;
+
+    this.renderSkillTeaching(skill);
+
+    /* The rule and the worked example are lifted from a real question, so the
+       card can never drift away from what the practice actually asks. */
+    const easiest = pool.slice().sort((a, b) => a.difficulty - b.difficulty)[0];
+    const rule = document.getElementById("revise-skill-rule");
+    rule.textContent = easiest && easiest.explain ? easiest.explain : skill.idea;
+
+    const exampleQ = document.getElementById("revise-skill-example");
+    const exampleA = document.getElementById("revise-skill-answer");
+    const figure = document.getElementById("revise-skill-figure");
+    figure.innerHTML = "";
+    if (easiest) {
+      exampleQ.textContent = easiest.question;
+      exampleA.textContent = `Answer: ${easiest.options[easiest.answer]}`;
+      if (easiest.questionImage) {
+        const img = document.createElement("img");
+        img.src = easiest.questionImage;
+        img.alt = easiest.questionImageAlt || "Example diagram";
+        figure.appendChild(img);
+        figure.removeAttribute("hidden");
+      } else {
+        figure.setAttribute("hidden", "");
+      }
+    }
+
+    /* A method that names the usual mistake gets its own warning panel. */
+    const trapWrap = document.getElementById("revise-skill-trap-wrap");
+    const trap = document.getElementById("revise-skill-trap");
+    const hardest = pool.slice().sort((a, b) => b.difficulty - a.difficulty)[0];
+    const trapText = hardest && hardest.explain !== (easiest && easiest.explain) ? hardest.explain : "";
+    if (trapText && /mistake|trap|not the|never|forget|do not|does not/i.test(trapText)) {
+      trap.textContent = trapText;
+      trapWrap.removeAttribute("hidden");
+    } else {
+      trapWrap.setAttribute("hidden", "");
+    }
+
+    this.showScreen("revise-skill");
+  }
+
+  startSkillPractice() {
+    const skill = this.currentSkill;
+    if (!skill) return;
+    const questions = buildSkillPractice(skill, arr => this.shuffleArray(arr));
+    if (!questions.length) return;
+
+    this.practice = { skill, questions, answers: {}, index: 0, locked: false };
+    document.getElementById("revise-summary").setAttribute("hidden", "");
+    document.getElementById("revise-practice-actions").removeAttribute("hidden");
+    document.getElementById("revise-practice-skill").textContent = skill.topic;
+    document.getElementById("revise-practice-title").textContent = skill.title;
+    this.renderPracticeQuestion();
+    this.showScreen("revise-practice");
+  }
+
+  renderPracticeQuestion() {
+    const state = this.practice;
+    if (!state) return;
+    const question = state.questions[state.index];
+    state.locked = false;
+
+    document.getElementById("revise-practice-count").textContent =
+      `${state.index + 1} / ${state.questions.length}`;
+    const level = document.getElementById("revise-practice-level");
+    const meta = getDifficultyMeta(question.difficulty);
+    level.textContent = meta.label;
+    level.className = `q-difficulty-badge ${meta.css}`;
+
+    /* A ladder of pips, so the child can see the questions getting harder. */
+    const ladder = document.getElementById("revise-ladder");
+    ladder.innerHTML = "";
+    state.questions.forEach((q, i) => {
+      const pip = document.createElement("span");
+      const answered = i in state.answers;
+      const right = answered && state.answers[i] === q.answer;
+      pip.className = "revise-pip" +
+        (i === state.index ? " revise-pip-current" : "") +
+        (answered ? (right ? " revise-pip-right" : " revise-pip-wrong") : "");
+      pip.title = getDifficultyMeta(q.difficulty).label;
+      ladder.appendChild(pip);
+    });
+
+    document.getElementById("revise-practice-question").textContent = question.question;
+
+    const media = document.getElementById("revise-practice-media");
+    media.innerHTML = "";
+    if (question.questionImage) {
+      const img = document.createElement("img");
+      img.src = question.questionImage;
+      img.alt = question.questionImageAlt || "Question diagram";
+      media.appendChild(img);
+      media.removeAttribute("hidden");
+    } else {
+      media.setAttribute("hidden", "");
+    }
+
+    const options = document.getElementById("revise-practice-options");
+    options.innerHTML = "";
+    question.options.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<span class="option-label">${String.fromCharCode(65 + idx)}</span> ${opt}`;
+      btn.addEventListener("click", () => this.answerPracticeQuestion(idx));
+      options.appendChild(btn);
+    });
+
+    document.getElementById("revise-feedback").setAttribute("hidden", "");
+  }
+
+  /* Immediate feedback: this is revision, not a test. */
+  answerPracticeQuestion(choice) {
+    const state = this.practice;
+    if (!state || state.locked) return;
+    state.locked = true;
+    state.answers[state.index] = choice;
+
+    const question = state.questions[state.index];
+    const right = choice === question.answer;
+
+    const buttons = [...document.getElementById("revise-practice-options").children];
+    buttons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === question.answer) btn.classList.add("option-right");
+      else if (idx === choice) btn.classList.add("option-wrong");
+    });
+
+    const verdict = document.getElementById("revise-feedback-verdict");
+    verdict.textContent = right ? "✓ That's right" : "✗ Not quite";
+    verdict.className = `revise-feedback-verdict ${right ? "is-right" : "is-wrong"}`;
+
+    const answerLine = document.getElementById("revise-feedback-answer");
+    answerLine.textContent = right ? "" : `The answer is ${question.options[question.answer]}.`;
+    answerLine.hidden = right;
+
+    const methodWrap = document.getElementById("revise-feedback-method");
+    if (!right && question.explain) {
+      document.getElementById("revise-feedback-method-text").textContent = question.explain;
+      methodWrap.removeAttribute("hidden");
+    } else {
+      methodWrap.setAttribute("hidden", "");
+    }
+
+    document.getElementById("revise-next-btn").textContent =
+      state.index === state.questions.length - 1 ? "See how I did →" : "Next →";
+    document.getElementById("revise-feedback").removeAttribute("hidden");
+
+    // Redraw the ladder so the pip just answered takes its colour.
+    const ladder = document.getElementById("revise-ladder");
+    [...ladder.children].forEach((pip, i) => {
+      if (i !== state.index) return;
+      pip.classList.remove("revise-pip-current");
+      pip.classList.add(right ? "revise-pip-right" : "revise-pip-wrong");
+    });
+  }
+
+  advancePractice() {
+    const state = this.practice;
+    if (!state) return;
+    if (state.index < state.questions.length - 1) {
+      state.index += 1;
+      this.renderPracticeQuestion();
+    } else {
+      this.finishPractice();
+    }
+  }
+
+  finishPractice() {
+    const state = this.practice;
+    if (!state) return;
+    const { skill, questions, answers } = state;
+    const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+    const grade = gradeSkillAttempt(questions, answers);
+
+    const mastery = loadSkillMastery();
+    mastery[skill.id] = { state: grade, at: new Date().toISOString() };
+    saveSkillMastery(mastery);
+
+    const hardest = questions.reduce((max, q) => Math.max(max, q.difficulty), 0);
+    const hardestRight = questions.every((q, i) => q.difficulty !== hardest || answers[i] === q.answer);
+
+    document.getElementById("revise-summary-icon").textContent =
+      grade === "green" ? "🌟" : grade === "amber" ? "🎯" : "📖";
+    document.getElementById("revise-summary-verdict").textContent =
+      grade === "green" ? "You've got this" : grade === "amber" ? "Nearly there" : "Worth another go";
+    document.getElementById("revise-summary-detail").textContent =
+      `${correct} out of ${questions.length} correct. ` +
+      (hardestRight ? `You got the ${getDifficultyMeta(hardest).label} one right.`
+                    : `The ${getDifficultyMeta(hardest).label} one caught you — try this skill again tomorrow.`);
+
+    document.getElementById("revise-feedback").setAttribute("hidden", "");
+    document.getElementById("revise-practice-actions").setAttribute("hidden", "");
+    document.getElementById("revise-summary").removeAttribute("hidden");
   }
 
   openParentDashboard(fromScreen = "setup", syncHash = true) {
@@ -1867,23 +2323,21 @@ class ExamApp {
       this.progressScreen?.setAttribute("hidden", "");
     }
 
-    if (name === "study-library") {
-      this.studyLibraryScreen?.removeAttribute("hidden");
-    } else {
-      this.studyLibraryScreen?.setAttribute("hidden", "");
-    }
-
+    /* Learn & Practise: topic list → topic page → skill page → practice.
+       The old study-library and study-concept screens are gone; their content
+       lives on the topic list and the skill page respectively. */
     if (name === "study-topic") {
       this.studyTopicScreen?.removeAttribute("hidden");
     } else {
       this.studyTopicScreen?.setAttribute("hidden", "");
     }
 
-    if (name === "study-concept") {
-      this.studyConceptScreen?.removeAttribute("hidden");
-    } else {
-      this.studyConceptScreen?.setAttribute("hidden", "");
-    }
+    ["revise-library", "revise-skill", "revise-practice"].forEach(screen => {
+      const el = document.getElementById(`${screen}-screen`);
+      if (!el) return;
+      if (name === screen) el.removeAttribute("hidden");
+      else el.setAttribute("hidden", "");
+    });
 
     console.log(`Screen switched to: ${name}`);
   }

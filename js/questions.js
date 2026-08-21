@@ -48,7 +48,32 @@ const QUESTIONS = [];
      indistinguishable in shape from a real one. Returns null when the answer
      holds no number to shift. */
   const nudge = (text, step) => {
-    const match = `${text}`.match(/-?\d[\d,]*(?:\.\d+)?/);
+    /* A bare fraction is nudged within its own bounds. Shifting the numerator
+       blindly turned 2/5 into 7/5, so probability questions offered 7/5 and
+       1/1 as options and shaded-shape questions offered 19/1. */
+    const frac = `${text}`.trim().match(/^(\d+)\/(\d+)$/);
+    if (frac) {
+      const den = Number(frac[2]), num = Number(frac[1]);
+      if (den < 3) return null;                  // no room for a proper alternative
+      /* Cancelled down, so an invented option is written the same way as a
+         real one: nudging 1/12 to "2/12" left an uncancelled fraction sitting
+         beside three cancelled ones. */
+      for (let delta = 1; delta < den; delta++) {
+        for (const cand of [num + delta, num - delta]) {
+          if (cand > 0 && cand < den && cand !== num) {
+            const shown = simp(cand, den);
+            if (shown !== `${num}/${den}`) return shown;
+          }
+        }
+      }
+      return null;
+    }
+
+    /* A thousands separator is a comma followed by exactly three digits. The
+       looser [\d,]* also swallowed the comma in a coordinate pair, so nudging
+       "(-1, 1)" matched "-1," and produced "(6 1)" - a malformed option that
+       shipped in two templates. */
+    const match = `${text}`.match(/-?\d+(?:,\d{3})*(?:\.\d+)?/);
     if (!match) return null;
     const raw = match[0];
     const value = Number(raw.replace(/,/g, ""));
@@ -63,13 +88,40 @@ const QUESTIONS = [];
   /* mk(topic, question, correct, distractors, difficulty, seed) → MCQ object.
      Returns null if four genuinely distinct options cannot be built, so the
      driver drops the question rather than shipping a filler option. */
+  /* "1/6" and "2/6" are the same answer however differently they are printed,
+     so options are compared by value as well as by text. Without this a
+     question can ship with two correct options, which is unanswerable. */
+  const optionValue = text => {
+    const t = `${text}`.replace(/[£$,%\s]/g, "")
+      .replace(/°|cm2|cm3|cm|km\/h|km|mph|kg|ml|litres?|m|g|p$/gi, "");
+    if (/^-?\d+\/\d+$/.test(t)) {
+      const [a, b] = t.split("/").map(Number);
+      return b ? `#${a / b}` : null;
+    }
+    return /^-?\d*\.?\d+$/.test(t) ? `#${Number(t)}` : null;
+  };
+
   const mk = (topic, question, correct, distractors, difficulty, seed) => {
     const uniq = [];
-    [correct, ...distractors].map(v => `${v}`).forEach(v => { if (!uniq.includes(v)) uniq.push(v); });
+    const values = new Set();
+    [correct, ...distractors].map(v => `${v}`).forEach(v => {
+      if (uniq.includes(v)) return;
+      const val = optionValue(v);
+      if (val !== null && values.has(val)) return;   // same number, different text
+      if (val !== null) values.add(val);
+      uniq.push(v);
+    });
 
+    /* The padding loop must apply the same value test as the list above, not
+       just a string test: nudging 7/12 produced 8/12 while 2/3 was already an
+       option, and the two are the same number. */
     for (let pad = 1; uniq.length < 4 && pad <= 40; pad++) {
       const cand = nudge(uniq[0], pad * 3 + difficulty);
-      if (cand && !uniq.includes(cand)) uniq.push(cand);
+      if (!cand || uniq.includes(cand)) continue;
+      const val = optionValue(cand);
+      if (val !== null && values.has(val)) continue;
+      if (val !== null) values.add(val);
+      uniq.push(cand);
     }
     if (uniq.length < 4) return null;
 
@@ -99,7 +151,10 @@ const QUESTIONS = [];
     return mk("Numbers",
       `What is the value of the digit ${target} in the number ${comma(num)}?`,
       comma(ans),
-      [comma(target), comma(ans * 10), comma(target * 10 ** (pos + 1))],
+      /* ans is target x 10^pos, so "ans * 10" and "target x 10^(pos+1)" are
+         the same number; and at pos 0 the face value IS the answer. */
+      [comma(ans * 10), comma(ans * 100),
+       pos > 0 ? comma(target) : comma(target * 1000)],
       diff(i, 4), i);
   }
 
@@ -116,7 +171,10 @@ const QUESTIONS = [];
     return mk("Numbers",
       `In the number ${comma(num)}, what is the difference between the place values of the two ${d}s?`,
       comma(ans),
-      [comma(ans + 10 ** lo * d), comma(ans - 10 ** lo), comma(d * 10 ** hi)],
+      /* ans is d x 10^hi - d x 10^lo, so "ans + 10^lo x d" is d x 10^hi:
+         the first and third distractors were the same number. */
+      [comma(d * 10 ** hi), comma(ans - 10 ** lo),
+       comma(10 ** hi - 10 ** lo)],
       diff(i), i);
   }
 
@@ -301,7 +359,13 @@ const QUESTIONS = [];
     return mk("Numbers",
       `Using each of the digits ${digits.join(", ")} once, what is the smallest even ${digits.length}-digit number you can make?`,
       `${comma(ans)}`,
-      [comma(ans + 10), comma(ans - 10), comma(Number([...rest.slice(0, -1), rest[rest.length - 1], units].join("")))],
+      /* Rebuilding rest in its own order just reproduced the answer. Putting
+         the two largest of the remaining digits the wrong way round is the
+         mistake a child actually makes. */
+      [comma(ans + 10), comma(ans - 10),
+       comma(Number([...rest.slice(0, -2), rest[rest.length - 1],
+                     rest[rest.length - 2], units].join(""))),
+       comma(Number([units, ...rest].join("")))],
       diff(i, 3), i);
   }
 
@@ -394,8 +458,13 @@ const QUESTIONS = [];
     const dp = (i % 3) + 1;
     const raw = 1.2345 + 0.731 * (i % 9) + 0.0123 * (i % 7);
     const ans = +raw.toFixed(dp);
+    /* The number must be printed with more decimals than the question asks for,
+       and fmt() caps at three, so it cannot be used here. */
+    const shown = Number(raw.toFixed(dp + 2));
+    const shownDp = (`${shown}`.split(".")[1] || "").length;
+    if (shownDp <= dp) return null;
     return mk("Decimals",
-      `Round ${fmt(+raw.toFixed(4))} to ${dp} decimal place${dp === 1 ? "" : "s"}.`,
+      `Round ${shown} to ${dp} decimal place${dp === 1 ? "" : "s"}.`,
       `${fmt(ans)}`,
       [`${fmt(ans + 10 ** -dp)}`, `${fmt(ans - 10 ** -dp)}`, `${fmt(+raw.toFixed(dp + 1))}`],
       diff(i, 4), i);
@@ -436,7 +505,9 @@ const QUESTIONS = [];
     const c = a * b;
     const ans = c / (b * 10);
     return mk("Decimals", `Given that ${a} × ${b} = ${c}, work out ${c} ÷ ${b * 10}.`,
-      `${fmt(ans)}`, [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt(a / 10)}`], diff(i, 4), i);
+      /* ans is a/10, so offering a/10 as a distractor offered the answer. */
+      `${fmt(ans)}`, [`${fmt(ans * 10)}`, `${fmt(ans / 10)}`, `${fmt(ans * 100)}`],
+      diff(i, 4), i);
   }
 
   function decPriceChange(i) {
@@ -447,7 +518,11 @@ const QUESTIONS = [];
     return mk("Decimals",
       `A price of £${fmt(v)} is increased by ${p}% and then reduced by ${q}%. What is the final price?`,
       `£${fmt(final)}`,
-      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 + p / 100 - q / 100))}`, `£${fmt(v * (1 - q / 100))}`],
+      /* The first two were the same expression written differently. Treating
+         the two changes as one net change is the real mistake; so is
+         applying only one of them. */
+      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 - q / 100))}`,
+       `£${fmt(v * (1 + p / 100))}`, `£${fmt(v)}`],
       diff(i, 3), i);
   }
 
@@ -671,7 +746,8 @@ const QUESTIONS = [];
     const a = 2 + (i % 5), b = 3 + (i % 4), c = 2 + (i % 5);
     const ans = -a + b * -c;
     return mk("BIDMAS", `What is −${a} + ${b} × (−${c})?`, `${ans}`,
-      [`${ans + 2}`, `${a + b * c}`, `${-(a + b * c)}`], diff(i, 4), i);
+      /* ans is -(a + bc), so the third distractor was the answer itself. */
+      [`${ans + 2}`, `${a + b * c}`, `${b * c - a}`], diff(i, 4), i);
   }
 
   function bidTempChange(i) {
@@ -730,6 +806,9 @@ const QUESTIONS = [];
   function algSolveBothSides(i) {
     const x = 2 + (i % 7);
     const a = 3 + (i % 4), c = 1 + (i % 3);
+    /* With a === c the two sides become identical and every x is a solution,
+       which is not a question. It happened once every twelve seeds. */
+    if (a <= c) return null;
     const b = 1 + (i % 5), d = (a - c) * x + b;
     return mk("Algebra", `Solve: ${a}x + ${b} = ${c}x + ${d}`, `x = ${x}`,
       [`x = ${x + 1}`, `x = ${x - 1}`, `x = ${b + d}`], diff(i, 3), i);
@@ -1272,20 +1351,23 @@ const QUESTIONS = [];
 
   function probBagPick(i) {
     const r = 2 + (i % 6), b = 3 + ((i + 1) % 7);
+    if (r === b) return null;               // the other colour would be the answer
     const total = r + b;
     const askRed = i % 2 === 0;
     const numerator = askRed ? r : b;
     return mk("Probability",
       `A bag has ${r} red and ${b} blue balls. What is the probability of picking ${askRed ? "red" : "blue"}?`,
       simp(numerator, total),
-      [simp(askRed ? b : r, total), simp(numerator, numerator), simp(numerator + 1, total)],
+      [simp(askRed ? b : r, total),          // the other colour
+       simp(numerator + 1, total),           // miscounted by one
+       simp(numerator, total - 1)],          // forgot to count its own colour
       diff(i, 4), i);
   }
 
   function probDie(i) {
     const targets = [
       { q: "rolling a 4", a: "1/6", d: ["1/3", "1/2", "1/4"] },
-      { q: "rolling a 2", a: "1/6", d: ["1/3", "1/2", "2/6"] },
+      { q: "rolling a 2", a: "1/6", d: ["1/3", "1/2", "1/5"] },
       { q: "rolling a 5", a: "1/6", d: ["5/6", "1/2", "1/5"] },
       { q: "rolling an even number", a: "1/2", d: ["1/3", "1/6", "2/3"] },
       { q: "rolling an odd number", a: "1/2", d: ["1/3", "2/3", "1/6"] },
@@ -1342,8 +1424,16 @@ const QUESTIONS = [];
       `Given P(success) = ${fmt(p)}, what is P(failure)?`,
       `If P(event) = ${fmt(p)}, the probability of the event not happening is:`
     ]);
+    /* Offsetting the answer must not walk outside 0..1: with p = 0.05 the old
+       "ans + 0.1" distractor was 1.05, which is not a probability. */
+    const near = [];
+    [0.1, -0.1, 0.05, -0.05, 0.2, -0.2].forEach(d => {
+      const v = +(ans + d).toFixed(3);
+      if (v > 0 && v < 1 && v !== ans && v !== p && !near.includes(`${fmt(v)}`)) near.push(`${fmt(v)}`);
+    });
+    if (near.length < 2) return null;
     return mk("Probability", wording,
-      `${fmt(ans)}`, [`${fmt(p)}`, `${fmt(ans + 0.1)}`, `${fmt(ans - 0.1)}`],
+      `${fmt(ans)}`, [`${fmt(p)}`, near[0], near[1]],
       diff(i, 5), i);
   }
 
@@ -1361,12 +1451,14 @@ const QUESTIONS = [];
   function probIndependent(i) {
     const aPool = [0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
     const bPool = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
-    const a = aPool[i % aPool.length];
-    const b = bPool[(i * 3 + 1) % bPool.length];
+    const a = aPool[axis(i, 0, 9)];
+    const b = bPool[axis(i, 1, 9)];
     const ans = +(a * b).toFixed(3);
     return mk("Probability",
       `P(A) = ${fmt(a)}, P(B) = ${fmt(b)}. If independent, find P(A and B).`,
-      `${fmt(ans)}`, [`${fmt(a + b)}`, `${fmt(ans + 0.05)}`, `${fmt(Math.max(a, b))}`],
+      `${fmt(ans)}`,
+      [a + b <= 1 ? `${fmt(a + b)}` : `${fmt(+Math.abs(a - b).toFixed(3))}`,
+       `${fmt(+(ans + 0.05).toFixed(3))}`, `${fmt(Math.max(a, b))}`],
       diff(i, 3), i);
   }
 
@@ -1597,7 +1689,8 @@ const QUESTIONS = [];
     return mk("Logic",
       `If C + A + T + S = ${base} and C + A + T + S + S = ${base + extra}, what is C + A + T?`,
       `${base - extra}`,
-      [`${base}`, `${extra}`, `${base - extra + extra}`],
+      /* base - extra + extra is just base, so two distractors were equal. */
+      [`${base}`, `${extra}`, `${base + extra}`],
       diff(i, 3), i);
   }
 
@@ -1668,10 +1761,35 @@ const QUESTIONS = [];
     const ans = anticlockwise ? [cx - dy, cy + dx] : [cx + dy, cy - dx];
     const wrongWay = anticlockwise ? [cx + dy, cy - dx] : [cx - dy, cy + dx];
     const pt = ([x, y]) => `(${x}, ${y})`;
-    return mk("Geometry",
+    const q = mk("Geometry",
       `A shape is rotated 90° ${anticlockwise ? "anticlockwise" : "clockwise"} about the point ${pt([cx, cy])}. One corner of the shape is at ${pt([px, py])}. What are its new coordinates?`,
       pt(ans), [pt(wrongWay), pt([-px, -py]), pt([py, px])],
       diff(i, 3), i);
+    if (!q) return null;
+
+    /* Give the child the formula and then substitute into it. "Swap and flip"
+       on its own is useless: the whole difficulty is knowing WHICH of the two
+       numbers changes sign, and that is the only thing telling the two
+       directions apart. */
+    const sign = n => (n < 0 ? `${n}` : `+ ${n}`);
+    const swapped = anticlockwise ? [-dy, dx] : [dy, -dx];
+    q.explain =
+      `A quarter turn ${anticlockwise ? "anticlockwise" : "clockwise"} about the centre (h, k) sends (x, y) to ` +
+      (anticlockwise ? `(−(y − k) + h,  (x − h) + k).` : `((y − k) + h,  −(x − h) + k).`) + "\n" +
+      `Step 1 — how far the point is from the centre: across = ${px} − ${cx} = ${dx}, up = ${py} − ${cy} = ${dy}.\n` +
+      `Step 2 — swap those two, then change the sign of the ${anticlockwise ? "first" : "second"} one: ` +
+      `(${dx}, ${dy}) becomes (${swapped[0]}, ${swapped[1]}).\n` +
+      `Step 3 — add the centre back on: (${swapped[0]} ${sign(cx)}, ${swapped[1]} ${sign(cy)}) = ${pt(ans)}.`;
+
+    /* The centre and the corner drawn on a grid, so the child can see what is
+       being turned around what. */
+    if (D && cx <= 8 && cy <= 8 && px <= 8 && py <= 8) {
+      const figure = D.coordGrid({ points: [[cx, cy, "centre"], [px, py, "corner"]] });
+      q.questionImage = figure.image;
+      q.questionImageAlt = `A coordinate grid with the centre of rotation marked at ${pt([cx, cy])} ` +
+                           `and the corner of the shape at ${pt([px, py])}.`;
+    }
+    return q;
   }
 
   /* Two identical rectangles laid one over the other, overlap given. */
@@ -2028,7 +2146,10 @@ const QUESTIONS = [];
     return mk("Sequences",
       `What is the next term in this sequence?\n${terms.slice(0, 5).join(", ")}, ...`,
       `${ans}`,
-      [`${terms[4] + step - d2}`, `${terms[4] + d1}`, `${ans + d2}`],
+      /* The loop leaves step at d1 + 5*d2, so "step - d2" is exactly the gap
+         used to reach the answer - the first distractor was the answer, every
+         time. Repeating the previous gap is the mistake worth offering. */
+      [`${terms[4] + d1 + 3 * d2}`, `${terms[4] + d1}`, `${ans + d2}`, `${ans - d2}`],
       4, i);
   }
 
@@ -2051,7 +2172,9 @@ const QUESTIONS = [];
     const t3 = t1 + t2, t4 = t2 + t3, t5 = t3 + t4, t6 = t4 + t5;
     return mk("Sequences",
       `In this sequence each term is the sum of the two terms before it. The 3rd, 4th, 5th and 6th terms are ${t3}, ${t4}, ${t5} and ${t6}. What is the 1st term?`,
-      `${t1}`, [`${t2}`, `${t3 - t1}`, `${Math.abs(t2 - t1)}`], 4, i);
+      /* t3 - t1 is t2, so two distractors were the same number. */
+      `${t1}`, [`${t2}`, `${t5 - t4}`, `${Math.abs(t2 - t1)}`, `${t2 + 1}`],
+      4, i);
   }
 
   /* ── Speed ── */
@@ -2111,7 +2234,11 @@ const QUESTIONS = [];
     return mk("Measurement",
       `A prism is ${len} cm long. Its cross-section is an L-shape made by cutting ${article(w)} ${w} cm by ${h} cm rectangle out of the corner of ${article(W)} ${W} cm by ${H} cm rectangle. What is the volume of the prism?`,
       `${comma(ans)} cm³`,
-      [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`, `${comma(ans + w * h * len)} cm³`],
+      /* ans + w x h x len is exactly W x H x len, so the third distractor was
+         the first. Forgetting to multiply the cut-out by the length is a
+         different slip. */
+      [`${comma(W * H * len)} cm³`, `${comma(area)} cm³`,
+       `${comma(ans + w * h)} cm³`, `${comma(area * (len - 1))} cm³`],
       4, i);
   }
 
@@ -2143,7 +2270,7 @@ const QUESTIONS = [];
 
   function probTwoDiceSum(i) {
     const ways = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
-    const target = 4 + (i % 8);
+    const target = 2 + (i % 11);
     const n = ways[target];
     return mk("Probability",
       `Two fair six-sided dice are rolled and their scores are added. What is the probability that the total is ${target}?`,
@@ -2153,7 +2280,7 @@ const QUESTIONS = [];
   }
 
   function probAtLeastOne(i) {
-    const flips = 3 + (i % 3);
+    const flips = 2 + (i % 5);
     const total = 2 ** flips;
     return mk("Probability",
       `A fair coin is flipped ${flips} times. What is the probability of getting at least one head?`,
@@ -2223,7 +2350,8 @@ const QUESTIONS = [];
     return mk("Geometry",
       `The interior angles of a regular polygon add up to ${comma(total)}°. How many sides does it have?`,
       `${sides}`,
-      [`${sides - 2}`, `${sides + 2}`, `${Math.round(total / 180)}`],
+      /* total is (sides - 2) x 180, so total / 180 IS sides - 2. */
+      [`${sides - 2}`, `${sides + 2}`, `${sides - 1}`],
       4, i);
   }
 
@@ -2426,7 +2554,10 @@ const QUESTIONS = [];
     const outer = 2 * (w + h) + 8 * x;
     return mk("Measurement",
       `A picture measuring ${w} cm by ${h} cm is placed in a frame of the same width all the way round. The outer perimeter of the frame is ${outer} cm. How wide is the frame?`,
-      `${x} cm`, [`${x * 2} cm`, `${x + 1} cm`, `${fmt((outer - 2 * (w + h)) / 4)} cm`],
+      /* (outer - 2(w+h))/4 is 2x, the first distractor. Dividing the whole
+         outer perimeter by 4 is the mistake worth offering instead. */
+      `${x} cm`, [`${x * 2} cm`, `${x + 1} cm`, `${fmt(outer / 4)} cm`,
+                  `${fmt(outer / 8)} cm`],
       4, i);
   }
 
@@ -2436,7 +2567,9 @@ const QUESTIONS = [];
     const W = side * across, H = side * down;
     return mk("Measurement",
       `How many squares of side ${side} cm fit exactly into a rectangle measuring ${W} cm by ${H} cm?`,
-      `${across * down}`, [`${across + down}`, `${across * down * side}`, `${Math.round(W * H / side)}`],
+      /* W x H / side is across x down x side written another way. Forgetting
+         to divide at all is a different mistake, and a real one. */
+      `${across * down}`, [`${across + down}`, `${across * down * side}`, `${W * H}`],
       2, i);
   }
 
@@ -2518,10 +2651,21 @@ const QUESTIONS = [];
     const cols = 3 + (i % 4), rows = 2 + (i % 3);
     const total = cols * rows;
     const shaded = 1 + (i % (total - 1));
+    if (shaded + 1 >= total) return null;   // the "one more" distractor would be 1/1
     return mkFig("Fractions",
       "What fraction of this shape is shaded? Give your answer in its simplest form.",
       simp(shaded, total),
-      [simp(total - shaded, total), simp(shaded, total - shaded), `${shaded}/${shaded + total}`],
+      /* "shaded/total" is only a distinct option when the answer cancels
+         down; otherwise it IS the answer, which left this template padding
+         every question. The extra candidates cover that case. */
+      [simp(total - shaded, total),          // counted the unshaded squares
+       `${shaded}/${total}`,                 // right count, never cancelled down
+       simp(shaded + 1, total),              // miscounted by one
+       simp(shaded - 1, total),              // miscounted the other way
+       /* shaded against unshaded, but only while that is still under 1: with
+          half the shape shaded it reads 3/3, which is the whole shape. */
+       ...(shaded < total - shaded ? [`${shaded}/${total - shaded}`] : [])],
+
       diff(i, 3), i, D.shadedGrid({ cols, rows, shaded }));
   }
 
@@ -2649,7 +2793,11 @@ const QUESTIONS = [];
     const x = 360 - a - b - c;
     return mkFig("Geometry",
       "The angles shown meet at a point. What is the size of angle x?",
-      `${x}°`, [`${180 - (a + b + c) % 180}°`, `${a + b + c}°`, `${x + 10}°`],
+      /* 180 - (a+b+c) mod 180 is 360 - (a+b+c) once the three angles pass
+         180, so it was the answer in 49 of 50 questions. Using 180 instead
+         of 360, or missing an angle out, are the real errors. */
+      `${x}°`, [`${a + b + c}°`, `${x + 10}°`, `${360 - a - b}°`,
+                `${Math.abs(180 - a - b - c)}°`],
       4, i, D.anglesOnLine({ known: [{ deg: a }, { deg: b }, { deg: c }], unknownLabel: "x", onLine: false }));
   }
 
@@ -2673,6 +2821,723 @@ const QUESTIONS = [];
       "What are the coordinates of the midpoint of the line joining A and B?",
       `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${bx - ax}, ${by - ay})`, `(${mx + 1}, ${my})`],
       4, i, D.coordGrid({ points: [[ax, ay, "A"], [bx, by, "B"]] }));
+  }
+
+  /* ═══════════════════ FROM THE AUGUST QE/EPP PAPERS ═══════════════════
+     Shapes the QE Boys and Examberry papers set repeatedly that the bank had
+     no template for. Each answer is recomputed from the printed question in
+     verify.js rather than trusted. */
+
+  const COMPASS = ["north", "north-east", "east", "south-east",
+                   "south", "south-west", "west", "north-west"];
+
+  /* "You are facing south and turn clockwise through three right angles." */
+  function geoCompassTurn(i) {
+    const from = i % 8;
+    const quarters = 1 + (i % 3);                     // a full turn would be no turn at all
+    const clockwise = i % 2 === 0;
+    const step = quarters * 2;                        // a right angle is two points
+    const to = ((from + (clockwise ? step : -step)) % 8 + 8) % 8;
+
+    /* Turning the wrong way is the mistake worth offering, but for a two-right-
+       angle turn it lands on the same point as the answer, so the distractors
+       are collected by hand and de-duplicated rather than assumed distinct. */
+    const wrongWay = ((from + (clockwise ? -step : step)) % 8 + 8) % 8;
+    const options = [];
+    [wrongWay, (to + 1) % 8, (to + 7) % 8, (to + 4) % 8].forEach(k => {
+      if (k !== to && !options.includes(COMPASS[k])) options.push(COMPASS[k]);
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `You are facing ${COMPASS[from]}. You turn ${clockwise ? "clockwise" : "anticlockwise"} ` +
+      `through ${["one", "two", "three"][quarters - 1]} right angle${quarters > 1 ? "s" : ""}. ` +
+      `Which direction are you facing now?`,
+      COMPASS[to], options.slice(0, 3),
+      diff(i, 3), i);
+  }
+
+  /* The smaller of the two angles between two of the eight compass points. */
+  function geoCompassAngle(i) {
+    const from = i % 8;
+    const to = (from + 1 + (i % 7)) % 8;
+    const gap = Math.abs(to - from);
+    const points = Math.min(gap, 8 - gap);
+    const ans = points * 45;
+    if (ans === 0) return null;
+    /* Every distractor must itself be a turn between compass points, so they
+       are drawn from the multiples of 45 and de-duplicated against the answer
+       rather than assumed distinct. */
+    const options = [];
+    [360 - ans, gap * 45, 45, 90, 135, 180, 225].forEach(v => {
+      const label = `${v}°`;
+      if (v !== ans && v > 0 && v < 360 && !options.includes(label)) options.push(label);
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `You are facing ${COMPASS[from]}. What is the smallest angle you must turn through to face ${COMPASS[to]}?`,
+      `${ans}°`, options.slice(0, 3),
+      diff(i, 3), i);
+  }
+
+  /* Fourth vertex of a parallelogram. Naming the vertices in order makes the
+     answer unique: ABCD has AC and BD sharing a midpoint, so D = A + C - B.
+     Without the ordering there are three possible answers. */
+  function geoParallelogramVertex(i) {
+    const ax = i % 4, ay = 1 + (i % 3);
+    const bx = ax + 2 + (i % 4), by = ay;
+    const cx = bx + 1 + (i % 3), cy = by + 2 + (i % 4);
+    const dx = ax + cx - bx, dy = ay + cy - by;
+    const pt = (x, y) => `(${x}, ${y})`;
+    return mk("Geometry",
+      `Three vertices of a parallelogram ABCD are A${pt(ax, ay)}, B${pt(bx, by)} and C${pt(cx, cy)}. ` +
+      `What are the coordinates of D?`,
+      pt(dx, dy),
+      [pt(bx + cx - ax, by + cy - ay), pt(ax + bx - cx, ay + by - cy), pt(dy, dx)],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Three lengths make a triangle only if the two shorter ones together beat
+     the longest. Every distractor genuinely fails that test. */
+  function geoTriangleInequality(i) {
+    const set = (a, b, c) => `${a} cm, ${b} cm, ${c} cm`;
+    const s = 2 + (i % 5);
+    const good = [s + 2, s + 3, s + 4];
+    const candidates = [[1, s + 1, s + 3], [2, s + 2, s + 5], [1, 1, s + 3], [2, 3, s + 6]];
+    const seen = new Set();
+    const options = [];
+    candidates.forEach(([a, b, c]) => {
+      if (a + b > c) return;                          // must genuinely fail
+      const t = set(a, b, c);
+      if (!seen.has(t)) { seen.add(t); options.push(t); }
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `Which of these sets of three lengths could be the sides of a triangle?`,
+      set(good[0], good[1], good[2]), options.slice(0, 3),
+      diff(i, 2) + 2, i);
+  }
+
+  /* Lines of symmetry of the named shapes, which the papers ask for combined. */
+  const SYMMETRY_LINES = {
+    square: 4, rectangle: 2, rhombus: 2, kite: 1, parallelogram: 0,
+    "equilateral triangle": 3, "isosceles triangle": 1, "regular pentagon": 5,
+    "regular hexagon": 6, "regular octagon": 8
+  };
+
+  function geoSymmetryCombined(i) {
+    const names = Object.keys(SYMMETRY_LINES);
+    const a = names[i % names.length];
+    const b = names[(i + 3 + (i % 4)) % names.length];
+    if (a === b) return null;
+    const x = SYMMETRY_LINES[a], y = SYMMETRY_LINES[b];
+    const sum = i % 2 === 0;
+    const ans = sum ? x + y : x * y;
+    return mk("Geometry",
+      `What is the ${sum ? "sum" : "product"} of the number of lines of symmetry of ${article(a)} ${a} ` +
+      `and the number of lines of symmetry of ${article(b)} ${b}?`,
+      `${ans}`,
+      [`${sum ? x * y : x + y}`, `${ans + 1}`, `${Math.abs(x - y)}`],
+      diff(i, 3) + 1, i);
+  }
+
+  /* Capital letters with a mirror line straight down the middle. */
+  const VERTICAL_SYMMETRY = ["A", "H", "I", "M", "O", "T", "U", "V", "W", "X", "Y"];
+  const NO_VERTICAL_SYMMETRY = ["B", "C", "D", "E", "F", "G", "J", "K", "L",
+                                "N", "P", "Q", "R", "S", "Z"];
+
+  function geoSymmetryLetters(i) {
+    const pick = (arr, n, off) => Array.from({ length: n }, (_, k) => arr[(off + k * 3) % arr.length]);
+    const good = pick(VERTICAL_SYMMETRY, 3, i);
+    if (new Set(good).size < 3) return null;
+    const options = [];
+    for (let k = 1; k <= 3; k++) {
+      const two = pick(VERTICAL_SYMMETRY, 2, i + k);
+      const bad = NO_VERTICAL_SYMMETRY[(i + k * 5) % NO_VERTICAL_SYMMETRY.length];
+      const trio = two.concat(bad);
+      if (new Set(trio).size === 3) options.push(trio.join(", "));
+    }
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `Which of these sets of capital letters all have a vertical line of symmetry?`,
+      good.join(", "), options, diff(i, 3) + 1, i);
+  }
+
+  /* A polygon carrying one reflex angle. The angle sum still holds, which is
+     the whole point: the reflex angle is not an exception to the rule. */
+  function geoPolygonMissingAngle(i) {
+    const sides = 5 + (i % 2);                        // pentagon or hexagon
+    const total = (sides - 2) * 180;
+    const given = [];
+    let running = 0;
+    for (let k = 0; k < sides - 2; k++) {
+      const a = 80 + ((i + k * 7) % 40);
+      given.push(a); running += a;
+    }
+    const reflex = 190 + ((i * 3) % 60);
+    given.push(reflex); running += reflex;
+    const ans = total - running;
+    if (ans < 20 || ans > 175) return null;
+    const named = sides === 5 ? "pentagon" : "hexagon";
+    return mk("Geometry",
+      `${sides - 1} of the ${sides} interior angles of a ${named} are ` +
+      `${given.slice(0, -1).join("°, ")}° and ${reflex}°. What is the size of the last angle?`,
+      `${ans}°`,
+      [`${ans + 10}°`, `${total - running + 30}°`, `${180 - (ans % 180)}°`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* The reflex angle between the hands: 360 minus the smaller one. */
+  function logClockReflexAngle(i) {
+    const hour = 1 + (i % 12);
+    const minute = [0, 30, 15, 45][i % 4];
+    const hourHand = (hour % 12) * 30 + minute * 0.5;
+    const minuteHand = minute * 6;
+    const raw = Math.abs(hourHand - minuteHand);
+    const small = Math.min(raw, 360 - raw);
+    const ans = 360 - small;
+    if (small === 0 || small === 180) return null;    // no distinct reflex angle
+    const show = n => `${Number.isInteger(n) ? n : n.toFixed(1)}°`;
+    return mk("Logic",
+      `What is the size of the reflex angle between the hands of a clock at ` +
+      `${`${hour}`.padStart(2, "0")}:${`${minute}`.padStart(2, "0")}?`,
+      show(ans), [show(small), show(ans - 30), show(small + 180)],
+      diff(i, 2) + 2, i);
+  }
+
+  /* The papers print this as "2x = 64", meaning 2 to the power x. */
+  function algPowerEquation(i) {
+    const base = [2, 3, 5, 2, 4, 10][i % 6];
+    const exp = base === 2 ? 3 + (i % 5) : base === 3 ? 2 + (i % 3) : 2 + (i % 2);
+    const value = base ** exp;
+    return mk("Algebra",
+      `If ${base}^x = ${comma(value)}, what is the value of x?`,
+      `${exp}`,
+      [`${value / base}`, `${exp + 1}`, `${base}`],
+      diff(i, 3) + 1, i);
+  }
+
+  /* "40 ÷ N = 3 remainder 4" rearranges to 40 = 3N + 4. */
+  function algRemainderDivisor(i) {
+    const divisor = 6 + (i % 9);
+    const quotient = 2 + (i % 5);
+    const remainder = 1 + (i % (divisor - 1));
+    if (remainder >= divisor) return null;
+    const total = divisor * quotient + remainder;
+    return mk("Algebra",
+      `${total} ÷ N = ${quotient} remainder ${remainder}. What is the value of N?`,
+      `${divisor}`,
+      [`${quotient}`, `${Math.floor(total / quotient)}`, `${divisor + 1}`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* An integer trapped between two neighbours of a multiple: 41 < 3y < 43
+     leaves 3y = 42 as the only possibility. */
+  function algInequalityInteger(i) {
+    const mult = 3 + (i % 6);
+    const y = 4 + (i % 12);
+    const product = mult * y;
+    const lo = product - 1, hi = product + 1;
+    const nearMiss = y > 1 ? y - 1 : y + 2;
+    return mk("Algebra",
+      `${lo} < ${mult}y < ${hi}, where y is a whole number. What is the value of y?`,
+      `${y}`,
+      [`${y + 1}`, `${product}`, `${nearMiss}`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Building the expression rather than evaluating it. */
+  function algExpressionChange(i) {
+    const count = 2 + (i % 6);
+    const note = [5, 10, 20][i % 3];
+    const pence = note * 100;
+    return mk("Algebra",
+      `A pen costs p pence. Ravi buys ${count} pens and pays with a £${note} note. ` +
+      `Which expression shows his change, in pence?`,
+      `${comma(pence)} − ${count}p`,
+      [`${count}p − ${comma(pence)}`, `${comma(pence)} − p`, `${comma(pence * count)} − ${count}p`],
+      diff(i, 2) + 2, i);
+  }
+
+  /* Words to digits. The trap is the empty hundreds column, which invites a
+     nought too few or too many. */
+  const UNITS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                 "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                 "seventeen", "eighteen", "nineteen"];
+  const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+  function spellUnder1000(n) {
+    if (n === 0) return "";
+    const parts = [];
+    if (n >= 100) { parts.push(`${UNITS[Math.floor(n / 100)]} hundred`); n %= 100; }
+    if (n) {
+      if (parts.length) parts.push("and");
+      if (n < 20) parts.push(UNITS[n]);
+      else parts.push(TENS[Math.floor(n / 10)] + (n % 10 ? `-${UNITS[n % 10]}` : ""));
+    }
+    return parts.join(" ");
+  }
+
+  function numWordsToDigits(i) {
+    const thousands = 100 + (i * 37) % 900;
+    const rest = 1 + (i * 53) % 99;                   // deliberately under 100
+    const value = thousands * 1000 + rest;
+    const words = `${spellUnder1000(thousands)} thousand and ${spellUnder1000(rest)}`;
+    return mk("Numbers",
+      `Which of these is the number "${words}"?`,
+      comma(value),
+      [comma(thousands * 1000 + rest * 10), comma(thousands * 1000 + rest * 100),
+       comma(thousands * 100 + rest)],
+      diff(i, 3) + 1, i);
+  }
+
+  /* A translation followed by a rotation, in the order given. Doing them the
+     other way round lands somewhere else, which is the distractor. */
+  function geoTransformCompose(i) {
+    const px = 1 + (i % 5), py = 2 + (i % 4);
+    const down = 1 + (i % 6);
+    const clockwise = i % 2 === 0;
+    const midY = py - down;
+    const ans = clockwise ? [midY, -px] : [-midY, px];
+    const pt = ([x, y]) => `(${x}, ${y})`;
+    const rotate = ([x, y]) => (clockwise ? [y, -x] : [-y, x]);
+
+    /* The three mistakes worth offering: turning the wrong way, doing the two
+       steps in the wrong order, and forgetting the move altogether. */
+    const wrongWay = clockwise ? [-midY, px] : [midY, -px];
+    const rotatedFirst = rotate([px, py]);
+    const wrongOrder = [rotatedFirst[0], rotatedFirst[1] - down];
+    const forgotMove = rotatedFirst;
+    const options = [];
+    [wrongWay, wrongOrder, forgotMove, [px, midY]].forEach(cand => {
+      const label = pt(cand);
+      if (label !== pt(ans) && !options.includes(label)) options.push(label);
+    });
+    if (options.length < 3) return null;
+    return mk("Geometry",
+      `The point ${pt([px, py])} is moved down ${down} unit${down > 1 ? "s" : ""}, then rotated ` +
+      `90° ${clockwise ? "clockwise" : "anticlockwise"} about the origin. Where does it end up?`,
+      pt(ans), options.slice(0, 3),
+      4, i);
+  }
+
+  /* One angle of a scalene triangle is given. The other two add to the rest,
+     are different, and are both smaller, so the median sits strictly between
+     half the remainder and the whole remainder. */
+  function statMedianAngleTriangle(i) {
+    const largest = 96 + (i % 40);
+    const rest = 180 - largest;
+    const low = rest / 2;
+    const ans = Math.floor(low) + 1 + (i % 3);
+    if (!(ans > low && ans < rest && ans < largest)) return null;
+    const bad = [Math.floor(low) - 2 - (i % 3), rest + 2 + (i % 4), largest + 5];
+    if (bad.some(b => b > low && b < rest)) return null;   // a distractor must be wrong
+    if (new Set(bad).size < 3 || bad.some(b => b <= 0)) return null;
+    return mk("Statistics",
+      `One angle of a scalene triangle is ${largest}°. Which of these could be the median ` +
+      `of the three angles of the triangle?`,
+      `${ans}°`, bad.map(b => `${b}°`),
+      4, i);
+  }
+
+  /* ═══════════════════ COUNTING PRINCIPLE ═══════════════════
+     The topic had no generators at all - only 44 hand-written questions - so it
+     was the one topic that could not fill a paper. These are pitched at Hard and
+     Super Hard, which is where the QE and EPP papers set them.
+
+     Every distractor is a named mistake: allowing repeats when the question
+     forbids them, ignoring order when it matters, or forgetting the restricted
+     position. */
+
+  /* Two parameters taken off the same modulus move together, so 50 seeds
+     collapse to a handful of questions. axis() splits one seed into
+     independent digits: axis(i, 0, 6) and axis(i, 1, 6) roam freely. */
+  const axis = (i, place, span) => Math.floor(i / span ** place) % span;
+
+  const fact = n => { let r = 1; for (let k = 2; k <= n; k++) r *= k; return r; };
+  const nPr = (n, r) => { let v = 1; for (let k = 0; k < r; k++) v *= (n - k); return v; };
+  const nCr = (n, r) => Math.round(nPr(n, r) / fact(r));
+
+  /* A rotation of 1-9 cut to length, so there are many more sets than a fixed
+     list would give, while every set stays free of 0. */
+  const digitSet = (i, n) => {
+    const all = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const off = i % 9;
+    return Array.from({ length: n }, (_, k) => all[(off + k) % 9]).sort((a, b) => a - b);
+  };
+  const listDigits = ds => ds.slice(0, -1).join(", ") + " and " + ds[ds.length - 1];
+
+  /* n digits, choose k, order matters, nothing reused: n x (n-1) x ... */
+  function countArrangeNoRepeat(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9) * 3 + axis(i, 0, 3), n);
+    const k = 3 + axis(i, 2, 2);
+    if (k >= n) return null;
+    const ans = nPr(n, k);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit may be used more than once?`,
+      comma(ans),
+      [comma(n ** k),                        // let the digits repeat
+       comma(nCr(n, k)),                     // ignored the order
+       comma(fact(n)),                       // arranged all of them
+       comma(nPr(n, k) / k)],
+      3 + (i % 2), i);
+  }
+
+  /* The same count, but zero is in the set and may not lead. */
+  function countArrangeFirstRestrict(i) {
+    const n = 5 + axis(i, 0, 4);
+    const ds = [0, ...digitSet(axis(i, 1, 9), n - 1)];
+    const k = 3 + axis(i, 2, 2);
+    if (k >= n) return null;
+    const ans = (n - 1) * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit is repeated and the number cannot begin with 0?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // forgot the leading-zero rule
+       comma((n - 1) ** k),
+       comma(nPr(n - 1, k)),                 // left 0 out altogether
+       comma(ans - nPr(n - 1, k - 1))],
+      3 + (i % 2), i);
+  }
+
+  /* An even number has to end in an even digit, so that place is filled first. */
+  function countEvenNoRepeat(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9), n);
+    const k = 3;
+    const evens = ds.filter(d => d % 2 === 0).length;
+    const odds = n - evens;
+    if (!evens || !odds || k >= n) return null;
+    const ans = evens * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit even numbers can be made from the digits ${listDigits(ds)} ` +
+      `if no digit is repeated?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // ignored the "even" rule
+       comma(odds * nPr(n - 1, k - 1)),      // filled the last place with an odd digit
+       comma(evens * nPr(n - 1, k - 1) / 2),
+       comma(evens * n ** (k - 1))],
+      4, i);
+  }
+
+  /* Bigger than a round hundred: only the leading digit is constrained. */
+  function countGreaterThan(i) {
+    const n = 5 + axis(i, 0, 3);
+    const ds = digitSet(axis(i, 1, 9), n);
+    const k = 3;
+    const t = ds[1 + (axis(i, 2, 3) % (n - 2))];
+    const big = ds.filter(d => d >= t).length;
+    if (big < 2 || big === n) return null;
+    const ans = big * nPr(n - 1, k - 1);
+    return mk("Counting Principle",
+      `How many ${k}-digit numbers greater than ${t}00 can be made from the digits ` +
+      `${listDigits(ds)} if no digit is repeated?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // ignored the size rule
+       comma((big - 1) * nPr(n - 1, k - 1)), // missed the boundary digit
+       comma(big * nPr(n - 1, k)),
+       comma((n - big) * nPr(n - 1, k - 1))],
+      4, i);
+  }
+
+  /* Letters may repeat, digits may not - two rules in one question. */
+  function countPlateLettersDigits(i) {
+    const letters = 1 + axis(i, 0, 3), digits = 2 + axis(i, 1, 3);
+    const ans = 26 ** letters * nPr(10, digits);
+    return mk("Counting Principle",
+      `A code is made from ${letters} letter${letters > 1 ? "s" : ""} followed by ` +
+      `${digits} digit${digits > 1 ? "s" : ""}. The letters may be repeated but the digits ` +
+      `may not. How many different codes are possible?`,
+      comma(ans),
+      [comma(26 ** letters * 10 ** digits),  // let the digits repeat too
+       comma(nPr(26, letters) * nPr(10, digits)),
+       comma(26 * letters * 10 * digits),
+       comma(26 ** letters * 9 ** digits)],
+      3 + (i % 2), i);
+  }
+
+  /* Choosing a group: order does not matter, so divide the arrangements out. */
+  function countChooseCommittee(i) {
+    const n = 6 + axis(i, 0, 6), k = 2 + axis(i, 1, 3);
+    if (k >= n) return null;
+    const ans = nCr(n, k);
+    const roles = ["a team", "a committee", "a panel", "a group"][i % 4];
+    return mk("Counting Principle",
+      `${roles.charAt(0).toUpperCase() + roles.slice(1)} of ${k} is chosen from ${n} people. ` +
+      `The order of choosing does not matter. How many different selections are possible?`,
+      comma(ans),
+      [comma(nPr(n, k)),                     // counted the orders as different
+       comma(n ** k),
+       comma(nCr(n, k - 1)),
+       comma(nCr(n, k) * k)],
+      3 + (i % 2), i);
+  }
+
+  /* Handshakes are pairs, so each one gets counted twice before halving. */
+  function countHandshakes(i) {
+    const n = 5 + (i % 16);
+    const ans = nCr(n, 2);
+    return mk("Counting Principle",
+      `Everyone in a group of ${n} people shakes hands exactly once with everyone else. ` +
+      `How many handshakes take place altogether?`,
+      comma(ans),
+      [comma(n * (n - 1)),                   // counted each handshake twice
+       comma(n * n),
+       comma(n - 1),
+       comma(nCr(n, 2) + n)],
+      3, i);
+  }
+
+  /* Repeated letters cannot be told apart, so the arrangements divide out. */
+  const REPEAT_WORDS = ["BANANA", "LEVEL", "ERROR", "PEPPER", "LETTER", "SUCCESS",
+                        "COFFEE", "BALLOON", "TOMATO", "ADDRESS"];
+
+  function countWordRepeatedLetters(i) {
+    const word = REPEAT_WORDS[i % REPEAT_WORDS.length];
+    const counts = {};
+    word.split("").forEach(c => { counts[c] = (counts[c] || 0) + 1; });
+    const repeats = Object.values(counts).filter(c => c > 1);
+    if (!repeats.length) return null;
+    const divisor = Object.values(counts).reduce((p, c) => p * fact(c), 1);
+    const ans = fact(word.length) / divisor;
+    return mk("Counting Principle",
+      `How many different arrangements are there of all the letters of the word ${word}?`,
+      comma(ans),
+      [comma(fact(word.length)),             // treated the repeats as different
+       comma(ans * 2),
+       comma(fact(word.length) / 2),
+       comma(ans / 2)],
+      4, i);
+  }
+
+  /* Round a table there is no first seat, so one person is fixed. */
+  function countCircular(i) {
+    const n = 4 + (i % 7);
+    const ans = fact(n - 1);
+    return mk("Counting Principle",
+      `In how many different ways can ${n} people be seated around a round table, ` +
+      `if seatings that are rotations of each other count as the same?`,
+      comma(ans),
+      [comma(fact(n)),                       // treated it as a row
+       comma(fact(n - 2)),
+       comma(fact(n - 1) / 2),
+       comma(n * (n - 1))],
+      4, i);
+  }
+
+  /* Routes on a grid: choose which of the moves are the sideways ones. */
+  function countGridPaths(i) {
+    const right = 2 + axis(i, 0, 4), down = 2 + axis(i, 1, 4);
+    const ans = nCr(right + down, right);
+    return mk("Counting Principle",
+      `A counter starts in the top-left corner of a grid and must reach the bottom-right ` +
+      `corner by moving ${right} squares right and ${down} squares down, in any order. ` +
+      `How many different routes are there?`,
+      comma(ans),
+      [comma(right * down),
+       comma(right + down),
+       comma(fact(right + down)),            // forgot the moves of a kind are alike
+       comma(nCr(right + down, right) * 2)],
+      4, i);
+  }
+
+  /* ═══════════════════ HARDER PROBABILITY ═══════════════════
+     The topic had 123 questions a paper could use, only 31 of them above
+     Medium. These add the two-stage and complement work the papers actually
+     set. Fractions are always given in their lowest terms, and every distractor
+     is itself a probability. */
+
+  /* Two picks, nothing put back: the second denominator has shrunk. */
+  function probTwoSameColour(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    if (r < 2) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Two are taken out at random ` +
+      `without replacement. What is the probability that both are red?`,
+      simp(r * (r - 1), n * (n - 1)),
+      [simp(r * r, n * n),                   // treated the picks as independent
+       simp(r * (r - 1), n * n),             // shrank the top but not the bottom
+       simp(r, n),                           // answered for one pick
+       simp(2 * r * (r - 1), n * (n - 1))],
+      3 + (i % 2), i);
+  }
+
+  /* One of each: the two orders both count. */
+  function probOneOfEach(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Two are taken out at random ` +
+      `without replacement. What is the probability of getting one of each colour?`,
+      simp(2 * r * b, n * (n - 1)),
+      [simp(r * b, n * (n - 1)),             // counted only one order
+       simp(2 * r * b, n * n),
+       simp(r * b, n * n),
+       simp(r + b, n * (n - 1))],
+      4, i);
+  }
+
+  /* Conditional: the first pick has already happened. */
+  function probConditionalSecond(i) {
+    const r = 2 + axis(i, 0, 6), b = 2 + axis(i, 1, 6);
+    const n = r + b;
+    if (r < 2) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. One counter is taken out and it is red. ` +
+      `It is not put back. What is the probability that the next counter taken is also red?`,
+      simp(r - 1, n - 1),
+      [simp(r, n),                           // ignored the counter already taken
+       simp(r, n - 1),                       // shrank the bag but not the reds
+       simp(r - 1, n),                       // shrank the reds but not the bag
+       simp(b, n - 1)],
+      3 + (i % 2), i);
+  }
+
+  /* A two-way count in words: the overlap has to be taken off one group. */
+  function probTwoWayTable(i) {
+    const total = 24 + 4 * (i % 5);
+    const girls = Math.floor(total / 2) + 1 + (i % 3);
+    const boys = total - girls;
+    const glasses = 8 + (i % 5);
+    const girlsGlasses = 3 + (i % 4);
+    const boysGlasses = glasses - girlsGlasses;
+    if (boysGlasses < 1 || girlsGlasses > girls || boysGlasses > boys) return null;
+    return mk("Probability",
+      `In a class of ${total} pupils, ${girls} are girls. ${glasses} pupils wear glasses, ` +
+      `and ${girlsGlasses} of those are girls. One pupil is chosen at random. What is the ` +
+      `probability that the pupil is a boy who wears glasses?`,
+      simp(boysGlasses, total),
+      [simp(glasses, total),                 // all the glasses-wearers
+       simp(girlsGlasses, total),            // the girls instead
+       simp(boys, total),                    // all the boys
+       simp(boysGlasses, boys)],             // out of the boys, not the class
+      3 + (i % 2), i);
+  }
+
+  /* Two spinners: count the pairs that make the total. */
+  function probTwoSpinnersSum(i) {
+    const a = 3 + axis(i, 0, 3), b = 3 + axis(i, 1, 4);
+    const t = 3 + (axis(i, 2, 5) % (a + b - 3));
+    let ways = 0;
+    for (let x = 1; x <= a; x++) for (let y = 1; y <= b; y++) if (x + y === t) ways++;
+    if (!ways || ways === a * b) return null;
+    return mk("Probability",
+      `One spinner is numbered 1 to ${a} and another is numbered 1 to ${b}. Both are spun ` +
+      `and the two numbers are added. What is the probability that the total is ${t}?`,
+      simp(ways, a * b),
+      [simp(1, a * b),                       // thought there was only one way
+       simp(ways, a + b),                    // added the sections instead
+       simp(ways + 1, a * b),
+       simp(t, a * b)],
+      4, i);
+  }
+
+  /* Working backwards from the probability to the number added. */
+  function probAddToTarget(i) {
+    const r = 2 + axis(i, 0, 4), b = 3 + axis(i, 1, 4), x = 1 + axis(i, 2, 4);
+    const n = r + b;
+    const target = simp(r + x, n + x);
+    if (simp(r, n) === target) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Some more red counters are added, and ` +
+      `the probability of picking a red counter becomes ${target}. How many red counters ` +
+      `were added?`,
+      `${x}`,
+      [`${x + 1}`, `${x - 1 > 0 ? x - 1 : x + 2}`, `${x * 2}`, `${b - x > 0 ? b - x : x + 3}`],
+      4, i);
+  }
+
+  /* "Not all the same" is quicker as 1 minus the two ways they can match. */
+  function probNotAllSame(i) {
+    /* A die as well as a coin, and a wider range of throws: with only a coin
+       and three lengths this produced three distinct questions in total. */
+    const useDie = i % 3 === 2;
+    const trials = useDie ? 2 + (i % 2) : 3 + (i % 4);
+    const faces = useDie ? 6 : 2;
+    const total = faces ** trials;
+    const same = faces;                      // one way per face to match throughout
+    const thing = useDie ? `A fair die is rolled ${trials} times`
+                         : `A fair coin is flipped ${trials} times`;
+    return mk("Probability",
+      `${thing}. What is the probability that the results are NOT all the same?`,
+      simp(total - same, total),
+      [simp(same, total),                    // the chance they ARE all the same
+       simp(total - 1, total),               // took off only one way
+       simp(1, total),
+       simp(total - same, total - 1)],
+      4, i);
+  }
+
+  /* Independent events, worked backwards to the missing one. */
+  function probFindOtherIndependent(i) {
+    const pool = [[0.4, 0.1, 0.25], [0.5, 0.2, 0.4], [0.8, 0.2, 0.25], [0.6, 0.3, 0.5],
+                  [0.25, 0.1, 0.4], [0.5, 0.35, 0.7], [0.4, 0.3, 0.75], [0.8, 0.6, 0.75],
+                  [0.2, 0.1, 0.5], [0.5, 0.1, 0.2], [0.4, 0.2, 0.5], [0.6, 0.15, 0.25],
+                  [0.8, 0.4, 0.5], [0.5, 0.4, 0.8], [0.25, 0.2, 0.8], [0.6, 0.45, 0.75],
+                  [0.2, 0.05, 0.25], [0.4, 0.16, 0.4], [0.5, 0.05, 0.1], [0.8, 0.16, 0.2]];
+    const [pa, pab, pb] = pool[i % pool.length];
+    return mk("Probability",
+      `A and B are independent events. P(A) = ${fmt(pa)} and P(A and B) = ${fmt(pab)}. ` +
+      `What is P(B)?`,
+      `${fmt(pb)}`,
+      /* Every candidate has to be a probability itself: pa + pab reached 1.4. */
+      [`${fmt(+(pa * pab).toFixed(3))}`,     // multiplied instead of divided
+       `${fmt(+(pa - pab).toFixed(3))}`,     // subtracted
+       `${fmt(pa)}`, `${fmt(pab)}`,
+       `${fmt(+(1 - pb).toFixed(3))}`],
+      3 + (i % 2), i);
+  }
+
+  /* Three picks, nothing put back: three shrinking denominators. */
+  function probThreeDrawsAllSame(i) {
+    const r = 3 + axis(i, 0, 5), b = 2 + axis(i, 1, 5);
+    const n = r + b;
+    if (r < 3) return null;
+    return mk("Probability",
+      `A bag holds ${r} red and ${b} blue counters. Three are taken out at random without ` +
+      `replacement. What is the probability that all three are red?`,
+      simp(r * (r - 1) * (r - 2), n * (n - 1) * (n - 2)),
+      [simp(r * r * r, n * n * n),           // treated the picks as independent
+       simp(r * (r - 1) * (r - 2), n * n * n),
+       simp(r * (r - 1), n * (n - 1)),       // stopped after two picks
+       simp(3 * r, n * (n - 1) * (n - 2))],
+      4, i);
+  }
+
+  /* "At least one" is the complement of "none at all". */
+  /* `phrase` reads after "at least one", so it carries no article of its own. */
+  const AT_LEAST_EVENTS = [
+    { phrase: "6", miss: 5 },
+    { phrase: "even number", miss: 3 },
+    { phrase: "number greater than 4", miss: 4 },
+    { phrase: "1 or 2", miss: 4 }
+  ];
+
+  function probAtLeastOneSix(i) {
+    /* Several events, not just a six: two variants was not enough to fill a
+       revision run once duplicates were dropped. */
+    const ev = AT_LEAST_EVENTS[axis(i, 0, 4)];
+    const rolls = 2 + (axis(i, 1, 4) % 2);   // same span, so genuinely independent
+    const total = 6 ** rolls;
+    const none = ev.miss ** rolls;
+    return mk("Probability",
+      `A fair die is rolled ${rolls} times. What is the probability of getting ` +
+      `at least one ${ev.phrase}?`,
+      simp(total - none, total),
+      /* Each candidate is kept only while it is still a probability: adding the
+         single chances gave 6/6 for "1 or 2" over three rolls, and
+         (total - none)/none reached 3 for an even number. */
+      [[none, total],                        // the chance of missing every time
+       [6 - ev.miss, 6],                     // answered for one roll
+       [(6 - ev.miss) * rolls, 6],           // added the single chances
+       [total - none - 1, total],
+       [none + 1, total]]
+        .filter(([a, b]) => a > 0 && a < b)
+        .map(([a, b]) => simp(a, b)),
+      3 + (i % 2), i);
   }
 
   /* ═══════════════════ METHODS ═══════════════════
@@ -2709,6 +3574,45 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* Counting Principle, and the harder probability work */
+    countArrangeNoRepeat: "Fill the places one at a time and multiply. With nothing reused the choices shrink by one each time: 6 digits into 4 places is 6 × 5 × 4 × 3 = 360, not 6 to the power 4.",
+    countArrangeFirstRestrict: "Deal with the restricted place first. The leading digit has one fewer choice because 0 is barred, then the remaining places draw from everything left including 0: 6 x (6 x 5 x 4).",
+    countEvenNoRepeat: "An even number must end in an even digit, so fill the units place first: count the even digits available, then arrange the rest into the places in front.",
+    countGreaterThan: "Only the leading digit decides whether the number clears the threshold. Count how many digits are big enough, then arrange the others freely behind it.",
+    countPlateLettersDigits: "Take the two rules separately and multiply the results. Letters that may repeat keep all 26 choices every time; digits that may not lose one each time.",
+    countChooseCommittee: "Order does not matter, so count the arrangements and then divide by the number of ways the chosen group could itself be ordered: 8 x 7 x 6 for three places, divided by 3 x 2 x 1.",
+    countHandshakes: "Every handshake involves two people, so n x (n - 1) counts each one twice - once from each end. Halve it: n(n - 1) / 2.",
+    countWordRepeatedLetters: "Start with the arrangements of all the letters, then divide by the arrangements of each repeated letter among itself. BANANA is 6! divided by 3! for the As and 2! for the Ns, giving 60.",
+    countCircular: "Round a table there is no first seat, so fix one person and arrange the rest relative to them: (n - 1)! rather than n!.",
+    countGridPaths: "Every route uses the same moves in a different order, so it is a choosing question: out of all the moves, choose which ones go right. 3 right and 2 down is 5 moves, choose 2, which is 10.",
+    probTwoSameColour: "Multiply the two picks, but the bag has changed in between: one fewer of that colour on top and one fewer counter altogether underneath.",
+    probOneOfEach: "Red then blue and blue then red are both 'one of each', so work out one order and double it.",
+    probConditionalSecond: "The first pick has already happened, so start from the bag as it is now: one fewer red and one fewer counter altogether.",
+    probTwoWayTable: "Split the group into the four boxes before you start. The glasses-wearers who are boys are the glasses-wearers minus the girls among them; that count goes over the whole class.",
+    probTwoSpinnersSum: "The total number of outcomes is the two spinners multiplied. Then list the pairs that make the target and count them - do not guess that there is only one.",
+    probAddToTarget: "Work backwards. Adding x reds makes the probability (r + x) over (total + x); set that equal to the target fraction and solve for x. Cross-multiplying is quickest.",
+    probNotAllSame: "Go at it backwards: there are only two ways they can all match, all heads or all tails. Take those off the total and the rest is your answer.",
+    probFindOtherIndependent: "For independent events P(A and B) = P(A) x P(B), so P(B) is P(A and B) divided by P(A). Dividing, not subtracting.",
+    probThreeDrawsAllSame: "Three picks, and the bag shrinks at every one: r/(n) x (r-1)/(n-1) x (r-2)/(n-2). Both the top and the bottom come down by one each time.",
+    probAtLeastOneSix: "'At least one' is much quicker backwards. The chance of no six in one roll is 5/6, so for n rolls it is (5/6) to the power n. Take that from 1.",
+
+    /* August QE/EPP papers */
+    geoCompassTurn: "The eight compass points are 45° apart, so one right angle is two points round. Count that many points in the direction of the turn, wrapping past north.",
+    geoCompassAngle: "Count the points between the two directions, then multiply by 45°. Going the short way round is always 4 points or fewer.",
+    geoParallelogramVertex: "In a parallelogram ABCD the diagonals cross at the same midpoint, so D = A + C − B. Add A and C, then take B away, one coordinate at a time.",
+    geoTriangleInequality: "The two shorter sides added together must be longer than the longest side. If they are equal or shorter the shape collapses flat.",
+    geoSymmetryCombined: "Work out each shape separately first. Square 4, rectangle 2, rhombus 2, kite 1, parallelogram 0, equilateral triangle 3, isosceles triangle 1, and a regular polygon has as many as it has sides.",
+    geoSymmetryLetters: "Picture a mirror straight down the middle of each letter. A, H, I, M, O, T, U, V, W, X and Y match; B, C, D, E and K have a line across instead, not down.",
+    geoPolygonMissingAngle: "The interior angles still add to (sides − 2) × 180° — 540° for a pentagon, 720° for a hexagon. A reflex angle is no exception, so add what you are given and subtract from the total.",
+    geoTransformCompose: "Do the two steps in the order written. Move the point first, then rotate that new position — rotating first lands somewhere else.",
+    logClockReflexAngle: "Find the smaller angle first: the minute hand is at 6° a minute and the hour hand at 30° an hour plus 0.5° a minute. The reflex angle is 360° minus that.",
+    algPowerEquation: "Ask how many times the base multiplies by itself to reach the total. Keep doubling or tripling and count the steps: 2, 4, 8, 16, 32, 64 is six steps, so x = 6.",
+    algRemainderDivisor: "Turn it back into a multiplication: total = N × quotient + remainder. Take the remainder off the total, then divide by the quotient.",
+    algInequalityInteger: "Only one multiple of the number in front of y sits between the two ends. Find it, then divide by that number.",
+    algExpressionChange: "Change = what you handed over − what you spent, so put the money in first. Work in pence throughout: £20 is 2,000p, not 20.",
+    numWordsToDigits: "Write the thousands, then fill every column down to the units. \"and forty-two\" means the hundreds column is empty, so it needs a nought as a place holder.",
+    statMedianAngleTriangle: "The other two angles add to 180° minus the one you are given, and they are different, so the larger of them — the median — must be more than half that remainder and less than all of it.",
     fracOfCapacity: "Work out how much is actually in the bottle first, then take the fraction of that amount \u2014 not of the bottle's full capacity.",
     numPlaceValue: "Name the column the digit sits in — units, tens, hundreds, thousands — then multiply the digit by that column's value.",
     numPlaceValueDiff: "Work out what each of the two digits is worth on its own, then subtract the smaller from the larger. Don't subtract the digits themselves.",
@@ -2778,7 +3682,7 @@ const QUESTIONS = [];
     bidPowers: "Powers come after brackets but before multiplying and dividing. Square the number first.",
     bidMixed: "Brackets, Indices, Division and Multiplication, then Addition and Subtraction — and left to right within each pair.",
     bidNegative: "Do the multiplication first. Two negatives multiplied give a positive; a negative and a positive give a negative.",
-    bidTempChange: "Count the gap in two parts: up to zero, then on past it. Adding those gives the whole difference.",
+    bidTempChange: "The size of the drop = starting temperature − finishing temperature. Subtracting a negative adds it, so a drop from 12°C to −11°C is 12 − (−11) = 12 + 11 = 23°C.",
     bidNestedBrackets: "Start with the innermost bracket and work outwards, dealing with the power before you divide.",
     bidMissingOperator: "Test each pair of operations, remembering that × and ÷ are done before + and −. Only one pair gives the target.",
     bidInsertBrackets: "Work out what each bracket position would give, then match against the target. Brackets change which operation happens first.",
@@ -2799,7 +3703,7 @@ const QUESTIONS = [];
 
     /* Sequences */
     seqArithNext: "Find the difference between terms and continue it.",
-    seqArithNth: "Find the common difference, then step on from a term you know rather than writing out every term.",
+    seqArithNth: "The nth term is the first term + (n − 1) × the common difference. So the 20th term of a sequence starting at 5 going up in 3s is 5 + 19 × 3 = 62 — no need to write out all twenty.",
     seqArithNthFormula: "The number in front of n is the common difference. Then work out what to add or subtract to make the first term come out right.",
     seqFibLike: "Each term is the two before it added together.",
     seqGeomNext: "Divide one term by the one before to find what it is being multiplied by, then multiply on.",
@@ -2834,7 +3738,7 @@ const QUESTIONS = [];
     meaUnitConvert: "Decide whether the new unit is bigger or smaller, then multiply or divide by the right power of ten. Check the answer looks sensible.",
     meaAreaPerim: "Perimeter is the distance all the way round; area is the space inside. Add for perimeter, multiply for area.",
     meaVolumeCube: "Volume of a cube is the side length multiplied by itself three times.",
-    meaTempDiff: "Count up to zero and then on past it, adding the two parts together.",
+    meaTempDiff: "Difference = warmer − colder. Subtracting a negative adds it, so 5 − (−3) becomes 5 + 3 = 8. Counting up to zero and on past it gives the same answer, but the subtraction is quicker and does not slip.",
     meaInchConvert: "Convert in the order the question sets out, one unit at a time, and check what unit the answer is wanted in.",
     meaMoneyChange: "Work out each amount, add them, then subtract from the money handed over. Keep everything in the same units.",
     meaOverlapArea: "Add both rectangles, then subtract the overlap once — it was counted twice, once in each rectangle.",
@@ -2852,7 +3756,10 @@ const QUESTIONS = [];
     geoRotSymmetry: "Count how many times the shape looks the same in one full turn. For a regular polygon it equals the number of sides.",
     geoPrismFEV: "Use the formulas for an n-gonal prism: faces F = n + 2, edges E = 3n, vertices V = 2n. Counting only works for small bases.",
     geoCuboidMissingEdge: "Volume is length × width × height, so divide the volume by the two edges you know.",
-    geoRotationCoords: "Work relative to the centre of rotation, not the origin. Find how far across and up the point is from the centre, then swap and flip those steps according to the direction.",
+    /* geoRotationCoords and geoPrismFEV build their own explain, because a
+       worked substitution beats a general sentence. These entries are the
+       fallback if that ever stops happening, so they must not drift. */
+    geoRotationCoords: "About the centre (h, k): anticlockwise sends (x, y) to (−(y − k) + h, (x − h) + k); clockwise sends it to ((y − k) + h, −(x − h) + k). Take the centre off, swap the two, negate the first for anticlockwise or the second for clockwise, then add the centre back.",
     geoShapeProperty: "Check each statement against the shape one at a time. The question asks which is NOT true, so three will be correct.",
     geoShapeSplit: "Picture the cut. Count the sides of the piece that is left and check whether any are parallel or equal.",
     geoPolygonFromAngleSum: "The angles add to (sides − 2) × 180°, so divide the total by 180 and add 2.",
@@ -2940,7 +3847,8 @@ const QUESTIONS = [];
       [numCompareExpressions, 3, 3],      // four calculations, then compare
       [numRoundLargePlace, 2, 3], [numDigitProductCount, 4, 4], [numClosestToTarget, 3, 3],
       [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
-      [numLastDigitPower, 4, 4]           // spot the repeating cycle
+      [numLastDigitPower, 4, 4],  // spot the repeating cycle
+      [numWordsToDigits, 2, 2]            // words to digits, empty hundreds column
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -2985,7 +3893,12 @@ const QUESTIONS = [];
       [algTriangleAngles, 4, 4],          // several constraints at once
       [algThreeItemPricing, 4, 4],        // three unknowns
       [algSimultaneous, 4, 4],            // two equations, two unknowns
-      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3]
+      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3],
+      /* August QE/EPP papers */
+      [algPowerEquation, 2, 3],           // 2^x = 64
+      [algExpressionChange, 3, 3],        // build the expression, do not evaluate
+      [algRemainderDivisor, 3, 3],        // 40 / N = 3 remainder 4
+      [algInequalityInteger, 3, 4]        // 41 < 3y < 43
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -3032,7 +3945,16 @@ const QUESTIONS = [];
       [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
       [geoShadedArea, 4, 4],              // what is left after a cut-out
       [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
-      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4]
+      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4],
+      /* August QE/EPP papers */
+      [geoCompassTurn, 2, 3],             // direction after turning right angles
+      [geoCompassAngle, 2, 3],            // smallest turn between compass points
+      [geoSymmetryCombined, 2, 3],        // lines of symmetry of two named shapes
+      [geoSymmetryLetters, 2, 3],         // vertical mirror line in capitals
+      [geoParallelogramVertex, 3, 4],     // fourth vertex from three
+      [geoTriangleInequality, 3, 4],      // can these lengths make a triangle
+      [geoPolygonMissingAngle, 3, 4],     // angle sum with a reflex angle
+      [geoTransformCompose, 4, 4]         // translate, then rotate
     ],
     Statistics: [
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
@@ -3043,14 +3965,40 @@ const QUESTIONS = [];
       [statCombinedMean, 4, 4],           // weighted, not halfway
       [statMedianFromFreq, 4, 4],         // median out of a frequency table
       [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
-      [figPieChart, 2, 3], [figVennOnly, 3, 4]
+      [figPieChart, 2, 3], [figVennOnly, 3, 4],
+      [statMedianAngleTriangle, 4, 4]     // which value could be the median
+    ],
+    "Counting Principle": [
+      /* The topic had only hand-written questions before, and none that a
+         generator could vary. Pitched where the papers set it. */
+      [countHandshakes, 3, 3],                // pairs, so halve the double count
+      [countArrangeNoRepeat, 3, 4],           // n x (n-1) x (n-2)
+      [countArrangeFirstRestrict, 3, 4],      // zero may not lead
+      [countPlateLettersDigits, 3, 4],        // letters repeat, digits do not
+      [countChooseCommittee, 3, 4],           // order does not matter
+      [countEvenNoRepeat, 4, 4],              // fill the restricted place first
+      [countGreaterThan, 4, 4],               // only the leading digit is bound
+      [countWordRepeatedLetters, 4, 4],       // divide the repeats out
+      [countCircular, 4, 4],                  // no first seat round a table
+      [countGridPaths, 4, 4]                  // choose which moves go sideways
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
       [probExpected, 2, 2], [probIndependent, 3, 3],
       [probWithoutReplacement, 3, 4],     // the pool changes between picks
       [probTwoDiceSum, 4, 4],             // count the favourable pairs
-      [probAtLeastOne, 4, 4]              // easier via the complement
+      [probAtLeastOne, 4, 4],             // easier via the complement
+      /* Harder two-stage and complement work */
+      [probTwoSameColour, 3, 4],          // both red, nothing put back
+      [probConditionalSecond, 3, 4],      // the first pick has already happened
+      [probTwoWayTable, 3, 4],            // overlap taken off one group
+      [probFindOtherIndependent, 3, 4],   // worked backwards to the missing one
+      [probAtLeastOneSix, 3, 4],          // complement of "none at all"
+      [probOneOfEach, 4, 4],              // both orders count
+      [probTwoSpinnersSum, 4, 4],         // count the pairs making the total
+      [probAddToTarget, 4, 4],            // backwards from the probability
+      [probNotAllSame, 4, 4],             // 1 minus the two matching ways
+      [probThreeDrawsAllSame, 4, 4]       // three shrinking denominators
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
@@ -3061,7 +4009,8 @@ const QUESTIONS = [];
       [logClockAngleAtHour, 3, 3], [logClockMirror, 3, 3], [logSumAndDiff, 2, 2],
       [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
       [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2],
-      [logTimeZone, 4, 4]                 // hours ahead or behind, across midnight
+      [logTimeZone, 4, 4],                // hours ahead or behind, across midnight
+      [logClockReflexAngle, 3, 4]         // the reflex angle between the hands
     ]
   };
 
@@ -3076,6 +4025,7 @@ const QUESTIONS = [];
           const q = gen(v + gIdx * 13);
           if (!q) continue;
           q.difficulty = lo + (v % span);
+          q.template = gen.name;
           if (!q.explain && METHODS[gen.name]) q.explain = METHODS[gen.name];
           QUESTIONS.push(q);
         } catch (e) { /* skip bad seed */ }

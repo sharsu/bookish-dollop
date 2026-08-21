@@ -20,6 +20,7 @@
         <button class="btn btn-primary btn-large" data-test-type="maths">➗ Maths Test</button>
         <button class="btn btn-secondary btn-large" data-test-type="nvrt">🧩 NVRT Test</button>
         <button class="btn btn-secondary btn-large" data-test-type="english">📖 English Test</button>
+        <button id="revise-entry-btn" class="btn btn-learn btn-large">📚 Learn &amp; Practise</button>
       </div>
     </div>
   </div>
@@ -39,32 +40,12 @@
 
       <div class="setup-actions">
         <button id="start-btn" class="btn btn-primary btn-large">🚀 Start Test</button>
-        <button id="learn-topics-btn" class="btn btn-learn btn-large">📚 Learn Topics</button>
+        <button id="learn-topics-btn" class="btn btn-learn btn-large">📚 Learn &amp; Practise</button>
         <button id="setup-back-btn" class="btn btn-secondary btn-large">← Change Test Type</button>
       </div>
       <p id="setup-error" class="error-msg" hidden></p>
 
 
-    </div>
-  </div>
-
-  <!-- ══════════════ STUDY LIBRARY SCREEN ══════════════ -->
-  <div id="study-library-screen" class="screen" hidden>
-    <div class="results-card study-card">
-      <div class="results-header">
-        <div class="trophy">📚</div>
-        <h1>Learn Topics</h1>
-        <p class="results-name">Pick a topic to refresh your memory before you start a test.</p>
-      </div>
-
-      <div class="topic-breakdown">
-        <h2>Your Topic Library</h2>
-        <div id="study-library-grid" class="study-library-grid"></div>
-      </div>
-
-      <div class="results-actions">
-        <button id="study-library-back-btn" class="btn btn-secondary btn-large">← Back to Menu</button>
-      </div>
     </div>
   </div>
 
@@ -92,58 +73,156 @@
 
       <div class="topic-breakdown">
         <div class="study-section-head">
-          <h2>Sub-topic Menu</h2>
-          <p id="study-topic-menu-hint" class="study-section-copy">Choose a smaller idea to revise in detail.</p>
+          <h2>Skills in this topic</h2>
+          <p id="study-topic-menu-hint" class="study-section-copy">Choose one to read about and then practise.</p>
         </div>
-        <div id="study-concept-grid" class="study-concept-grid"></div>
+        <div id="study-topic-skill-grid" class="revise-skill-grid"></div>
       </div>
 
       <div class="results-actions">
-        <button id="study-topic-topics-btn" class="btn btn-secondary btn-large">← Back to Topics</button>
+        <button id="study-topic-topics-btn" class="btn btn-secondary btn-large">← All Topics</button>
         <button id="study-topic-menu-btn" class="btn btn-learn btn-large">🏠 Back to Menu</button>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════ STUDY CONCEPT SCREEN ══════════════ -->
-  <div id="study-concept-screen" class="screen" hidden>
-    <div class="results-card study-card study-topic-card">
+  <!-- ══════════════ LEARN & PRACTISE: TOPIC LIST ══════════════ -->
+  <div id="revise-library-screen" class="screen" hidden>
+    <div class="results-card study-card">
       <div class="results-header">
-        <div class="trophy" id="study-concept-icon">📘</div>
-        <p id="study-concept-topic" class="study-concept-badge">Topic</p>
-        <h1 id="study-concept-title">Concept</h1>
-        <p id="study-concept-summary" class="results-name"></p>
+        <div class="trophy">📚</div>
+        <h1>Learn &amp; Practise</h1>
+        <p class="results-name">Pick a topic, read the bit you need, then try it out.</p>
       </div>
 
-      <div class="topic-breakdown study-intro-panel">
-        <h2>What to understand</h2>
-        <div id="study-concept-explanation" class="study-paragraphs"></div>
+      <div id="revise-weak-panel" class="revise-weak" hidden>
+        <h2>Worth a look</h2>
+        <p class="revise-weak-copy">These came up in your recent papers and did not go well.</p>
+        <div id="revise-weak-grid" class="revise-skill-grid"></div>
       </div>
 
-      <div class="study-visual-panel study-visual-panel-full">
-        <div id="study-concept-visual" class="study-topic-visual study-topic-visual-full"></div>
-      </div>
-
-      <div class="study-guide-grid">
-        <div class="topic-breakdown">
-          <h2>How to do it</h2>
-          <ol id="study-concept-steps" class="study-list study-list-numbered"></ol>
-        </div>
-
-        <div class="topic-breakdown">
-          <h2>Helpful reminders</h2>
-          <ul id="study-concept-tips" class="study-list"></ul>
-        </div>
-      </div>
-
-      <div class="review-section">
-        <h2>Examples</h2>
-        <div id="study-concept-examples" class="study-example-grid"></div>
+      <div class="topic-breakdown">
+        <h2>Your Topic Library</h2>
+        <div id="study-library-grid" class="study-library-grid"></div>
       </div>
 
       <div class="results-actions">
-        <button id="study-concept-topic-btn" class="btn btn-secondary btn-large">← Back to Topic Menu</button>
-        <button id="study-concept-menu-btn" class="btn btn-learn btn-large">🏠 Back to Menu</button>
+        <button id="revise-library-back-btn" class="btn btn-secondary btn-large">← Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REVISION: SKILL CARD ══════════════ -->
+  <div id="revise-skill-screen" class="screen" hidden>
+    <div class="results-card study-card study-topic-card">
+      <div class="results-header">
+        <p id="revise-skill-topic" class="study-concept-badge">Topic</p>
+        <h1 id="revise-skill-title">Skill</h1>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>What this is</h2>
+        <p id="revise-skill-idea" class="study-copy"></p>
+      </div>
+
+      <!-- Teaching from the topic guide. Hidden when a skill has none. -->
+      <div id="revise-skill-explain-wrap" class="topic-breakdown study-intro-panel" hidden>
+        <h2>What to understand</h2>
+        <div id="revise-skill-explanation" class="study-paragraphs"></div>
+      </div>
+
+      <div id="revise-skill-visual-wrap" class="study-visual-panel study-visual-panel-full" hidden>
+        <div id="revise-skill-visual" class="study-topic-visual study-topic-visual-full"></div>
+      </div>
+
+      <div class="revise-rule">
+        <span class="revise-rule-heading">How to do it</span>
+        <p id="revise-skill-rule" class="revise-rule-text"></p>
+      </div>
+
+      <div id="revise-skill-guide-grid" class="study-guide-grid" hidden>
+        <div id="revise-skill-steps-wrap" class="topic-breakdown" hidden>
+          <h2>Step by step</h2>
+          <ol id="revise-skill-steps" class="study-list study-list-numbered"></ol>
+        </div>
+
+        <div id="revise-skill-tips-wrap" class="topic-breakdown" hidden>
+          <h2>Helpful reminders</h2>
+          <ul id="revise-skill-tips" class="study-list"></ul>
+        </div>
+      </div>
+
+      <div class="topic-breakdown">
+        <h2>Worked example</h2>
+        <p id="revise-skill-example" class="revise-example-q"></p>
+        <div id="revise-skill-figure" class="question-media" hidden></div>
+        <p id="revise-skill-answer" class="revise-example-a"></p>
+      </div>
+
+      <div id="revise-skill-examples-wrap" class="review-section" hidden>
+        <h2>More examples</h2>
+        <div id="revise-skill-examples" class="study-example-grid"></div>
+      </div>
+
+      <div id="revise-skill-trap-wrap" class="revise-trap" hidden>
+        <span class="revise-trap-heading">Watch out</span>
+        <p id="revise-skill-trap" class="revise-trap-text"></p>
+      </div>
+
+      <div class="results-actions">
+        <button id="revise-start-practice-btn" class="btn btn-primary btn-large">▶ Practise this</button>
+        <button id="revise-skill-back-btn" class="btn btn-secondary btn-large">← Back to Topic</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REVISION: PRACTICE ══════════════ -->
+  <div id="revise-practice-screen" class="screen" hidden>
+    <div class="results-card study-card">
+      <div class="revise-practice-head">
+        <div>
+          <p id="revise-practice-skill" class="study-concept-badge">Skill</p>
+          <h1 id="revise-practice-title">Practice</h1>
+        </div>
+        <div class="revise-practice-progress">
+          <span id="revise-practice-count" class="revise-practice-count">1 / 8</span>
+          <span id="revise-practice-level" class="q-difficulty-badge"></span>
+        </div>
+      </div>
+
+      <div class="revise-ladder" id="revise-ladder"></div>
+
+      <div class="question-card revise-question-card">
+        <p id="revise-practice-question" class="question-text"></p>
+        <div id="revise-practice-media" class="question-media" hidden></div>
+        <div id="revise-practice-options" class="options-container"></div>
+      </div>
+
+      <div id="revise-feedback" class="revise-feedback" hidden>
+        <p id="revise-feedback-verdict" class="revise-feedback-verdict"></p>
+        <p id="revise-feedback-answer" class="revise-feedback-answer"></p>
+        <div id="revise-feedback-method" class="revise-method" hidden>
+          <span class="revise-rule-heading">How to do it</span>
+          <p id="revise-feedback-method-text" class="revise-rule-text"></p>
+        </div>
+        <div class="revise-feedback-actions">
+          <button id="revise-recap-btn" class="btn btn-secondary">📖 Show me again</button>
+          <button id="revise-next-btn" class="btn btn-primary">Next →</button>
+        </div>
+      </div>
+
+      <div id="revise-summary" class="revise-summary" hidden>
+        <div class="trophy" id="revise-summary-icon">🎯</div>
+        <h2 id="revise-summary-verdict"></h2>
+        <p id="revise-summary-detail" class="results-name"></p>
+        <div class="results-actions">
+          <button id="revise-again-btn" class="btn btn-primary btn-large">🔄 Practise Again</button>
+          <button id="revise-summary-skills-btn" class="btn btn-secondary btn-large">← All Skills</button>
+        </div>
+      </div>
+
+      <div class="results-actions" id="revise-practice-actions">
+        <button id="revise-practice-quit-btn" class="btn btn-secondary">Stop practising</button>
       </div>
     </div>
   </div>
@@ -378,6 +457,7 @@
   <script src="js/passages-english.js"></script>
   <script src="js/questions-english.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/skills.js"></script>
   <script src="maths/study-guides.js"></script>
   <script src="maths/Numbers/guide.js"></script>
   <script src="maths/Decimals/guide.js"></script>
