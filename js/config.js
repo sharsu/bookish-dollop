@@ -14,9 +14,11 @@ const CONFIG = {
      A missing row, or a missing/invalid value inside one, falls back to
      defaultQuestions / defaultTimeLimit above. */
   papers: {
-    maths:   { questions: 60, timeLimit: 40 },   // minutes
-    nvrt:    { questions: 60, timeLimit: 40 },
-    english: { questions: 65, timeLimit: 55 }
+    /* 45 minutes each, matching the QE Boys papers, which run 45 for English
+       and 45 for Maths. Maths and NVRT were 40, so those go slightly up. */
+    maths:   { questions: 60, timeLimit: 45 },   // minutes
+    nvrt:    { questions: 60, timeLimit: 45 },
+    english: { questions: 65, timeLimit: 45 }
   },
 
   /* Topic display names – must match QUESTIONS[i].topic exactly */
@@ -76,22 +78,25 @@ const CONFIG = {
   /* ── Which difficulties a paper may draw on ──────────────────────────
      1 = Easy, 2 = Medium, 3 = Hard, 4 = Super Hard.
 
-     Papers currently skip Easy questions entirely and run Medium upwards.
-     To change that, edit the lists below — no other file needs touching:
+     While preparing for the QE exam, papers are set to Hard and Super Hard
+     only — Easy and Medium are both skipped. To change that, edit the lists
+     below; no other file needs touching:
 
        • put a test type's own list in `allowedDifficulties` to override it
          for that test only, e.g.  english: [1, 2, 3, 4]
        • or change `default` to apply to every test type at once
 
-     To go back to including Easy questions everywhere, set:
+     To put Medium back, set:
+         default: [2, 3, 4]
+     and to include Easy as well:
          default: [1, 2, 3, 4]
      Order does not matter, and an empty or invalid list falls back to all
      four levels so a typo can never leave a paper with nothing to draw on. */
   allowedDifficulties: {
-    default: [2, 3, 4]
-    // maths:   [2, 3, 4],
-    // nvrt:    [2, 3, 4],
-    // english: [2, 3, 4]
+    default: [3, 4]          // QE prep: Hard and Super Hard only
+    // maths:   [3, 4],
+    // nvrt:    [3, 4],
+    // english: [3, 4]
   },
 
   /* Grade boundaries (%) */
