@@ -571,7 +571,22 @@ function getAllowedDifficulties(testType) {
 function dedupeByPrintedQuestion(pool) {
   const seen = new Set();
   return pool.filter(q => {
-    const key = String(q.question).trim() + "|" + (q.questionImage || q.questionImageAlt || "");
+    /* Whether the options belong in the identity depends on where the question
+       keeps its content.
+
+       A self-contained stem states its own numbers - "A fair coin is flipped 3
+       times..." - so it is one question however its distractors are dressed,
+       and printing it twice in a paper is a repeat.
+
+       A generic stem carries none: "Which of these four words is spelled
+       incorrectly?" is a frame, and the words in the options are the question.
+       Several of those in one paper is normal, and keying on the stem alone
+       collapsed 363 spelling questions to 61. */
+    const stem = String(q.question).trim();
+    const selfContained = /\d/.test(stem);
+    const key = [stem,
+                 selfContained ? "" : (q.options || []).map(o => String(o).trim()).join("~"),
+                 q.questionImage || q.questionImageAlt || ""].join("|");
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
