@@ -444,7 +444,38 @@
                   `${say(seriesB, labelB)}.` };
   }
 
+
+  /* Triangular-number patterns as rows of dots, the way the papers draw them. */
+  function dotTriangles({ upto }) {
+    const r = 6, gap = 19, colGap = 34, pad = 18;
+    const widths = Array.from({ length: upto }, (_, k) => k + 1);
+    /* A column has to be at least as wide as its caption: "Pattern 1" is wider
+       than a one-dot triangle, and centring it under the dots pushed it off the
+       left edge of the canvas. */
+    const LABEL_W = 62;
+    const cellW = n => Math.max(n * gap, LABEL_W);
+    let x = pad, body = "";
+    const h = pad * 2 + upto * gap + 26;
+    widths.forEach((rows, idx) => {
+      const w = cellW(rows);
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col <= row; col++) {
+          const cx = x + w / 2 - (row * gap) / 2 + col * gap;
+          const cy = pad + row * gap;
+          body += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${FILL}"/>`;
+        }
+      }
+      body += text(x + w / 2, pad + upto * gap + 16, `Pattern ${idx + 1}`, { size: 11, fill: "#475569" });
+      x += w + colGap;
+    });
+    const counts = widths.map(n => (n * (n + 1)) / 2);
+    return { image: wrap(x - colGap + pad, h, body),
+             alt: `Patterns of dots arranged in triangles. ` +
+                  counts.map((c, k) => `Pattern ${k + 1} has ${c} dot${c === 1 ? "" : "s"}`).join(", ") + "." };
+  }
+
   root.DIAGRAMS = { shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
-                    shapeChoices, triangleRow, triangleStrip, distanceTimeTwo };
+                    shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
+                    dotTriangles };
 })();
