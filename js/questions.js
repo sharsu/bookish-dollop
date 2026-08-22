@@ -2170,11 +2170,29 @@ const QUESTIONS = [];
   function seqFibMissingStart(i) {
     const t1 = 1 + (i % 7), t2 = 2 + ((i * 3) % 9);
     const t3 = t1 + t2, t4 = t2 + t3, t5 = t3 + t4, t6 = t4 + t5;
-    return mk("Sequences",
+    const q = mk("Sequences",
       `In this sequence each term is the sum of the two terms before it. The 3rd, 4th, 5th and 6th terms are ${t3}, ${t4}, ${t5} and ${t6}. What is the 1st term?`,
-      /* t3 - t1 is t2, so two distractors were the same number. */
+      /* t3 - t1 is t2, so two distractors were the same number. t5 - t4 is the
+         3rd term, which is the answer a child gets by stopping one step early. */
       `${t1}`, [`${t2}`, `${t5 - t4}`, `${Math.abs(t2 - t1)}`, `${t2 + 1}`],
       4, i);
+    if (!q) return null;
+
+    /* Getting back to the 1st term takes TWO subtractions, and saying only
+       "subtract one term from the next" stops a child at the 2nd. The hint
+       walks both steps with this question's own numbers, and names what
+       stopping early gives. */
+    q.explain =
+      `Each term is the two before it added, so going backwards you subtract — but it takes ` +
+      `two steps, not one.
+` +
+      `Step 1 — the 2nd term: 4th − 3rd = ${t4} − ${t3} = ${t2}.
+` +
+      `Step 2 — the 1st term: 3rd − 2nd = ${t3} − ${t2} = ${t1}.
+` +
+      `Stopping after one subtraction gives ${t5 - t4}, which is just the 3rd term ` +
+      `printed in the question.`;
+    return q;
   }
 
   /* ── Speed ── */
@@ -3711,7 +3729,7 @@ const QUESTIONS = [];
     seqMatchstickNth: "The number in front of n is how many are added for each new pattern. Then adjust so pattern 1 comes out right.",
     seqQuadraticNext: "The differences are not constant, so look at the differences between the differences. Continue that, then work back up.",
     seqNthFromTwoTerms: "Divide the gap between the two values by the gap between their positions to get the common difference, then work back to the first term.",
-    seqFibMissingStart: "Work backwards: each term is the two before it added, so subtracting one term from the next gives the one you are missing.",
+    seqFibMissingStart: "Work backwards with two subtractions, not one. The 4th minus the 3rd gives the 2nd term; then the 3rd minus that 2nd gives the 1st. One subtraction only gets you as far as the 2nd term.",
 
     /* Ratio */
     ratSimplify: "Divide both sides by their highest common factor.",
