@@ -25,6 +25,10 @@
   const FILL_SOFT = "#c7d2fe";
   const FONT = "font-family='Segoe UI,Helvetica,Arial,sans-serif'";
 
+
+  /* For alt text: "an isosceles triangle", "a rectangle". */
+  const article = word => (/^[aeiou]/i.test(String(word).trim()) ? "an" : "a");
+
   const uri = svg =>
     `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/>\s+</g, "><").trim())}`;
 
@@ -299,5 +303,148 @@
                     `${label ? `${label} is at` : "A point at"} (${px}, ${py})`).join("; ") + "." };
   }
 
-  root.DIAGRAMS = { shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo, lShape, anglesOnLine, coordGrid };
+
+  /* ── Named plane shapes, and their symmetry ──
+     Drawn from real coordinates so the picture and the stated symmetry cannot
+     disagree. Each entry gives the outline in a 0..1 box, the number of lines of
+     symmetry and the order of rotational symmetry. */
+  /* Coordinates are in a SQUARE unit box, and the drawing cell must be square
+     too - stretching the box turned the equilateral triangle into a merely
+     isosceles one. Three of these were wrong on the first pass: the "rhombus"
+     was a square stood on its corner, so it had four lines of symmetry rather
+     than two; the equilateral triangle was 2% short in height; and the
+     right-angled triangle had legs so nearly equal that it read as isosceles,
+     which would have given it a line of symmetry it is not supposed to have. */
+  const SHAPES = {
+    square:              { lines: 4, order: 4, pts: [[.1,.1],[.9,.1],[.9,.9],[.1,.9]] },
+    rectangle:           { lines: 2, order: 2, pts: [[.05,.25],[.95,.25],[.95,.75],[.05,.75]] },
+    /* Unequal diagonals, or it would be a square. */
+    rhombus:             { lines: 2, order: 2, pts: [[.5,.12],[.98,.5],[.5,.88],[.02,.5]] },
+    parallelogram:       { lines: 0, order: 2, pts: [[.28,.2],[.98,.2],[.72,.8],[.02,.8]] },
+    kite:                { lines: 1, order: 1, pts: [[.5,.04],[.9,.4],[.5,.96],[.1,.4]] },
+    "isosceles trapezium": { lines: 1, order: 1, pts: [[.28,.22],[.72,.22],[.96,.8],[.04,.8]] },
+    /* Height is base x root 3 over 2, so all three sides really are equal. */
+    "equilateral triangle": { lines: 3, order: 3, pts: [[.5,.138],[.94,.9],[.06,.9]] },
+    "isosceles triangle":   { lines: 1, order: 1, pts: [[.5,.06],[.82,.9],[.18,.9]] },
+    "scalene triangle":     { lines: 0, order: 1, pts: [[.22,.1],[.95,.62],[.06,.9]] },
+    /* Legs clearly unequal, so it is not an isosceles right-angled triangle. */
+    "right-angled triangle":{ lines: 0, order: 1, pts: [[.14,.05],[.14,.9],[.8,.9]] },
+    "regular pentagon":  { lines: 5, order: 5, pts: [[.5,.08],[.947,.405],[.776,.93],[.224,.93],[.053,.405]] },
+    "regular hexagon":   { lines: 6, order: 6, pts: [[.96,.5],[.73,.898],[.27,.898],[.04,.5],[.27,.102],[.73,.102]] },
+    arrowhead:           { lines: 1, order: 1, pts: [[.5,.06],[.94,.94],[.5,.66],[.06,.94]] },
+    "L-shape":           { lines: 0, order: 1, pts: [[.08,.08],[.6,.08],[.6,.5],[.94,.5],[.94,.94],[.08,.94]] }
+  };
+
+  const shapePath = (name, x, y, w, h) => {
+    const def = SHAPES[name];
+    if (!def) return "";
+    const pts = def.pts.map(([u, v]) => `${(x + u * w).toFixed(1)},${(y + v * h).toFixed(1)}`).join(" ");
+    return `<polygon points="${pts}" fill="none" stroke="${INK}" stroke-width="2"/>`;
+  };
+
+  /* Five candidate shapes in a row, lettered A to E, exactly as the papers set
+     them: the options a child picks are the letters, and the figure carries the
+     drawings - the same arrangement js/questions-nvrt.js already uses. */
+  function shapeChoices({ names, letters = ["A", "B", "C", "D", "E"] }) {
+    const cell = 96, gap = 14, pad = 12, box = 88;   // box is square
+    const w = pad * 2 + names.length * cell + (names.length - 1) * gap;
+    const h = 152;
+    let body = "";
+    names.forEach((name, i) => {
+      const x = pad + i * (cell + gap);
+      body += shapePath(name, x + (cell - box) / 2, 12, box, box) +
+              text(x + cell / 2, 136, letters[i], { size: 15, weight: 700, fill: FILL });
+    });
+    return { image: wrap(w, h, body),
+             alt: `Five shapes lettered A to E: ` +
+                  names.map((n, i) => `${letters[i]} is ${article(n)} ${n}`).join(", ") + "." };
+  }
+
+  /* A row of triangles to be named left to right. */
+  function triangleRow({ kinds }) {
+    const cell = 104, gap = 16, pad = 14;
+    const w = pad * 2 + kinds.length * cell + (kinds.length - 1) * gap;
+    const h = 122;
+    let body = "";
+    kinds.forEach((kind, i) => {
+      const x = pad + i * (cell + gap), box = 88;     // square, as above
+      body += shapePath(`${kind} triangle`, x + (cell - box) / 2, 10, box, box);
+      /* A right angle is what tells that triangle apart, so it is marked. */
+      if (kind === "right-angled") {
+        const bx = x + (cell - box) / 2 + box * 0.14, by = 10 + box * 0.9;
+        body += `<polyline points="${bx},${by - 11} ${bx + 11},${by - 11} ${bx + 11},${by}" ` +
+                `fill="none" stroke="${INK}" stroke-width="1.5"/>`;
+      }
+      body += text(x + cell / 2, 112, `${i + 1}`, { size: 13, weight: 700, fill: FILL });
+    });
+    return { image: wrap(w, h, body),
+             alt: `Four triangles numbered 1 to 4 from left to right: ` +
+                  kinds.map((k, i) => `${i + 1} is ${k}`).join(", ") + "." };
+  }
+
+  /* A parallelogram cut into a strip of triangles, some of them shaded. Counting
+     triangles is the point, so they are all the same size and alternate. */
+  function triangleStrip({ total, shaded }) {
+    const tw = 44, th = 76, pad = 14;
+    const w = pad * 2 + (total + 1) * (tw / 2);
+    const h = th + pad * 2;
+    let body = "";
+    for (let k = 0; k < total; k++) {
+      const x0 = pad + k * (tw / 2);
+      const up = k % 2 === 0;
+      const pts = up
+        ? `${x0},${pad + th} ${x0 + tw},${pad + th} ${x0 + tw / 2},${pad}`
+        : `${x0},${pad} ${x0 + tw},${pad} ${x0 + tw / 2},${pad + th}`;
+      body += `<polygon points="${pts}" fill="${k < shaded ? FILL_SOFT : "#ffffff"}" ` +
+              `stroke="${INK}" stroke-width="1.5"/>`;
+    }
+    return { image: wrap(w, h, body),
+             alt: `A shape divided into ${total} equal triangles, of which ${shaded} ` +
+                  `${shaded === 1 ? "is" : "are"} shaded.` };
+  }
+
+  /* Two journeys on one pair of axes, which is how the papers ask for the gap
+     between them at a given time. */
+  function distanceTimeTwo({ seriesA, seriesB, labelA = "A", labelB = "B",
+                             xLabel = "Time (hours)", yLabel = "Distance (miles)" }) {
+    const padL = 50, padB = 38, padT = 34, plotW = 230, plotH = 158;
+    const w = padL + plotW + 60, h = padT + plotH + padB;
+    const all = seriesA.concat(seriesB);
+    const maxX = Math.max(...all.map(p => p[0])), maxY = Math.max(...all.map(p => p[1]));
+    const X = v => padL + (v / maxX) * plotW, Y = v => padT + plotH - (v / maxY) * plotH;
+
+    let body = "";
+    for (let gx = 0; gx <= maxX; gx++) {
+      body += `<line x1="${X(gx)}" y1="${padT}" x2="${X(gx)}" y2="${padT + plotH}" stroke="${GRID}" stroke-width="1"/>` +
+              text(X(gx), padT + plotH + 15, gx, { size: 11 });
+    }
+    for (let k = 0; k <= 4; k++) {
+      const v = (maxY / 4) * k;
+      body += `<line x1="${padL}" y1="${Y(v)}" x2="${padL + plotW}" y2="${Y(v)}" stroke="${GRID}" stroke-width="1"/>` +
+              text(padL - 7, Y(v) + 4, v, { anchor: "end", size: 11 });
+    }
+    body += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>` +
+            `<line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>`;
+
+    const draw = (pts, colour, label) => {
+      const path = pts.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+      const last = pts[pts.length - 1];
+      return `<polyline points="${path}" fill="none" stroke="${colour}" stroke-width="2.5"/>` +
+             pts.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.5" fill="${colour}"/>`).join("") +
+             text(X(last[0]) + 7, Y(last[1]) + 4, label, { anchor: "start", size: 12, weight: 700, fill: colour });
+    };
+    body += draw(seriesA, FILL, labelA) + draw(seriesB, "#b45309", labelB);
+    body += text(padL + plotW / 2, h - 6, xLabel, { size: 11, fill: "#475569" }) +
+            text(4, padT - 16, yLabel, { anchor: "start", size: 11, fill: "#475569" });
+
+    const say = (pts, label) => `${label} passes through ` +
+      pts.map(p => `(${p[0]}, ${p[1]})`).join(", ");
+    return { image: wrap(w, h, body),
+             alt: `A distance-time graph with two journeys. ${say(seriesA, labelA)}. ` +
+                  `${say(seriesB, labelB)}.` };
+  }
+
+  root.DIAGRAMS = { shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+                    lShape, anglesOnLine, coordGrid,
+                    shapeChoices, triangleRow, triangleStrip, distanceTimeTwo };
 })();
