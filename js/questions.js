@@ -3167,9 +3167,20 @@ const QUESTIONS = [];
      position. */
 
   /* Two parameters taken off the same modulus move together, so 50 seeds
-     collapse to a handful of questions. axis() splits one seed into
-     independent digits: axis(i, 0, 6) and axis(i, 1, 6) roam freely. */
-  const axis = (i, place, span) => Math.floor(i / span ** place) % span;
+     collapse to a handful of questions. axis() spreads one seed across several
+     parameters instead.
+
+     There are only VARIATIONS_PER_TEMPLATE seeds - 50 - so the budget is small
+     and honesty about it matters. Dividing by span-to-the-power-place, as the
+     first version did, meant axis(i, 2, 9) divided by 81 and never moved at
+     all: one template's answer was the same number in all 50 questions. Place 0
+     and place 1 are genuinely independent, seven seeds apart; place 2 is instead
+     phase-shifted by a stride coprime to most spans, which is the most a
+     50-seed budget can honestly give. */
+  const axis = (i, place, span) =>
+    place === 0 ? i % span
+      : place === 1 ? Math.floor(i / 7) % span
+        : (i * 3 + 1) % span;
 
   const fact = n => { let r = 1; for (let k = 2; k <= n; k++) r *= k; return r; };
   const nPr = (n, r) => { let v = 1; for (let k = 0; k < r; k++) v *= (n - k); return v; };
@@ -3895,6 +3906,222 @@ const QUESTIONS = [];
       4, i);
   }
 
+  /* ═══════════════════ HARDER SEQUENCES AND BIDMAS ═══════════════════
+     These two topics had the thinnest top end in the bank: Sequences had two
+     templates at Hard and BIDMAS two, against thirteen for Geometry. Parameters
+     are taken off independent axes so each template yields tens of distinct
+     questions rather than a handful, and each passes four or five candidate
+     distractors so nudge() never has to invent one. */
+
+  /* "n² + 3n − 2", with the coefficients that read as 1 or 0 left out. */
+  const quadraticTerm = (a, b, c) => {
+    const parts = [];
+    parts.push(a === 1 ? "n²" : `${a}n²`);
+    if (b) parts.push(`${b < 0 ? "− " : "+ "}${Math.abs(b) === 1 ? "n" : `${Math.abs(b)}n`}`);
+    if (c) parts.push(`${c < 0 ? "− " : "+ "}${Math.abs(c)}`);
+    return parts.join(" ");
+  };
+
+  /* The nth term of a sequence whose SECOND differences are constant. */
+  function seqQuadraticNth(i) {
+    const a = 1 + axis(i, 0, 3);              // second difference is 2a
+    const b = axis(i, 1, 5) - 1;
+    const c = axis(i, 2, 4) - 1;
+    const term = n => a * n * n + b * n + c;
+    const shown = [1, 2, 3, 4, 5].map(term);
+    if (shown.some(v => v <= 0) || shown[0] === shown[1]) return null;
+    const ans = quadraticTerm(a, b, c);
+    const wrong = [quadraticTerm(a, b + 1, c), quadraticTerm(a + 1, b, c),
+                   quadraticTerm(a, b, c + 1), quadraticTerm(a === 1 ? 2 : 1, b, c)]
+      .filter(t => t !== ans);
+    if (wrong.length < 3) return null;
+    return mk("Sequences",
+      `What is the nth term of this sequence?\n${shown.join(", ")}, ...`,
+      ans, wrong.slice(0, 4), 4, i);
+  }
+
+  /* Which position holds a given value: the nth term run backwards. */
+  function seqWhichTerm(i) {
+    const first = 2 + axis(i, 0, 8), step = 3 + axis(i, 1, 7);
+    const pos = 12 + axis(i, 2, 9) * 4;
+    const value = first + (pos - 1) * step;
+    return mk("Sequences",
+      `A sequence starts ${first}, ${first + step}, ${first + 2 * step}, ${first + 3 * step}, ` +
+      `and carries on in the same way. Which term is ${comma(value)}?`,
+      `the ${pos}th term`,
+      [`the ${pos + 1}th term`,              // forgot the sequence starts at term 1
+       `the ${pos - 1}th term`,
+       `the ${Math.round(value / step)}th term`,
+       `the ${pos + 2}th term`],
+      3 + (i % 2), i);
+  }
+
+  /* The sum of the first n terms, which is n lots of the average of the ends. */
+  function seqArithSum(i) {
+    const first = 1 + axis(i, 0, 9), step = 2 + axis(i, 1, 6);
+    const n = 10 + axis(i, 2, 5) * 5;
+    const last = first + (n - 1) * step;
+    const total = n * (first + last) / 2;
+    if (!Number.isInteger(total)) return null;
+    return mk("Sequences",
+      `A sequence starts ${first}, ${first + step}, ${first + 2 * step}, and goes up in ` +
+      `${step}s. What is the total of its first ${n} terms?`,
+      comma(total),
+      [comma(n * last),                       // n lots of the last term
+       comma(n * first),                      // n lots of the first
+       comma(total - last),
+       comma((first + last) / 2)],            // just the average
+      4, i);
+  }
+
+  /* Triangular numbers, drawn as the papers draw them. */
+  function seqTriangular(i) {
+    if (!D) return null;
+    const shown = 4 + (i % 2);                // how many patterns are pictured
+    const want = 9 + axis(i, 1, 8);
+    const tri = n => n * (n + 1) / 2;
+    const ans = tri(want);
+    return mkFig("Sequences",
+      `The patterns above are made of dots. How many dots are in pattern ${want}?`,
+      comma(ans),
+      [comma(want * want),                    // squared instead
+       comma(tri(want - 1)),                  // one pattern short
+       comma(want * (want + 1)),              // forgot to halve
+       comma(ans + want)],
+      3 + (i % 2), i, D.dotTriangles({ upto: shown }));
+  }
+
+  /* Two sequences laid alternately in one list. */
+  function seqInterleaved(i) {
+    const oddStart = 1 + axis(i, 0, 5), oddStep = 2 + axis(i, 1, 4);
+    const evenStart = 10 + axis(i, 2, 5) * 5, evenStep = 5 + axis(i, 0, 4) * 5;
+    const at = k => (k % 2 === 1
+      ? oddStart + ((k - 1) / 2) * oddStep
+      : evenStart + (k / 2 - 1) * evenStep);
+    const shown = [1, 2, 3, 4, 5, 6].map(at);
+    const want = 9;
+    const ans = at(want);
+    if (new Set(shown).size !== shown.length) return null;
+    return mk("Sequences",
+      `Two sequences have been placed alternately in this list.\n${shown.join(", ")}, ...\n` +
+      `What is the ${want}th number in the list?`,
+      `${ans}`,
+      [`${at(want + 1)}`,                     // read the other sequence
+       `${ans + oddStep}`,
+       `${at(want - 2)}`,
+       `${ans - oddStep}`],
+      4, i);
+  }
+
+  /* A rule that uses the term before it, with one term left out. */
+  function seqRecurrenceMissing(i) {
+    const mult = 2 + axis(i, 0, 2), add = 1 + axis(i, 1, 6);
+    const start = 1 + axis(i, 2, 5);
+    const terms = [start];
+    for (let k = 1; k < 5; k++) terms.push(terms[k - 1] * mult + add);
+    const hole = 2 + (i % 2);                 // index of the hidden term
+    const shown = terms.map((v, k) => (k === hole ? "?" : `${v}`));
+    const ans = terms[hole];
+    return mk("Sequences",
+      `In this sequence each term is ${mult === 2 ? "double" : `${mult} times`} the term ` +
+      `before it, plus ${add}.\n${shown.join(", ")}\nWhat is the missing term?`,
+      comma(ans),
+      [comma(terms[hole - 1] * mult),         // forgot to add
+       comma(terms[hole - 1] + add),          // forgot to multiply
+       comma(terms[hole + 1] - add),
+       comma(ans + add)],
+      3 + (i % 2), i);
+  }
+
+  /* ── BIDMAS ── */
+
+  /* A fraction bar groups everything above it and everything below it. */
+  function bidFractionBar(i) {
+    /* Build the top FROM the bottom so the division always comes out exactly;
+       filtering for it instead threw away two seeds in three. */
+    const c = 1 + axis(i, 0, 5), d = 1 + axis(i, 1, 5);
+    const bottom = c + d;
+    const ans = 2 + axis(i, 2, 9);
+    const top = bottom * ans;
+    const b = 2 + (i % (top - 2 > 1 ? Math.min(top - 2, 9) : 1));
+    const a = top - b;
+    if (a < 2 || b < 2) return null;
+    return mk("BIDMAS",
+      `What is the value of (${a} + ${b}) ÷ (${c} + ${d})?`,
+      `${ans}`,
+      /* Rounded, or these print as 23.666666666666668 beside a whole number and
+         give the answer away by their shape alone. */
+      [`${fmt(+(a + b / c + d).toFixed(2))}`,     // ignored both brackets
+       `${fmt(+(a + b / (c + d)).toFixed(2))}`,   // ignored the first
+       `${fmt(+((a + b) / c + d).toFixed(2))}`,   // ignored the second
+       `${ans + 1}`, `${ans - 1}`],
+      3 + (i % 2), i);
+  }
+
+  /* A square root and a power inside the same calculation. */
+  function bidRootsAndPowers(i) {
+    const roots = [[9, 16, 25], [16, 9, 25], [36, 64, 100], [25, 144, 169], [4, 21, 25]];
+    const [p, q, sum] = roots[i % roots.length];
+    if (p + q !== sum) return null;
+    const power = 2 + axis(i, 1, 3);
+    const base = 2 + axis(i, 2, 3);
+    const ans = Math.sqrt(sum) + base ** power;
+    return mk("BIDMAS",
+      `What is the value of √(${p} + ${q}) + ${base}${power === 2 ? "²" : power === 3 ? "³" : `^${power}`}?`,
+      `${comma(ans)}`,
+      [`${comma(Math.sqrt(p) + Math.sqrt(q) + base ** power)}`,   // rooted each part
+       `${comma(Math.sqrt(sum) + base * power)}`,                 // multiplied instead
+       `${comma(Math.sqrt(sum + base ** power))}`,                // rooted the lot
+       `${comma(ans + base)}`],
+      4, i);
+  }
+
+  /* Three of these are equal; which is the odd one out? */
+  function bidNotEqual(i) {
+    const a = 2 + axis(i, 0, 5), b = 3 + axis(i, 1, 5), c = 2 + axis(i, 2, 4);
+    const value = a * (b + c);
+    const same = [`${a} × (${b} + ${c})`, `${a} × ${b} + ${a} × ${c}`, `(${b} + ${c}) × ${a}`];
+    const odd = `${a} × ${b} + ${c}`;
+    if (a * b + c === value) return null;      // it has to differ
+    return mk("BIDMAS",
+      "Three of these expressions have the same value. Which is the odd one out?",
+      odd, same, 4, i);
+  }
+
+  /* Where the minus sign sits changes everything: −3² is not (−3)². */
+  function bidNegativePower(i) {
+    const a = 2 + axis(i, 0, 7), b = 2 + axis(i, 1, 6);
+    if (a === b) return null;
+    const ans = -(a * a) + b * b;
+    return mk("BIDMAS",
+      `What is the value of −${a}² + (−${b})²?`,
+      `${ans}`,
+      [`${a * a + b * b}`,                    // read both as positive
+       `${-(a * a) - b * b}`,                 // read both as negative
+       `${(a * a) - b * b}`,
+       `${ans + 2 * a}`],
+      3 + (i % 2), i);
+  }
+
+  /* Insert brackets into a four-term calculation to reach a target. */
+  function bidBracketsFourTerms(i) {
+    const a = 2 + axis(i, 0, 6), b = 1 + axis(i, 1, 6),
+          c = 2 + axis(i, 2, 5), d = 1 + axis(i, 0, 5);
+    const forms = [
+      { text: `(${a} + ${b}) × (${c} + ${d})`, value: (a + b) * (c + d) },
+      { text: `${a} + ${b} × (${c} + ${d})`,   value: a + b * (c + d) },
+      { text: `(${a} + ${b} × ${c}) + ${d}`,   value: a + b * c + d },
+      { text: `(${a} + ${b}) × ${c} + ${d}`,   value: (a + b) * c + d }
+    ];
+    const target = forms[0].value;
+    /* Only one arrangement may reach the target, or there are two right answers. */
+    if (forms.filter(f => f.value === target).length !== 1) return null;
+    return mk("BIDMAS",
+      `Where must the brackets go for this calculation to equal ${comma(target)}?\n` +
+      `${a} + ${b} × ${c} + ${d}`,
+      forms[0].text, forms.slice(1).map(f => f.text), 4, i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -3929,6 +4156,19 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* harder sequences and BIDMAS */
+    seqQuadraticNth: "The differences are not constant, so look at the differences BETWEEN the differences. That second difference is twice the number in front of n squared. Then work out the rest by putting n = 1 into what you have so far.",
+    seqWhichTerm: "Find the rule first, then run it backwards. Take the first term off the value, divide by the step, and add 1 back on because the first term is term 1, not term 0.",
+    seqArithSum: "Do not add them one at a time. Pair the first term with the last: every such pair makes the same total, and there are half as many pairs as terms. So the sum is the number of terms times the average of the two ends.",
+    seqTriangular: "Each pattern adds one more row than the last, so pattern n has 1 + 2 + ... + n dots. That total is n × (n + 1) ÷ 2 — do not forget to halve.",
+    seqRecurrenceMissing: "Apply the rule to the term just before the gap: multiply first, then add. Doing only one of the two steps is the usual slip.",
+    seqInterleaved: "There are two sequences here, not one. Read every other number: the 1st, 3rd, 5th belong together and the 2nd, 4th, 6th belong together. Work out which one the position you want falls in.",
+    bidFractionBar: "A bracket, or a fraction bar, means work that part out completely first. Add the top, add the bottom, then divide — never divide before adding.",
+    bidRootsAndPowers: "The root sign is a bracket: add what is under it before rooting. Roots and powers both come before adding, so do them, then add. The square root of a sum is not the sum of the square roots.",
+    bidNotEqual: "Work every option out fully before comparing. Multiplying out a bracket gives the same answer as the bracket did, so the odd one out is usually the one missing its bracket.",
+    bidNegativePower: "Where the minus sign sits changes everything. − 3² means take 3 squared and make it negative, so −9; but (−3)² means −3 times −3, which is +9.",
+    bidBracketsFourTerms: "Work out what each arrangement of brackets would give, then match against the target. Brackets change which operation happens first, and only one placement hits the number.",
 
     /* question-bank/20260822 */
     geoShapeFromSymmetry: "Test both properties, not just one. Lines of symmetry are mirror lines; the order of rotational symmetry is how many times the shape looks the same in a full turn. A rectangle has 2 and 2; a square has 4 and 4; a parallelogram has 0 lines but order 2.",
@@ -4257,7 +4497,13 @@ const QUESTIONS = [];
       [bidMixed, 2, 3], [bidNegative, 3, 3], [bidTempChange, 2, 2],
       [bidNestedBrackets, 4, 4],          // brackets inside brackets, with a power
       [bidMissingOperator, 4, 4],         // choose the operations
-      [bidInsertBrackets, 4, 4]           // place the brackets
+      [bidInsertBrackets, 4, 4],
+      /* harder BIDMAS */
+      [bidFractionBar, 3, 4],             // the bar groups top and bottom
+      [bidNegativePower, 3, 4],           // -3 squared is not (-3) squared
+      [bidRootsAndPowers, 4, 4],          // a root and a power together
+      [bidNotEqual, 4, 4],                // three are equal, one is not
+      [bidBracketsFourTerms, 4, 4]        // place brackets in four terms           // place the brackets
     ],
     Algebra: [
       [algSubLinear, 1, 1], [algSubMulti, 2, 3], [algSubQuadratic, 3, 3],
@@ -4281,7 +4527,14 @@ const QUESTIONS = [];
       [seqQuadraticNext, 4, 4],           // the gaps themselves grow
       [seqNthFromTwoTerms, 4, 4],         // rule from two scattered terms
       [seqFibMissingStart, 4, 4],         // Fibonacci-like, worked backwards
-      [seqQuadraticDecreasing, 4, 4]      // falling terms, growing gaps
+      [seqQuadraticDecreasing, 4, 4],
+      /* harder sequences */
+      [seqWhichTerm, 3, 4],               // which position holds this value
+      [seqTriangular, 3, 4],              // dot patterns, drawn
+      [seqRecurrenceMissing, 3, 4],       // a rule using the term before
+      [seqQuadraticNth, 4, 4],            // nth term with a constant 2nd difference
+      [seqArithSum, 4, 4],                // total of the first n terms
+      [seqInterleaved, 4, 4]              // two sequences laid alternately      // falling terms, growing gaps
     ],
     Ratio: [
       [ratSimplify, 1, 1], [ratSplit, 2, 2], [ratWordTotal, 2, 2],
