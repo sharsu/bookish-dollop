@@ -4143,6 +4143,219 @@ const QUESTIONS = [];
       forms[0].text, forms.slice(1).map(f => f.text), 4, i);
   }
 
+  /* ═══════════════════ HARDER DECIMALS AND RATIO ═══════════════════
+     Both topics had three templates at Hard, against thirteen for Geometry.
+     Nothing here repeats an existing template: decMultFactReuse already divides
+     using a given fact, so the new one multiplies; ratAfterChange already
+     changes both parts of a ratio, so the new one adds to just one; and
+     ratRecipe already scales a recipe. */
+
+  /* Multiplying or dividing by a tenth or a hundredth: the digits do not
+     change, only where the point sits. */
+  function decMultiplyBySmall(i) {
+    const value = (12 + axis(i, 0, 40)) / 10 * (i % 2 ? 1 : 10);   // one or two dp
+    const smalls = [0.1, 0.01, 0.001];
+    const small = smalls[axis(i, 1, 3)];
+    const divide = axis(i, 2, 2) === 0;
+    const ans = divide ? value / small : value * small;
+    const tidy = n => fmt(Number(n.toFixed(6)));
+    if (`${tidy(ans)}`.replace(/[^0-9]/g, "").length > 7) return null;
+    return mk("Decimals",
+      `What is ${fmt(value)} ${divide ? "÷" : "×"} ${small}?`,
+      tidy(ans),
+      [tidy(divide ? value * small : value / small),   // shifted the wrong way
+       tidy(value),                                    // did not shift at all
+       tidy(ans * 10), tidy(ans / 10)],
+      3 + (i % 2), i);
+  }
+
+  /* One list, three different notations: they have to be compared in a single
+     form before any of them can be ordered. */
+  function decOrderMixed(i) {
+    const base = 55 + axis(i, 0, 35);                  // percent, 55..89
+    const spread = [4, 6, 8, 11][axis(i, 1, 4)];
+    const asPercents = [base, base + spread, base + 2 * spread, base + 3 * spread];
+    if (asPercents.some(p => p >= 100)) return null;
+    const forms = asPercents.map((p, k) => {
+      if (k === 0) return { text: `${fmt(p / 100)}`, value: p };
+      if (k === 1) return { text: `${p}%`, value: p };
+      if (k === 2) return { text: `${fmt(p / 100)}`, value: p };
+      return { text: `${p}%`, value: p };
+    });
+    const wantLargest = i % 2 === 0;
+    const sorted = forms.slice().sort((a, b) => a.value - b.value);
+    const ans = wantLargest ? sorted[sorted.length - 1] : sorted[0];
+    const others = forms.filter(f => f.text !== ans.text).map(f => f.text);
+    if (new Set(forms.map(f => f.text)).size !== 4) return null;
+    return mk("Decimals",
+      `Which of these is the ${wantLargest ? "largest" : "smallest"}?`,
+      ans.text, others, 3 + (i % 2), i);
+  }
+
+  /* Which is better value: the comparison has to be made per gram, not per pack. */
+  function decUnitPrice(i) {
+    const gramsA = 100 * (2 + axis(i, 0, 4));
+    const perHundredA = 40 + axis(i, 1, 30);           // pence per 100 g
+    const gramsB = 100 * (3 + axis(i, 2, 5));
+    const perHundredB = perHundredA + (i % 2 ? 6 : -6);
+    if (gramsA === gramsB || perHundredB <= 0) return null;
+    const costA = gramsA / 100 * perHundredA, costB = gramsB / 100 * perHundredB;
+    const cheaper = perHundredA < perHundredB ? "A" : "B";
+    const per = perHundredA < perHundredB ? perHundredA : perHundredB;
+    return mk("Decimals",
+      `Pack A holds ${comma(gramsA)} g and costs ${fmtMoney(costA / 100)}. ` +
+      `Pack B holds ${comma(gramsB)} g and costs ${fmtMoney(costB / 100)}. ` +
+      `Which is better value, and what does 100 g cost in that pack?`,
+      `Pack ${cheaper}, at ${per}p per 100 g`,
+      [`Pack ${cheaper === "A" ? "B" : "A"}, at ${perHundredA < perHundredB ? perHundredB : perHundredA}p per 100 g`,
+       `Pack ${cheaper}, at ${per + 5}p per 100 g`,
+       `Pack ${cheaper === "A" ? "B" : "A"}, at ${per}p per 100 g`,
+       `Pack ${cheaper}, at ${per - 5 > 0 ? per - 5 : per + 10}p per 100 g`],
+      3 + (i % 2), i);
+  }
+
+  /* A whole-number product handed over, and a decimal one asked for. */
+  function decMultiplyGivenFact(i) {
+    const a = 12 + axis(i, 0, 40), b = 14 + axis(i, 1, 30);
+    const product = a * b;
+    const shiftA = 1 + axis(i, 2, 2), shiftB = 1 + (i % 2);
+    const da = a / 10 ** shiftA, db = b / 10 ** shiftB;
+    const ans = product / 10 ** (shiftA + shiftB);
+    const tidy = n => fmt(Number(n.toFixed(6)));
+    return mk("Decimals",
+      `Given that ${comma(a)} × ${comma(b)} = ${comma(product)}, what is ${fmt(da)} × ${fmt(db)}?`,
+      tidy(ans),
+      [tidy(ans * 10),                       // one place out
+       tidy(ans / 10),
+       comma(product),                       // ignored the decimal points
+       tidy(ans * 100)],
+      4, i);
+  }
+
+  /* Money shared out where the division does not come out evenly. */
+  function decMoneySplit(i) {
+    const people = 3 + axis(i, 0, 6);
+    const pence = people * (120 + axis(i, 1, 60)) + (1 + axis(i, 2, 8));
+    const each = Math.floor(pence / people);
+    const over = pence - each * people;
+    if (!over) return null;
+    return mk("Decimals",
+      `${fmtMoney(pence / 100)} is shared as equally as possible between ${people} people, ` +
+      `in whole pence. How much is left over?`,
+      `${over}p`,
+      [`${people - over}p`, `${over + 1}p`, `${each}p`, `${people}p`],
+      4, i);
+  }
+
+  /* ── Ratio ── */
+
+  /* Three parts, not two: the number of shares is the sum of all three. */
+  function ratThreePart(i) {
+    const p = 1 + axis(i, 0, 5), q = 2 + axis(i, 1, 5), r = 3 + axis(i, 2, 4);
+    const shares = p + q + r;
+    const unit = 4 + (i % 9);
+    const total = shares * unit;
+    const askDifference = i % 2 === 0;
+    const biggest = Math.max(p, q, r), smallest = Math.min(p, q, r);
+    if (biggest === smallest) return null;
+    const ans = askDifference ? (biggest - smallest) * unit : q * unit;
+    return mk("Ratio",
+      askDifference
+        ? `${comma(total)} sweets are shared in the ratio ${p} : ${q} : ${r}. What is the ` +
+          `difference between the largest share and the smallest share?`
+        : `${comma(total)} sweets are shared in the ratio ${p} : ${q} : ${r}. How many are ` +
+          `in the second share?`,
+      comma(ans),
+      /* Extra candidates so a collision between equal parts never falls through
+         to an invented option. */
+      [comma(total / shares),                // one share
+       comma(askDifference ? biggest * unit : p * unit),
+       comma(askDifference ? (biggest + smallest) * unit : r * unit),
+       comma(ans + unit), comma(ans - unit), comma(total - ans)],
+      3 + (i % 2), i);
+  }
+
+  /* A fraction of the whole, turned into a ratio of the two parts, or back. */
+  function ratFractionOfWhole(i) {
+    const part = 1 + axis(i, 0, 6), whole = part + 1 + axis(i, 1, 6);
+    const other = whole - part;
+    const g = gcd(part, other) || 1;
+    const toRatio = i % 2 === 0;
+    if (part >= whole) return null;
+    return toRatio
+      ? mk("Ratio",
+          `In a class, ${part}/${whole} of the pupils are boys. What is the ratio of boys ` +
+          `to girls, in its simplest form?`,
+          `${part / g} : ${other / g}`,
+          [`${part} : ${whole}`,             // boys to everyone, not to girls
+           `${other / g} : ${part / g}`,     // the wrong way round
+           `${part} : ${other + 1}`,
+           /* When the ratio is 1 : 1 most of the candidates above collapse into
+              each other, and nudge() invented "7 : 1". These two always differ. */
+           `${whole} : ${part}`, `${part + 1} : ${other}`, `${whole} : ${other}`,
+           `${part} : ${other + 2}`, `${part + 2} : ${other}`],
+          3 + (i % 2), i)
+      : mk("Ratio",
+          `In a class the ratio of boys to girls is ${part / g} : ${other / g}. What ` +
+          `fraction of the class are boys?`,
+          simp(part, whole),
+          [simp(part, other),                // boys over girls, not over the class
+           simp(other, whole),
+           simp(other, part),
+           simp(part + 1, whole), simp(part, whole + 1), simp(whole, part + other)],
+          3 + (i % 2), i);
+  }
+
+  /* Better value across different pack sizes, where neither is a round multiple. */
+  function ratBestValue(i) {
+    const unitPence = 7 + axis(i, 0, 9);
+    const sizeA = 4 + axis(i, 1, 5), sizeB = sizeA + 2 + axis(i, 2, 4);
+    const costA = sizeA * unitPence;
+    const costB = sizeB * (unitPence - 1);                 // B is the better value
+    if (unitPence <= 1) return null;
+    return mk("Ratio",
+      `A pack of ${sizeA} pens costs ${fmtMoney(costA / 100)} and a pack of ${sizeB} pens ` +
+      `costs ${fmtMoney(costB / 100)}. How much cheaper is one pen from the better-value pack?`,
+      `1p`,
+      [`${unitPence}p`, `${unitPence - 1}p`, `2p`, `${sizeB - sizeA}p`],
+      3 + (i % 2), i);
+  }
+
+  /* How much has to move from one side to the other to even them up. */
+  function ratEqualise(i) {
+    const each = 12 + axis(i, 0, 20);
+    const gap = 2 * (1 + axis(i, 1, 8));                  // even, so it halves
+    const a = each + gap / 2, b = each - gap / 2;
+    if (b <= 0) return null;
+    return mk("Ratio",
+      `Amir has ${a} marbles and Beth has ${b}. How many must Amir give Beth so that they ` +
+      `have the same number each?`,
+      `${gap / 2}`,
+      [`${gap}`,                             // moved the whole difference
+       `${gap / 2 + 1}`,
+       `${a - b + 1}`,
+       `${Math.round(a / 2)}`],
+      4, i);
+  }
+
+  /* Two ratios written differently: are they the same, and which is bigger? */
+  function ratCompareTwoRatios(i) {
+    const p = 2 + axis(i, 0, 5), q = 3 + axis(i, 1, 5);
+    const k = 2 + axis(i, 2, 4);
+    const equivalent = i % 2 === 0;
+    const r = equivalent ? p * k : p * k + 1, s = q * k;
+    const ans = equivalent ? "They are equivalent"
+      : (p / q > r / s ? `${p} : ${q} is the larger` : `${r} : ${s} is the larger`);
+    const others = ["They are equivalent",
+                    `${p} : ${q} is the larger`,
+                    `${r} : ${s} is the larger`].filter(t => t !== ans);
+    if (others.length < 2) return null;
+    return mk("Ratio",
+      `Compare the ratios ${p} : ${q} and ${r} : ${s}. Which statement is true?`,
+      ans, others.concat(["Neither can be compared"]),
+      3 + (i % 2), i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -4177,6 +4390,18 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* harder decimals and ratio */
+    decMultiplyBySmall: "Multiplying by 0.1 makes a number ten times SMALLER, and dividing by 0.1 makes it ten times bigger. The digits never change - only where the point sits. Count the places: 0.01 is two, 0.001 is three.",
+    decOrderMixed: "Put them all in one form before comparing. Percentages become decimals by moving the point two places left, so 88% is 0.88. Then compare place by place from the left.",
+    decUnitPrice: "Work out what the same amount costs in each pack — per 100 g is easiest. Divide the price by the number of hundreds of grams. The bigger pack is not always the better value.",
+    decMultiplyGivenFact: "Use the product you are given and then count decimal places. 4.7 has one and 0.41 has two, so the answer has three: 1927 becomes 1.927.",
+    decMoneySplit: "Work in pence throughout. Divide to find the whole pence each, multiply back to see how much that used, and the rest is what is left over. The leftover is always less than the number of people.",
+    ratThreePart: "Add all three parts to find how many shares there are, divide the total by that to get one share, then multiply. For the difference, use the largest part minus the smallest.",
+    ratFractionOfWhole: "A fraction compares a part with the WHOLE; a ratio compares the two parts with each other. If 3/8 are boys then 5/8 are girls, so the ratio is 3 : 5 — not 3 : 8.",
+    ratBestValue: "Find the cost of one item in each pack by dividing the price by how many are in it. Compare those, then take one from the other.",
+    ratEqualise: "Only half the difference has to move. Giving away the whole difference overshoots and leaves the other person ahead by the same amount.",
+    ratCompareTwoRatios: "Turn each ratio into a single number by dividing the first part by the second, then compare. Or scale both ratios so one side matches, and look at the other side.",
 
     /* harder sequences and BIDMAS */
     seqQuadraticNth: "The differences are not constant, so look at the differences BETWEEN the differences. That second difference is twice the number in front of n squared. Then work out the rest by putting n = 1 into what you have so far.",
@@ -4491,7 +4716,13 @@ const QUESTIONS = [];
       [decMultFactReuse, 3, 4],           // reuse a known product, shift place value
       [decPriceChange, 3, 3],             // increase then decrease
       [decDivideByDecimal, 4, 4],         // dividing by a number below 1
-      [decChainedOf, 4, 4]                // decimal of a decimal of a whole
+      [decChainedOf, 4, 4],               // decimal of a decimal of a whole
+      /* harder decimals */
+      [decMultiplyBySmall, 3, 4],         // the point shifts, the digits do not
+      [decOrderMixed, 3, 4],              // decimals against percentages
+      [decUnitPrice, 3, 4],               // better value, per 100 g
+      [decMultiplyGivenFact, 4, 4],       // a whole-number product handed over
+      [decMoneySplit, 4, 4]               // shared out, with pence left over
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -4565,7 +4796,13 @@ const QUESTIONS = [];
       [ratAfterChange, 4, 4],             // ratio before and after a change
       [ratMapReverse, 3, 3],
       [ratThreeCategories, 4, 4],         // three kinds, a ratio across another split
-      [ratInverseTime, 4, 4]              // more power, less time
+      [ratInverseTime, 4, 4],             // more power, less time
+      /* harder ratio */
+      [ratThreePart, 3, 4],               // three parts, not two
+      [ratFractionOfWhole, 3, 4],         // fraction of the whole, and back
+      [ratBestValue, 3, 4],               // per-item cost across pack sizes
+      [ratCompareTwoRatios, 3, 4],        // equivalent, or one larger
+      [ratEqualise, 4, 4]                 // move enough to even them up
     ],
     Speed: [
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
