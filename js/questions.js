@@ -3558,6 +3558,343 @@ const QUESTIONS = [];
       3 + (i % 2), i);
   }
 
+  /* ═══════════════════ FROM question-bank/20260822 ═══════════════════
+     Shapes the bank had no template for. The visual ones use js/diagrams.js
+     the way the NVRT bank does: the figure carries the drawing and the options
+     are the letters, so nothing new is needed in the renderer. */
+
+  const LETTERS = ["A", "B", "C", "D", "E"];
+
+  /* Which shape has BOTH a given number of lines of symmetry and a given order
+     of rotational symmetry? Exactly one option may qualify, so the shapes that
+     share the target - a rectangle and a rhombus both have 2 and 2 - must never
+     appear together. */
+  const SYMMETRY_TARGETS = [
+    { lines: 2, order: 2, matches: ["rectangle", "rhombus"] },
+    { lines: 1, order: 1, matches: ["kite", "isosceles trapezium", "isosceles triangle", "arrowhead"] },
+    { lines: 4, order: 4, matches: ["square"] },
+    { lines: 3, order: 3, matches: ["equilateral triangle"] },
+    { lines: 0, order: 2, matches: ["parallelogram"] },
+    { lines: 6, order: 6, matches: ["regular hexagon"] },
+    { lines: 5, order: 5, matches: ["regular pentagon"] }
+  ];
+  const ALL_SHAPES = ["square", "rectangle", "rhombus", "parallelogram", "kite",
+                      "isosceles trapezium", "equilateral triangle", "isosceles triangle",
+                      "scalene triangle", "right-angled triangle", "regular pentagon",
+                      "regular hexagon", "arrowhead", "L-shape"];
+
+  function geoShapeFromSymmetry(i) {
+    if (!D) return null;
+    const target = SYMMETRY_TARGETS[i % SYMMETRY_TARGETS.length];
+    const answerShape = target.matches[Math.floor(i / SYMMETRY_TARGETS.length) % target.matches.length];
+
+    /* Anything else that also matches the target is barred, or the question
+       would have two right answers. */
+    const others = ALL_SHAPES.filter(n => !target.matches.includes(n));
+    const chosen = [];
+    for (let k = 0; chosen.length < 4 && k < others.length * 2; k++) {
+      const cand = others[(i * 3 + k) % others.length];
+      if (!chosen.includes(cand)) chosen.push(cand);
+    }
+    if (chosen.length < 4) return null;
+
+    const slot = i % 5;
+    const names = chosen.slice();
+    names.splice(slot, 0, answerShape);
+    return mkFig("Geometry",
+      `A shape has ${target.lines} line${target.lines === 1 ? "" : "s"} of symmetry and ` +
+      `rotational symmetry of order ${target.order}. Which of these shapes is it?`,
+      `Shape ${LETTERS[slot]}`,
+      LETTERS.filter((_, k) => k !== slot).map(L => `Shape ${L}`),
+      3 + (i % 2), i, D.shapeChoices({ names }));
+  }
+
+  /* Naming triangles from their pictures, left to right. */
+  const TRIANGLE_KINDS = ["equilateral", "isosceles", "scalene", "right-angled"];
+
+  function geoNameTriangles(i) {
+    if (!D) return null;
+    /* A fixed rotation of the four names, so the order differs run to run. */
+    const shift = i % 4;
+    const kinds = TRIANGLE_KINDS.map((_, k) => TRIANGLE_KINDS[(k + shift) % 4]);
+    const asList = arr => arr.join(", ");
+    const wrongs = [
+      [kinds[1], kinds[0], kinds[2], kinds[3]],
+      [kinds[0], kinds[1], kinds[3], kinds[2]],
+      [kinds[3], kinds[2], kinds[1], kinds[0]],
+      [kinds[2], kinds[3], kinds[0], kinds[1]]
+    ].map(asList).filter(t => t !== asList(kinds));
+    if (wrongs.length < 3) return null;
+    return mkFig("Geometry",
+      `The four triangles above are numbered 1 to 4 from left to right. Which of these ` +
+      `names them in the right order?`,
+      asList(kinds), wrongs.slice(0, 3),
+      3 + (i % 2), i, D.triangleRow({ kinds }));
+  }
+
+  /* A shape cut into equal triangles, some shaded. */
+  function figShadedTriangles(i) {
+    if (!D) return null;
+    const total = 6 + (i % 7);
+    const shaded = 1 + (i % (total - 2));
+    if (shaded >= total) return null;
+    return mkFig("Fractions",
+      "What fraction of this shape is shaded? Give your answer in its simplest form.",
+      simp(shaded, total),
+      [simp(total - shaded, total),          // counted the unshaded triangles
+       `${shaded}/${total}`,                 // right count, never cancelled
+       simp(shaded + 1, total),
+       simp(shaded, total + 1)],
+      3, i, D.triangleStrip({ total, shaded }));
+  }
+
+  /* Two journeys on one pair of axes: how far apart at a given time. */
+  function figTwoTravellersGraph(i) {
+    if (!D) return null;
+    const hours = 4;
+    const fast = 15 + (i % 4) * 5, slow = 5 + (i % 3) * 5;
+    if (fast === slow) return null;
+    const at = 2 + (i % 2);
+    const seriesA = Array.from({ length: hours + 1 }, (_, k) => [k, fast * k]);
+    const seriesB = Array.from({ length: hours + 1 }, (_, k) => [k, slow * k]);
+    const gap = (fast - slow) * at;
+    return mkFig("Speed",
+      `The graph shows two cyclists setting out from the same place along the same road. ` +
+      `How many miles apart are they after ${at} hours?`,
+      `${gap} miles`,
+      [`${(fast + slow) * at} miles`,        // added the distances
+       `${fast * at} miles`,                 // read only the faster one
+       `${fast - slow} miles`,               // the gap after one hour
+       `${gap + slow} miles`],
+      4, i, D.distanceTimeTwo({ seriesA, seriesB, labelA: "Ann", labelB: "Ben" }));
+  }
+
+  /* The modal value read off a bar chart: the height that occurs most often. */
+  function figBarChartMode(i) {
+    if (!D) return null;
+    const labels = ["Mar", "Apr", "May", "Jun", "Jul"];
+    const mode = 20 + (i % 5) * 10;
+    const others = [mode + 10, mode - 10, mode + 20].map(v => (v <= 0 ? mode + 30 : v));
+    /* The modal value appears three times and nothing else more than once. */
+    const values = [mode, others[0], mode, others[1], mode];
+    if (new Set(others).size < 3) return null;
+    return mkFig("Statistics",
+      `The bar chart shows the number of customers each month. What is the modal number ` +
+      `of customers?`,
+      `${mode}`,
+      [`${Math.max(...values)}`,             // the tallest bar
+       `${Math.round(values.reduce((a, b) => a + b, 0) / values.length)}`,  // the mean
+       `${values.slice().sort((a, b) => a - b)[2]}`,                        // the median
+       `${others[0]}`],
+      3, i, D.barChart({ labels, values, axisLabel: "Customers" }));
+  }
+
+  /* Counting square and cube numbers in a list, then combining the counts.
+     1 is both, and is counted in both, which is the trap. */
+  function numSquaresMinusCubes(i) {
+    const squares = [4, 9, 16, 25, 36, 49, 64, 81, 100];
+    const cubes = [8, 27, 64, 125];
+    const plain = [10, 15, 20, 22, 29, 33, 40, 45, 50, 55];
+    const sq = squares.filter((_, k) => (k + i) % 3 === 0).slice(0, 3);
+    const cu = [cubes[i % cubes.length]];
+    const filler = plain.filter((_, k) => (k + i) % 4 === 0).slice(0, 2);
+    const list = [...new Set([1, ...sq, ...cu, ...filler])].sort((a, b) => a - b);
+
+    /* Count from the finished list, never from the pieces it was built out of:
+       1 is both a square and a cube, and so is 64, so adding up the parts
+       double-counted and produced a difference that was not even prime. */
+    const cubeRoot = n => Math.round(Math.cbrt(n));
+    const nSquares = list.filter(n => isSquare(n)).length;
+    const nCubes = list.filter(n => cubeRoot(n) ** 3 === n).length;
+    const ans = nSquares - nCubes;
+    if (ans < 2 || !isPrime(ans)) return null;
+    return mk("Numbers",
+      `Look at this list of numbers: ${list.join(", ")}. Subtracting the number of cube ` +
+      `numbers in the list from the number of square numbers gives a prime number. ` +
+      `What is that prime number?`,
+      `${ans}`,
+      [`${nSquares}`, `${nCubes}`, `${ans + 1}`, `${ans + 2}`],
+      4, i);
+  }
+
+
+  /* Litres in, millilitres out: the conversion is the whole difficulty. */
+  function meaPourFromContainer(i) {
+    const litres = [0.5, 0.7, 0.8, 1.2, 1.5, 0.9][i % 6];
+    const total = Math.round(litres * 1000);
+    const poured = 125 + (i % 8) * 25;
+    if (poured >= total) return null;
+    const left = total - poured;
+    return mk("Measurement",
+      `A beaker holds ${fmt(litres)} litres of water. ${poured} ml is poured out of it. ` +
+      `How much water is left in the beaker?`,
+      `${comma(left)} ml`,
+      [`${comma(total - poured * 2)} ml`, `${comma(poured)} ml`,
+       `${comma(Math.round(litres * 100) - poured)} ml`,   // treated litres as 100 ml
+       `${comma(left + 100)} ml`],
+      3, i);
+  }
+
+  /* Three kinds in a box, a ratio across a different split, and a subtraction. */
+  function ratThreeCategories(i) {
+    const ratio = 3 + (i % 4);                   // without : with
+    const total = (ratio + 1) * (6 + (i % 4));   // divides exactly
+    const withNuts = total / (ratio + 1);
+    const first = 5 + (i % 5), second = Math.floor(total / 2) - (i % 4);
+    const third = total - first - second;
+    const ans = third - withNuts;
+    if (third <= 0 || ans <= 0 || withNuts >= third) return null;
+    return mk("Ratio",
+      `A box of ${total} chocolates holds white, dark and milk chocolates. Only the milk ` +
+      `ones can contain nuts. There are ${ratio} times as many chocolates without nuts as ` +
+      `with nuts. There are ${first} white and ${second} dark chocolates. How many milk ` +
+      `chocolates in the box have no nuts?`,
+      `${ans}`,
+      [`${third}`,          // all the milk chocolates
+       `${withNuts}`,       // the ones with nuts
+       `${total - withNuts}`,
+       `${ans + 1}`],
+      4, i);
+  }
+
+  /* True or false about factors, odd, even and square numbers. */
+  const FACTOR_CLAIMS = {
+    true: [
+      "Every number is a factor of itself.",
+      "1 is a factor of every whole number.",
+      "Square numbers always have an odd number of factors.",
+      "Even numbers always have 2 as one of their factors.",
+      "A prime number has exactly two factors.",
+      "The factors of a number are never larger than the number itself."
+    ],
+    false: [
+      "Even numbers only have even numbers as factors.",
+      "Odd numbers only have odd numbers as factors.",
+      "Every number has an even number of factors.",
+      "A number always has more factors than the number before it.",
+      "Prime numbers are all odd."
+    ]
+  };
+
+  function numFactorStatements(i) {
+    /* "Odd numbers only have odd factors" is in fact true, so it must not be
+       offered as the false one - only the genuinely false claims are. */
+    const wrong = FACTOR_CLAIMS.false.filter(c => !/^Odd numbers only/.test(c));
+    const ans = wrong[i % wrong.length];
+    const rights = [];
+    for (let k = 0; rights.length < 3; k++) {
+      const cand = FACTOR_CLAIMS.true[(i + k) % FACTOR_CLAIMS.true.length];
+      if (!rights.includes(cand)) rights.push(cand);
+      if (k > 20) break;
+    }
+    if (rights.length < 3) return null;
+    return mk("Numbers",
+      "Which one of these statements is FALSE?",
+      ans, rights, 4, i);
+  }
+
+  /* Speed where the time is given in minutes, so it has to become hours first. */
+  function spdSpeedFromMinutes(i) {
+    const minutes = [12, 15, 20, 24, 30, 6, 10][i % 7];
+    const speed = (60 + (i % 8) * 30);
+    const distance = speed * minutes / 60;
+    if (!Number.isInteger(distance)) return null;
+    return mk("Speed",
+      `A jet travels ${comma(distance)} km in ${minutes} minutes. What is its average speed?`,
+      `${comma(speed)} km/h`,
+      [`${comma(distance)} km/h`,                       // forgot to convert at all
+       `${comma(Math.round(distance / minutes))} km/h`, // km per minute
+       `${comma(speed / 2)} km/h`,
+       `${comma(distance * minutes)} km/h`],
+      3 + (i % 2), i);
+  }
+
+  /* Everyday quantities: is a banana 20 g, 200 g or 2 kg? */
+  const ESTIMATES = [
+    ["an unpeeled banana", "200 g", ["20 g", "600 g", "2 kg", "50 g"]],
+    ["a full can of drink", "330 g", ["33 g", "3 kg", "10 g", "900 g"]],
+    ["a bag of sugar", "1 kg", ["10 g", "100 g", "50 kg", "5 g"]],
+    ["a large watermelon", "5 kg", ["500 g", "50 g", "50 kg", "5 g"]],
+    ["a chicken egg", "60 g", ["6 g", "600 g", "6 kg", "2 kg"]],
+    ["an adult bicycle", "12 kg", ["1 kg", "120 kg", "120 g", "500 g"]],
+    ["a paperback book", "300 g", ["30 g", "3 kg", "30 kg", "3 g"]],
+    ["a teaspoon of salt", "5 g", ["50 g", "500 g", "5 kg", "1 kg"]]
+  ];
+
+  function meaEstimateWeight(i) {
+    const [thing, ans, wrong] = ESTIMATES[i % ESTIMATES.length];
+    return mk("Measurement",
+      `Which of these is the best estimate for the weight of ${thing}?`,
+      ans, wrong.slice(0, 3), 3, i);
+  }
+
+  /* Cutting the corner off a regular polygon: what is left has one more side
+     than a child expects, because the cut replaces one vertex with an edge. */
+  /* Joining the two neighbours of one vertex removes that vertex and adds none,
+     so the piece left always has one side fewer than the polygon. A square was
+     wrongly listed as leaving a trapezium: it leaves a triangle, and that
+     triangle is both isosceles and right-angled, so the square is left out
+     rather than asked with two defensible answers. */
+  const POLYGON_CUTS = [
+    ["regular pentagon", 5, "isosceles trapezium"],
+    ["regular hexagon", 6, "irregular pentagon"],
+    ["regular heptagon", 7, "irregular hexagon"],
+    ["regular octagon", 8, "irregular heptagon"]
+  ];
+
+  function geoSplitPolygon(i) {
+    const [poly, , rest] = POLYGON_CUTS[i % POLYGON_CUTS.length];
+    const wrong = ["isosceles triangle", "rectangle", "parallelogram", "rhombus",
+                   "irregular pentagon", "isosceles trapezium", "irregular hexagon"]
+      .filter(n => n !== rest);
+    return mk("Geometry",
+      `A ${poly} is cut into two pieces by a single straight line joining the two vertices ` +
+      `either side of one corner. One piece is an isosceles triangle. What is the other piece?`,
+      rest,
+      [wrong[i % wrong.length], wrong[(i + 3) % wrong.length], wrong[(i + 5) % wrong.length]],
+      4, i);
+  }
+
+  /* One of one thing and several of another: the trap is multiplying both. */
+  function numMultiItemTotal(i) {
+    const brush = 89 + (i % 8) * 10;             // pence
+    const paints = 379 + (i % 6) * 50;
+    const count = 2 + (i % 3);
+    const total = paints + brush * count;
+    return mk("Measurement",
+      `A paintbrush costs ${fmtMoney(brush / 100)} and a set of paints costs ` +
+      `${fmtMoney(paints / 100)}. Oliver buys one set of paints and ${count} paintbrushes. ` +
+      `How much does he pay altogether?`,
+      fmtMoney(total / 100),
+      [fmtMoney((paints * count + brush * count) / 100),   // multiplied both
+       fmtMoney((paints + brush) / 100),                   // only one brush
+       fmtMoney((paints * count + brush) / 100),
+       fmtMoney((total + brush) / 100)],
+      3, i);
+  }
+
+  /* Inverse proportion from a table of settings: more power, less time. */
+  function ratInverseTime(i) {
+    const powers = [600, 650, 700, 750, 800, 900];
+    const a = powers[i % powers.length];
+    const b = powers[(i + 2 + (i % 3)) % powers.length];
+    if (a === b) return null;
+    const seconds = 60 + (i % 5) * 30;
+    const needed = a * seconds;
+    if (needed % b !== 0) return null;
+    const ans = needed / b;
+    return mk("Ratio",
+      `A pudding needs ${seconds} seconds in ${article(`${a}`)} ${a} watt microwave. ` +
+      `The same pudding needs the same total energy in any oven. How long should it be ` +
+      `cooked in ${article(`${b}`)} ${b} watt microwave?`,
+      `${ans} seconds`,
+      [`${seconds} seconds`,                                  // ignored the change
+       `${Math.round(seconds * b / a)} seconds`,              // scaled the wrong way
+       `${ans + 10} seconds`,
+       `${Math.round(seconds + (b - a) / 10)} seconds`],
+      4, i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -3592,6 +3929,22 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* question-bank/20260822 */
+    geoShapeFromSymmetry: "Test both properties, not just one. Lines of symmetry are mirror lines; the order of rotational symmetry is how many times the shape looks the same in a full turn. A rectangle has 2 and 2; a square has 4 and 4; a parallelogram has 0 lines but order 2.",
+    geoNameTriangles: "Compare the sides and the angles. Equilateral has three equal sides, isosceles exactly two, scalene none. A right-angled triangle is marked with a small square at the corner — and it is scalene as well unless two sides match.",
+    geoSplitPolygon: "Joining the two corners either side of one vertex cuts that vertex off, so the piece left has one side fewer than the shape started with. A pentagon leaves a four-sided shape, a hexagon leaves a five-sided one.",
+    figBarChartMode: "The mode is the value that comes up most often, not the tallest bar and not the average. Read every bar off the scale, then look for the height that repeats.",
+    numSquaresMinusCubes: "Go through the list twice, once for each kind. Remember 1 is both a square number and a cube number, and 64 is too, so those get counted in both lists.",
+    numFactorStatements: "Try each claim on a small number before believing it. 6 is even but has 3 as a factor, which kills \"even numbers only have even factors\"; and every number has 1 as a factor.",
+    meaPourFromContainer: "Put both amounts in the same unit before subtracting. 1 litre is 1,000 ml, so 0.7 litres is 700 ml — not 70 and not 7.",
+    meaEstimateWeight: "Compare against something you have held. A bag of sugar is 1 kg, a can of drink about 330 g, an egg about 60 g. Then pick the option nearest in size.",
+    numMultiItemTotal: "Only the item bought several times gets multiplied. Work out that part first, then add the single item once.",
+    ratThreeCategories: "Two separate splits are going on. The ratio tells you how many have nuts out of the whole box; the counts tell you how many are milk. Take the first from the second.",
+    ratInverseTime: "More power means less time, so this is inverse proportion. Multiply the watts by the seconds to get the energy, then divide by the new wattage.",
+    spdSpeedFromMinutes: "Speed per hour needs the time in hours. Divide the minutes by 60 first: 12 minutes is 0.2 hours, so 120 km in 12 minutes is 120 ÷ 0.2 = 600 km/h.",
+    figTwoTravellersGraph: "Read both lines at the time you are asked about, then subtract. Adding them gives the total distance travelled, which is not the gap between them.",
+    figShadedTriangles: "Count the shaded triangles and the triangles altogether, write one over the other, then cancel down. Every triangle is the same size, so counting is enough.",
 
     /* Counting Principle, and the harder probability work */
     countArrangeNoRepeat: "Fill the places one at a time and multiply. With nothing reused the choices shrink by one each time: 6 digits into 4 places is 6 × 5 × 4 × 3 = 360, not 6 to the power 4.",
@@ -3866,7 +4219,9 @@ const QUESTIONS = [];
       [numRoundLargePlace, 2, 3], [numDigitProductCount, 4, 4], [numClosestToTarget, 3, 3],
       [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
       [numLastDigitPower, 4, 4],  // spot the repeating cycle
-      [numWordsToDigits, 2, 2]            // words to digits, empty hundreds column
+      [numWordsToDigits, 2, 2],           // words to digits, empty hundreds column
+      [numSquaresMinusCubes, 4, 4],       // count squares and cubes in one list
+      [numFactorStatements, 4, 4]         // which claim about factors is false
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -3885,7 +4240,8 @@ const QUESTIONS = [];
       [fracReverseTwoStage, 4, 4],        // two fractions removed, worked back
       [fracOfRemainderMoney, 4, 4],       // fraction of what was left
       [fracBetweenTwo, 4, 4],             // strictly between two fractions
-      [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3]
+      [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3],
+      [figShadedTriangles, 3, 3]          // a shape cut into equal triangles
     ],
     Percentages: [
       [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
@@ -3933,7 +4289,9 @@ const QUESTIONS = [];
       [ratInverseProp, 3, 3],             // inverse proportion
       [ratChained, 4, 4],                 // link two ratios
       [ratAfterChange, 4, 4],             // ratio before and after a change
-      [ratMapReverse, 3, 3]
+      [ratMapReverse, 3, 3],
+      [ratThreeCategories, 4, 4],         // three kinds, a ratio across another split
+      [ratInverseTime, 4, 4]              // more power, less time
     ],
     Speed: [
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
@@ -3942,7 +4300,9 @@ const QUESTIONS = [];
       [spdAverageTwoLegs, 4, 4],          // average speed is not the mean speed
       [spdCatchUp, 4, 4],                 // closing a head start
       [spdMeetingPoint, 4, 4],            // travelling towards each other
-      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3]
+      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3],
+      [spdSpeedFromMinutes, 3, 4],        // the time is given in minutes
+      [figTwoTravellersGraph, 4, 4]       // two journeys on one graph
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -3952,7 +4312,11 @@ const QUESTIONS = [];
       [meaSurfaceAreaFromVolume, 4, 4],   // volume back to surface area
       [meaScaleArea, 4, 4],               // areas scale by the square
       [meaFoldPaper, 3, 3], [meaFrameWidth, 4, 4], [meaSquaresInRectangle, 2, 2],
-      [figCompoundPerimeter, 3, 4]        // L-shape drawn, area or perimeter
+      [figCompoundPerimeter, 3, 4],       // L-shape drawn, area or perimeter
+      /* question-bank/20260822 */
+      [meaPourFromContainer, 3, 3],       // litres in, millilitres out
+      [meaEstimateWeight, 3, 3],          // is a banana 20 g or 200 g
+      [numMultiItemTotal, 3, 3]           // one of one thing, several of another
     ],
     Geometry: [
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
@@ -3964,6 +4328,10 @@ const QUESTIONS = [];
       [geoShadedArea, 4, 4],              // what is left after a cut-out
       [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
       [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4],
+      /* question-bank/20260822 */
+      [geoShapeFromSymmetry, 3, 4],       // which drawn shape fits both properties
+      [geoNameTriangles, 3, 4],           // name four triangles from pictures
+      [geoSplitPolygon, 4, 4],            // cut a corner off a regular polygon
       /* August QE/EPP papers */
       [geoCompassTurn, 2, 3],             // direction after turning right angles
       [geoCompassAngle, 2, 3],            // smallest turn between compass points
@@ -3984,7 +4352,8 @@ const QUESTIONS = [];
       [statMedianFromFreq, 4, 4],         // median out of a frequency table
       [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
       [figPieChart, 2, 3], [figVennOnly, 3, 4],
-      [statMedianAngleTriangle, 4, 4]     // which value could be the median
+      [statMedianAngleTriangle, 4, 4],    // which value could be the median
+      [figBarChartMode, 3, 3]             // the modal height on a bar chart
     ],
     "Counting Principle": [
       /* The topic had only hand-written questions before, and none that a
