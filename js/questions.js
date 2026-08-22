@@ -4356,6 +4356,282 @@ const QUESTIONS = [];
       3 + (i % 2), i);
   }
 
+  /* ═══════════════════ HARDER PERCENTAGES, FRACTIONS, ALGEBRA ═══════════════════
+     and one apiece for Speed, Numbers and Statistics. Nothing repeats an
+     existing template: pctReverse works back from a plain percentage of a
+     number, so the new one works back through a CHANGE; fracOfX takes a
+     fraction of a number, so the new one is given the result; algInequalityInteger
+     has a single solution, so the new one counts a range; spdAverageTwoLegs does
+     two legs, so the new one does three; statMissingMean finds a missing value
+     from a fixed count, so the new one changes the count. */
+
+  /* Working back through a rise or a fall to what it was before. */
+  function pctReverseAfterChange(i) {
+    const original = 20 + 4 * axis(i, 0, 20);
+    const pct = [10, 20, 25, 5, 50][axis(i, 1, 5)];
+    const rise = axis(i, 2, 2) === 0;
+    const after = rise ? original * (100 + pct) / 100 : original * (100 - pct) / 100;
+    if (!Number.isInteger(after) || after <= 0) return null;
+    return mk("Percentages",
+      `After ${rise ? "an increase" : "a decrease"} of ${pct}%, a price is ` +
+      `${fmtMoney(after)}. What was the price before the change?`,
+      fmtMoney(original),
+      [fmtMoney(rise ? after * (100 - pct) / 100 : after * (100 + pct) / 100),  // undid it the wrong way
+       fmtMoney(after),                                                        // no change at all
+       fmtMoney(rise ? after - pct : after + pct),                             // took off the percent as money
+       fmtMoney(original + pct), fmtMoney(original - pct)],
+      4, i);
+  }
+
+  /* Two changes one after the other, described as a single change. */
+  function pctSingleEquivalent(i) {
+    const up = [10, 20, 25, 50][axis(i, 0, 4)];
+    const down = [10, 20, 25, 50][axis(i, 1, 4)];
+    const factor = (100 + up) / 100 * (100 - down) / 100;
+    const net = Math.round((factor - 1) * 1000) / 10;      // one decimal place
+    if (!Number.isInteger(net) || net === 0) return null;
+    const word = net > 0 ? "increase" : "decrease";
+    return mk("Percentages",
+      `A price is increased by ${up}% and then reduced by ${down}%. What single percentage ` +
+      `change would have the same effect?`,
+      `${Math.abs(net)}% ${word}`,
+      [`${Math.abs(up - down)}% ${up > down ? "increase" : "decrease"}`,   // subtracted the percentages
+       `${Math.abs(net)}% ${net > 0 ? "decrease" : "increase"}`,           // right size, wrong direction
+       `${up + down}% increase`,
+       `0% change`, `${Math.abs(net) + 1}% ${word}`],
+      4, i);
+  }
+
+  /* Profit as a percentage of what it cost, not of what it sold for. */
+  function pctProfitPercent(i) {
+    const cost = 20 + 4 * axis(i, 0, 20);
+    const pct = [10, 15, 20, 25, 30, 40, 50][axis(i, 1, 7)];
+    const profit = cost * pct / 100;
+    if (!Number.isInteger(profit)) return null;
+    const sell = cost + profit;
+    return mk("Percentages",
+      `A shop buys a chair for ${fmtMoney(cost)} and sells it for ${fmtMoney(sell)}. ` +
+      `What is the percentage profit?`,
+      `${pct}%`,
+      [`${Math.round(profit / sell * 1000) / 10}%`,   // over the selling price
+       `${profit}%`,                                  // the profit in pounds as a percentage
+       `${pct + 5}%`, `${pct - 5 > 0 ? pct - 5 : pct + 10}%`, `${100 - pct}%`],
+      4, i);
+  }
+
+  /* ── Fractions ── */
+
+  const mixed = (whole, n, d) => {
+    if (!n) return `${whole}`;
+    const g = gcd(n, d) || 1;
+    return whole ? `${whole} ${n / g}/${d / g}` : `${n / g}/${d / g}`;
+  };
+
+  /* Mixed numbers with different denominators, added or taken away. */
+  function fracMixedAddSubtract(i) {
+    const d1 = 2 + axis(i, 0, 5), d2 = 2 + axis(i, 1, 6);
+    if (d1 === d2) return null;
+    const w1 = 1 + (i % 4), w2 = 1 + ((i + 1) % 3);
+    const n1 = 1 + (i % (d1 - 1 || 1)), n2 = 1 + (i % (d2 - 1 || 1));
+    if (n1 >= d1 || n2 >= d2) return null;
+    const add = i % 2 === 0;
+    const den = d1 * d2;
+    const topA = w1 * den + n1 * d2, topB = w2 * den + n2 * d1;
+    const total = add ? topA + topB : topA - topB;
+    if (total <= 0) return null;
+    const whole = Math.floor(total / den), rest = total - whole * den;
+    const ans = mixed(whole, rest, den);
+    const wrongTop = add ? topA + topB + d2 : topA - topB + d2;
+    return mk("Fractions",
+      `What is ${mixed(w1, n1, d1)} ${add ? "+" : "−"} ${mixed(w2, n2, d2)}?`,
+      ans,
+      [mixed(add ? w1 + w2 : w1 - w2, add ? n1 + n2 : Math.abs(n1 - n2), Math.max(d1, d2)),
+       mixed(Math.floor(wrongTop / den), wrongTop - Math.floor(wrongTop / den) * den, den),
+       mixed(whole + 1, rest, den), mixed(whole, rest + 1, den),
+       mixed(whole - 1 >= 0 ? whole - 1 : whole + 2, rest, den)],
+      3 + (i % 2), i);
+  }
+
+  /* Dividing a mixed number by a fraction: turn it improper first, then flip. */
+  function fracDivideMixed(i) {
+    const w = 1 + axis(i, 0, 4), d1 = 2 + axis(i, 1, 4);
+    const n1 = 1 + (i % (d1 - 1 || 1));
+    const n2 = 1 + (i % 3), d2 = n2 + 1 + axis(i, 2, 3);
+    if (n1 >= d1 || n2 >= d2) return null;
+    const top = (w * d1 + n1) * d2, bottom = d1 * n2;
+    const g = gcd(top, bottom) || 1;
+    const num2 = top / g, den2 = bottom / g;
+    const whole = Math.floor(num2 / den2), rest = num2 - whole * den2;
+    const ans = den2 === 1 ? `${num2}` : mixed(whole, rest, den2);
+    /* Multiplying instead of dividing is the mistake worth showing. */
+    const mt = (w * d1 + n1) * n2, mb = d1 * d2, mg = gcd(mt, mb) || 1;
+    const mulTop = mt / mg, mulDen = mb / mg;
+    const mulWhole = Math.floor(mulTop / mulDen);
+    return mk("Fractions",
+      `What is ${mixed(w, n1, d1)} ÷ ${n2}/${d2}?`,
+      ans,
+      [mulDen === 1 ? `${mulTop}` : mixed(mulWhole, mulTop - mulWhole * mulDen, mulDen),
+       mixed(whole + 1, rest, den2), mixed(whole, rest + 1, den2 + 1),
+       `${num2}/${den2}`, mixed(whole - 1 >= 0 ? whole - 1 : whole + 2, rest, den2)],
+      4, i);
+  }
+
+  /* The fraction and the result are given; the number itself is wanted. */
+  function fracReverseOf(i) {
+    const d = 2 + axis(i, 0, 7), n = 1 + axis(i, 1, 6);
+    if (n >= d) return null;
+    const whole = d * (2 + axis(i, 2, 9));
+    const part = whole * n / d;
+    if (!Number.isInteger(part)) return null;
+    return mk("Fractions",
+      `${n}/${d} of a number is ${comma(part)}. What is the number?`,
+      comma(whole),
+      /* All whole numbers: part x n / d is a recurring decimal, and a single
+         untidy option among four tidy ones is a giveaway. */
+      [comma(part * d),                      // forgot to divide by the numerator
+       comma(part * n),                      // multiplied by the numerator instead
+       comma(part + d), comma(whole - d), comma(whole + d)],
+      4, i);
+  }
+
+  /* ── Algebra ── */
+
+  /* A shape's perimeter turned into an equation and solved. */
+  function algPerimeterEquation(i) {
+    const width = 4 + axis(i, 0, 12);
+    const extra = 2 + axis(i, 1, 8);
+    const perimeter = 2 * (width + width + extra);
+    return mk("Algebra",
+      `A rectangle is ${extra} cm longer than it is wide. Its perimeter is ${comma(perimeter)} cm. ` +
+      `How wide is it?`,
+      `${width} cm`,
+      [`${width + extra} cm`,                // gave the length instead
+       `${perimeter / 4} cm`,                // treated it as a square
+       `${perimeter / 2 - extra} cm`,        // forgot to halve again
+       `${width + 1} cm`, `${width - 1 > 0 ? width - 1 : width + 2} cm`],
+      4, i);
+  }
+
+  /* How many whole numbers satisfy a compound inequality. */
+  function algInequalityCount(i) {
+    const k = 2 + axis(i, 0, 5);
+    const lo = k * (2 + axis(i, 1, 6));
+    const hi = lo + k * (3 + axis(i, 2, 6));
+    /* Strict on both sides, so the ends are excluded. */
+    let count = 0;
+    for (let n = Math.floor(lo / k); n <= Math.ceil(hi / k); n++) if (k * n > lo && k * n < hi) count++;
+    if (count < 2) return null;
+    return mk("Algebra",
+      `How many whole numbers n satisfy ${comma(lo)} < ${k}n < ${comma(hi)}?`,
+      `${count}`,
+      [`${count + 1}`,                       // counted an endpoint
+       `${count + 2}`, `${(hi - lo) / k}`,
+       `${count - 1}`, `${hi - lo}`],
+      4, i);
+  }
+
+  /* ── One each for Speed, Numbers and Statistics ── */
+
+  /* Average speed across three legs: total distance over total time. */
+  function spdAverageThreeLegs(i) {
+    const speeds = [[10, 20, 30], [20, 30, 60], [12, 24, 8], [15, 30, 10], [6, 12, 4]][axis(i, 0, 5)];
+    const dist = speeds.reduce((a, b) => a * b, 1) / 6 * (1 + axis(i, 1, 3));
+    const times = speeds.map(s => dist / s);
+    const total = times.reduce((a, b) => a + b, 0);
+    const ans = 3 * dist / total;
+    if (!Number.isInteger(ans) || !times.every(t => Number.isInteger(t * 60))) return null;
+    return mk("Speed",
+      `A cyclist rides ${comma(dist)} km at ${speeds[0]} km/h, then ${comma(dist)} km at ` +
+      `${speeds[1]} km/h, then ${comma(dist)} km at ${speeds[2]} km/h. What is the average ` +
+      `speed for the whole ride?`,
+      `${comma(ans)} km/h`,
+      [`${comma(Math.round(speeds.reduce((a, b) => a + b, 0) / 3))} km/h`,   // mean of the speeds
+       `${comma(Math.max(...speeds))} km/h`, `${comma(Math.min(...speeds))} km/h`,
+       `${comma(ans + 1)} km/h`, `${comma(ans - 1)} km/h`],
+      4, i);
+  }
+
+  /* Kilometres per hour into metres per second. */
+  function spdUnitConvert(i) {
+    const kmh = 18 * (1 + axis(i, 0, 12));                // divides by 3.6 exactly
+    const toMs = axis(i, 1, 2) === 0;
+    const ms = kmh / 3.6;
+    if (!Number.isInteger(ms)) return null;
+    return toMs
+      ? mk("Speed", `A train travels at ${comma(kmh)} km/h. What is that in metres per second?`,
+          `${fmt(ms)} m/s`,
+          [`${fmt(kmh / 60)} m/s`,           // divided by 60 once
+           `${fmt(kmh * 3.6)} m/s`, `${fmt(kmh / 36)} m/s`,
+           `${fmt(ms + 1)} m/s`, `${fmt(ms * 2)} m/s`],
+          3 + (i % 2), i)
+      : mk("Speed", `A train travels at ${fmt(ms)} m/s. What is that in kilometres per hour?`,
+          `${comma(kmh)} km/h`,
+          [`${fmt(ms * 60)} km/h`, `${fmt(ms / 3.6)} km/h`, `${comma(kmh / 2)} km/h`,
+           `${comma(kmh + 10)} km/h`, `${fmt(ms * 36)} km/h`],
+          3 + (i % 2), i);
+  }
+
+  /* Divisibility by 3, 9 or 11 without doing the division. */
+  function numDivisibilityRule(i) {
+    const by = [3, 9, 11, 6][axis(i, 0, 4)];
+    const base = 1000 + axis(i, 1, 40) * 37;
+    const good = base - (base % by);
+    const bad = [good + 1, good + 2, good + by - 1].filter(v => v % by !== 0);
+    if (bad.length < 3 || good < 100) return null;
+    return mk("Numbers",
+      `Which of these numbers divides exactly by ${by}?`,
+      comma(good), bad.slice(0, 3).map(v => comma(v)).concat([comma(good + by + 1)]),
+      3 + (i % 2), i);
+  }
+
+  /* The mean changes because the count changes too. */
+  function statMeanAfterChange(i) {
+    const count = 5 + axis(i, 0, 8);
+    const meanBefore = 8 + axis(i, 1, 10);
+    const meanAfter = meanBefore + 1 + axis(i, 2, 3);
+    const added = (count + 1) * meanAfter - count * meanBefore;
+    if (added <= 0) return null;
+    return mk("Statistics",
+      `The mean of ${count} numbers is ${meanBefore}. One more number is added and the mean ` +
+      `becomes ${meanAfter}. What was the number that was added?`,
+      comma(added),
+      [comma(meanAfter),                     // just the new mean
+       comma(meanAfter - meanBefore),        // just the change in the mean
+       comma(count * meanBefore),            // the old total
+       comma(added + 1), comma(added - 1)],
+      4, i);
+  }
+
+  /* The smallest number having exactly so many factors. Searched rather than
+     looked up, so the answer cannot drift from the question. */
+  function numSmallestWithFactors(i) {
+    const want = [4, 6, 8, 9, 10, 12, 5, 16][axis(i, 0, 8)];
+    const countFactors = n => {
+      let c = 0;
+      for (let k = 1; k * k <= n; k++) {
+        if (n % k) continue;
+        c += (k * k === n) ? 1 : 2;
+      }
+      return c;
+    };
+    let ans = 0;
+    for (let n = 1; n <= 4000; n++) if (countFactors(n) === want) { ans = n; break; }
+    if (!ans) return null;
+    /* Distractors are other numbers with a factor count near the target, so
+       none of them is a second correct answer. */
+    const near = [];
+    for (let n = 2; n <= 200 && near.length < 5; n++) {
+      if (n !== ans && countFactors(n) !== want) near.push(n);
+    }
+    const wrong = [ans + 1, ans - 1, ans * 2, want * 2, want * want]
+      .filter(v => v > 0 && v !== ans && countFactors(v) !== want);
+    if (wrong.length < 3) return null;
+    return mk("Numbers",
+      `What is the smallest whole number that has exactly ${want} factors?`,
+      comma(ans), wrong.slice(0, 5).map(v => comma(v)),
+      4, i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -4390,6 +4666,21 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* harder percentages, fractions, algebra and the rest */
+    pctReverseAfterChange: "After a 20% rise the price is 120% of what it was, so divide by 1.2 to get back - do not take 20% off the new price, because that 20% is of the wrong amount.",
+    pctSingleEquivalent: "Percentages do not add. Turn each change into a multiplier and multiply those: a 20% rise means multiplying by 1.2, a 10% fall means multiplying by 0.9, and 1.2 × 0.9 = 1.08, which is an 8% rise overall.",
+    pctProfitPercent: "Profit as a percentage is always OF THE COST, not of the selling price. Work out the profit, divide by what it cost, then multiply by 100.",
+    fracMixedAddSubtract: "Turn both mixed numbers into improper fractions, put them over a common denominator, then combine. Adding the whole numbers and the fractions separately goes wrong as soon as the fractions carry over.",
+    fracDivideMixed: "Make the mixed number improper first, then keep-flip-multiply. Dividing by a fraction below 1 makes the answer bigger, which is a useful check.",
+    fracReverseOf: "You are given the part and want the whole, so work backwards. Divide by the numerator to find one part of the fraction, then multiply by the denominator.",
+    algPerimeterEquation: "Call the width w, write the length as w plus the difference, and remember the perimeter counts each of them twice. Halve the perimeter first and the equation becomes much simpler.",
+    algInequalityCount: "Divide right through by the number in front of n to get the range for n itself, then count the whole numbers strictly inside it. Both ends are excluded, so do not count them.",
+    spdUnitConvert: "A kilometre is 1,000 metres and an hour is 3,600 seconds, so km/h to m/s means dividing by 3.6. Going the other way, multiply by 3.6.",
+    spdAverageThreeLegs: "Average speed is the whole distance divided by the whole time, never the average of the speeds. Work out the time for each leg, add them up, then divide the total distance by that.",
+    numDivisibilityRule: "You do not need to divide. A number divides by 3 if its digits add to a multiple of 3, and by 9 if they add to a multiple of 9. For 6 it must pass the test for 2 and for 3.",
+    statMeanAfterChange: "Turn both means back into totals. The old total is the count times the old mean; the new total is one more item times the new mean. The number added is the difference.",
+    numSmallestWithFactors: "Count the factors in pairs so none are missed. A number with an odd number of factors is a square. Work upwards and stop at the first one that has exactly the count asked for.",
 
     /* harder decimals and ratio */
     decMultiplyBySmall: "Multiplying by 0.1 makes a number ten times SMALLER, and dividing by 0.1 makes it ten times bigger. The digits never change - only where the point sits. Count the places: 0.01 is two, 0.001 is three.",
@@ -4707,7 +4998,9 @@ const QUESTIONS = [];
       [numLastDigitPower, 4, 4],  // spot the repeating cycle
       [numWordsToDigits, 2, 2],           // words to digits, empty hundreds column
       [numSquaresMinusCubes, 4, 4],       // count squares and cubes in one list
-      [numFactorStatements, 4, 4]         // which claim about factors is false
+      [numFactorStatements, 4, 4],        // which claim about factors is false
+      [numDivisibilityRule, 3, 4],        // divides exactly, without dividing
+      [numSmallestWithFactors, 4, 4]      // fewest number with that many factors
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -4733,6 +5026,10 @@ const QUESTIONS = [];
       [fracOfRemainderMoney, 4, 4],       // fraction of what was left
       [fracBetweenTwo, 4, 4],             // strictly between two fractions
       [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3],
+      /* harder fractions */
+      [fracMixedAddSubtract, 3, 4],       // mixed numbers, unlike denominators
+      [fracDivideMixed, 4, 4],            // improper first, then flip
+      [fracReverseOf, 4, 4],              // given the part, find the whole
       [figShadedTriangles, 3, 3]          // a shape cut into equal triangles
     ],
     Percentages: [
@@ -4742,7 +5039,11 @@ const QUESTIONS = [];
       [pctChained, 3, 4],                 // percentage of a percentage of a percentage
       [pctSaleChange, 3, 3],              // discount, total, then change
       [pctVennNeither, 3, 4],             // overlapping sets
-      [pctProfitAfterLoss, 4, 4], [pctProfitPerItem, 3, 3]
+      [pctProfitAfterLoss, 4, 4], [pctProfitPerItem, 3, 3],
+      /* harder percentages */
+      [pctReverseAfterChange, 4, 4],      // back through a rise or a fall
+      [pctSingleEquivalent, 4, 4],        // two changes as one
+      [pctProfitPercent, 4, 4]            // profit as a percentage of cost
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
@@ -4770,7 +5071,9 @@ const QUESTIONS = [];
       [algPowerEquation, 2, 3],           // 2^x = 64
       [algExpressionChange, 3, 3],        // build the expression, do not evaluate
       [algRemainderDivisor, 3, 3],        // 40 / N = 3 remainder 4
-      [algInequalityInteger, 3, 4]        // 41 < 3y < 43
+      [algInequalityInteger, 3, 4],       // 41 < 3y < 43
+      [algPerimeterEquation, 4, 4],       // form the equation from a perimeter
+      [algInequalityCount, 4, 4]          // how many whole numbers fit
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -4813,7 +5116,9 @@ const QUESTIONS = [];
       [spdMeetingPoint, 4, 4],            // travelling towards each other
       [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3],
       [spdSpeedFromMinutes, 3, 4],        // the time is given in minutes
-      [figTwoTravellersGraph, 4, 4]       // two journeys on one graph
+      [figTwoTravellersGraph, 4, 4],      // two journeys on one graph
+      [spdUnitConvert, 3, 4],             // km/h into m/s
+      [spdAverageThreeLegs, 4, 4]         // three legs, not two
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -4864,7 +5169,8 @@ const QUESTIONS = [];
       [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
       [figPieChart, 2, 3], [figVennOnly, 3, 4],
       [statMedianAngleTriangle, 4, 4],    // which value could be the median
-      [figBarChartMode, 3, 3]             // the modal height on a bar chart
+      [figBarChartMode, 3, 3],            // the modal height on a bar chart
+      [statMeanAfterChange, 4, 4]         // the count changes as well as the mean
     ],
     "Counting Principle": [
       /* The topic had only hand-written questions before, and none that a
