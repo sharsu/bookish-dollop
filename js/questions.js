@@ -248,6 +248,8 @@ const QUESTIONS = [];
   function numHCFofFour(i) {
     const g = 2 + (i % 13);
     const a = g * (4 + (i % 17)), b = g * (7 + ((i * 2) % 19)), c = g * (11 + ((i * 3) % 13)), d = g * (15 + ((i * 5) % 11));
+    /* The four multipliers can coincide, which printed "32, 40, 68 and 68". */
+    if (new Set([a, b, c, d]).size !== 4) return null;
     return mk("Numbers", `What is the Highest Common Factor (HCF) of ${a}, ${b}, ${c} and ${d}?`,
       `${g}`, [`${g * 2}`, `${g * 3}`, `${g + 1}`], diff(i, 3), i);
   }
@@ -491,9 +493,15 @@ const QUESTIONS = [];
   }
 
   function decHalfway(i) {
-    const a = 1 + 0.1 * (i % 9);
-    const b = a + 0.05 + 0.013 * ((i % 7) + 1);
-    const ans = (a + b) / 2;
+    /* Built outwards from the midpoint, so it is exact. Choosing the two ends
+       first gave midpoints like 1.6445, which fmt() rounds to three decimals
+       and printed as 1.645 - a wrong answer marked correct. */
+    const mid = 1 + 0.05 * (1 + (i % 18));            // two decimal places
+    const half = 0.01 * (1 + (i % 9));                // two decimal places
+    const a = Math.round((mid - half) * 100) / 100;
+    const b = Math.round((mid + half) * 100) / 100;
+    const ans = Math.round(mid * 100) / 100;
+    if (a <= 0 || a === b) return null;
     return mk("Decimals", `What number is halfway between ${fmt(a)} and ${fmt(b)}?`,
       `${fmt(ans)}`,
       [`${fmt((b - a) / 2)}`, `${fmt(a + b)}`, `${fmt(ans + 0.01)}`],
@@ -1610,13 +1618,26 @@ const QUESTIONS = [];
   }
 
   function logLeapBirthday(i) {
-    const cels = 2 + (i % 12);                            // 2nd .. 13th celebration
-    const recent = 1992 + 4 * (i % 20);                    // wider window of leap years
-    const ans = recent - 4 * (cels - 1);
-    const suf = cels === 1 ? "st" : cels === 2 ? "nd" : cels === 3 ? "rd" : "th";
+    /* Counting the celebrations, rather than naming the nth one, removes the
+       ambiguity: does the day you are born count as a birthday? The old wording
+       assumed it did, and so answered four years later than the ordinary
+       reading of the words.
+
+       Only leap years after the birth year count, and a century year is not one
+       unless it divides by 400 - so the window is kept inside 1904-2096, where
+       every fourth year really is a leap year. */
+    const birth = 1904 + 4 * (i % 20);
+    const until = birth + 4 * (2 + (i % 12));
+    if (until > 2096) return null;
+    const times = (until - birth) / 4;
     return mk("Logic",
-      `A person born on 29 February celebrated their Feb-29 birthday for the ${cels}${suf} time in ${recent}. In which year were they born?`,
-      `${ans}`, [`${ans - 4}`, `${ans + 4}`, `${recent - cels}`],
+      `A person was born on 29 February ${birth}, so they can only celebrate a birthday ` +
+      `on 29 February. How many birthdays had they celebrated by the end of ${until}?`,
+      `${times}`,
+      [`${times + 1}`,                     // counted the birth year as well
+       `${times - 1}`,
+       `${until - birth}`,                 // counted every year, not every fourth
+       `${Math.round((until - birth) / 2)}`],
       diff(i, 3), i);
   }
 
