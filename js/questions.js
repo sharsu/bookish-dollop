@@ -1029,7 +1029,11 @@ const QUESTIONS = [];
     return mk("Speed",
       `A car travels at ${mph} mph. How far will it travel in ${h} hour${h === 1 ? "" : "s"} ${m} minutes?`,
       `${fmt(ans)} miles`,
-      [`${fmt(mph * h)} miles`, `${fmt(mph * (h + 1))} miles`, `${fmt(ans + mph / 2)} miles`],
+      [`${fmt(mph * h)} miles`,              // dropped the minutes
+       `${fmt(mph * (h + 1))} miles`,        // rounded the minutes up to an hour
+       `${fmt(ans + mph / 2)} miles`,
+       `${fmt(mph * (h + m / 100))} miles`,  // read the minutes as hundredths
+       `${fmt(ans - mph / 4)} miles`],
       diff(i, 3), i);
   }
 
@@ -2220,22 +2224,26 @@ const QUESTIONS = [];
 
   /* The classic trap: the average of the two speeds is not the average speed. */
   function spdAverageTwoLegs(i) {
-    const pairs = [[60, 40], [30, 20], [12, 4], [80, 20], [24, 8], [90, 45], [50, 30], [36, 12]];
-    const [u, v] = pairs[i % pairs.length];
+    const pairs = [[60, 40], [30, 20], [12, 4], [80, 20], [24, 8], [90, 45], [50, 30],
+                   [36, 12], [45, 30], [60, 30], [20, 5], [70, 30], [42, 14], [15, 10]];
+    const [u, v] = pairs[axis(i, 0, 14)];
     const harmonic = 2 * u * v / (u + v);
     if (!Number.isInteger(harmonic)) return null;
-    const dist = (u + v) * (1 + (i % 4));
+    const dist = (u + v) * (1 + axis(i, 1, 5));
     return mk("Speed",
       `A cyclist rides ${dist} km to a village at ${u} km/h and returns along the same road at ${v} km/h. What is her average speed for the whole journey?`,
       `${harmonic} km/h`,
-      [`${(u + v) / 2} km/h`, `${u - v} km/h`, `${fmt(harmonic + 2)} km/h`],
+      /* Extra candidates: with a wider pool of speed pairs, (u+v)/2 and u-v
+         collide often enough that nudge() was inventing a fourth option. */
+      [`${(u + v) / 2} km/h`, `${u - v} km/h`, `${fmt(harmonic + 2)} km/h`,
+       `${fmt(harmonic - 2)} km/h`, `${u} km/h`, `${v} km/h`],
       4, i);
   }
 
   function spdCatchUp(i) {
-    const u = 20 + 10 * (i % 5);
-    const v = u + 10 + 10 * (i % 3);
-    const headStartHours = 1 + (i % 3);
+    const u = 20 + 10 * axis(i, 0, 6);
+    const v = u + 10 + 10 * axis(i, 1, 4);
+    const headStartHours = 1 + axis(i, 2, 4);
     const gap = u * headStartHours;
     const hours = gap / (v - u);
     if (!Number.isInteger(hours * 60) || hours > 12) return null;
@@ -2244,19 +2252,25 @@ const QUESTIONS = [];
     return mk("Speed",
       `A lorry sets off at ${u} km/h. ${headStartHours} hour${headStartHours > 1 ? "s" : ""} later a car leaves from the same place along the same road at ${v} km/h. How long after the car sets off does it catch the lorry?`,
       label,
-      [`${headStartHours} hours`, `${fmt(gap / v)} hours`, `${fmt(hours + 1)} hours`],
+      [`${headStartHours} hours`,            // just the head start
+       `${fmt(gap / v)} hours`,              // divided by the car's speed, not the gain
+       `${fmt(hours + 1)} hours`,
+       `${fmt(gap / u)} hours`, `${fmt(hours * 2)} hours`],
       4, i);
   }
 
   function spdMeetingPoint(i) {
-    const u = 30 + 10 * (i % 5), v = 40 + 10 * ((i * 3) % 4);
-    const t = 2 + (i % 4);
+    const u = 30 + 10 * axis(i, 0, 6), v = 40 + 10 * axis(i, 1, 5);
+    const t = 2 + axis(i, 2, 5);
     const distance = (u + v) * t;
     const fromA = u * t;
     return mk("Speed",
       `Two towns are ${comma(distance)} km apart. A train leaves the first town at ${u} km/h and, at the same moment, a train leaves the second town towards it at ${v} km/h. How far from the first town do they meet?`,
       `${comma(fromA)} km`,
-      [`${comma(distance / 2)} km`, `${comma(v * t)} km`, `${comma(fromA + u)} km`],
+      [`${comma(distance / 2)} km`,          // assumed they meet in the middle
+       `${comma(v * t)} km`,                 // measured from the other town
+       `${comma(fromA + u)} km`,
+       `${comma(fromA - u)} km`, `${comma(distance - fromA + u)} km`],
       4, i);
   }
 
@@ -2771,8 +2785,8 @@ const QUESTIONS = [];
 
   function figDistanceTimeSpeed(i) {
     if (!D) return null;
-    const speed = 10 * (2 + (i % 6));
-    const hours = 2 + (i % 3);
+    const speed = 10 * (2 + axis(i, 0, 8));
+    const hours = 2 + axis(i, 1, 4);
     const points = [[0, 0], [hours, speed * hours], [hours + 1, speed * hours], [hours + 3, speed * hours + speed * 2]];
     return mkFig("Speed",
       "The graph shows a cyclist's journey. What was her speed during the first part of the journey?",
@@ -3218,9 +3232,9 @@ const QUESTIONS = [];
 
   /* n digits, choose k, order matters, nothing reused: n x (n-1) x ... */
   function countArrangeNoRepeat(i) {
-    const n = 5 + axis(i, 0, 3);
-    const ds = digitSet(axis(i, 1, 9) * 3 + axis(i, 0, 3), n);
-    const k = 3 + axis(i, 2, 2);
+    const n = 5 + axis(i, 0, 4);
+    const ds = digitSet(axis(i, 1, 9), n);
+    const k = 3 + (i % 2);
     if (k >= n) return null;
     const ans = nPr(n, k);
     return mk("Counting Principle",
@@ -3294,15 +3308,20 @@ const QUESTIONS = [];
 
   /* Letters may repeat, digits may not - two rules in one question. */
   function countPlateLettersDigits(i) {
-    const letters = 1 + axis(i, 0, 3), digits = 2 + axis(i, 1, 3);
-    const ans = 26 ** letters * nPr(10, digits);
+    const letters = 1 + axis(i, 0, 3), digits = 2 + axis(i, 1, 4);
+    /* Which of the two may repeat is varied too: nine questions became
+       twenty-four, and it is the rule itself the question is testing. */
+    const lettersRepeat = axis(i, 2, 2) === 0;
+    const ans = lettersRepeat ? 26 ** letters * nPr(10, digits)
+                              : nPr(26, letters) * 10 ** digits;
     return mk("Counting Principle",
       `A code is made from ${letters} letter${letters > 1 ? "s" : ""} followed by ` +
-      `${digits} digit${digits > 1 ? "s" : ""}. The letters may be repeated but the digits ` +
-      `may not. How many different codes are possible?`,
+      `${digits} digit${digits > 1 ? "s" : ""}. The ${lettersRepeat ? "letters" : "digits"} ` +
+      `may be repeated but the ${lettersRepeat ? "digits" : "letters"} may not. How many ` +
+      `different codes are possible?`,
       comma(ans),
-      [comma(26 ** letters * 10 ** digits),  // let the digits repeat too
-       comma(nPr(26, letters) * nPr(10, digits)),
+      [comma(26 ** letters * 10 ** digits),  // let both repeat
+       comma(nPr(26, letters) * nPr(10, digits)),   // let neither repeat
        comma(26 * letters * 10 * digits),
        comma(26 ** letters * 9 ** digits)],
       3 + (i % 2), i);
@@ -3327,7 +3346,7 @@ const QUESTIONS = [];
 
   /* Handshakes are pairs, so each one gets counted twice before halving. */
   function countHandshakes(i) {
-    const n = 5 + (i % 16);
+    const n = 5 + (i % 26);
     const ans = nCr(n, 2);
     return mk("Counting Principle",
       `Everyone in a group of ${n} people shakes hands exactly once with everyone else. ` +
@@ -3342,7 +3361,10 @@ const QUESTIONS = [];
 
   /* Repeated letters cannot be told apart, so the arrangements divide out. */
   const REPEAT_WORDS = ["BANANA", "LEVEL", "ERROR", "PEPPER", "LETTER", "SUCCESS",
-                        "COFFEE", "BALLOON", "TOMATO", "ADDRESS"];
+                        "COFFEE", "BALLOON", "TOMATO", "ADDRESS", "MIRROR", "TATTOO",
+                        "SETTEE", "CANNON", "PUPPET", "RABBIT", "KITTEN", "MITTEN",
+                        "BUTTON", "CARROT", "PARROT", "FERRET", "TUNNEL", "SUMMER",
+                        "WINNER", "BOTTLE", "KETTLE", "PUDDLE"];
 
   function countWordRepeatedLetters(i) {
     const word = REPEAT_WORDS[i % REPEAT_WORDS.length];
@@ -3355,16 +3377,18 @@ const QUESTIONS = [];
     return mk("Counting Principle",
       `How many different arrangements are there of all the letters of the word ${word}?`,
       comma(ans),
+      /* Six candidates, because ans x 2 and len!/2 coincide for several of the
+         longer words now in the pool. */
       [comma(fact(word.length)),             // treated the repeats as different
        comma(ans * 2),
        comma(fact(word.length) / 2),
-       comma(ans / 2)],
+       comma(ans / 2), comma(ans + word.length), comma(fact(word.length - 1))],
       4, i);
   }
 
   /* Round a table there is no first seat, so one person is fixed. */
   function countCircular(i) {
-    const n = 4 + (i % 7);
+    const n = 4 + (i % 8);
     const ans = fact(n - 1);
     return mk("Counting Principle",
       `In how many different ways can ${n} people be seated around a round table, ` +
@@ -3379,7 +3403,7 @@ const QUESTIONS = [];
 
   /* Routes on a grid: choose which of the moves are the sideways ones. */
   function countGridPaths(i) {
-    const right = 2 + axis(i, 0, 4), down = 2 + axis(i, 1, 4);
+    const right = 2 + axis(i, 0, 6), down = 2 + axis(i, 1, 6);
     const ans = nCr(right + down, right);
     return mk("Counting Principle",
       `A counter starts in the top-left corner of a grid and must reach the bottom-right ` +
@@ -3684,9 +3708,9 @@ const QUESTIONS = [];
   function figTwoTravellersGraph(i) {
     if (!D) return null;
     const hours = 4;
-    const fast = 15 + (i % 4) * 5, slow = 5 + (i % 3) * 5;
-    if (fast === slow) return null;
-    const at = 2 + (i % 2);
+    const fast = 15 + axis(i, 0, 6) * 5, slow = 5 + axis(i, 1, 4) * 5;
+    if (fast <= slow) return null;
+    const at = 1 + axis(i, 2, 4);
     const seriesA = Array.from({ length: hours + 1 }, (_, k) => [k, fast * k]);
     const seriesB = Array.from({ length: hours + 1 }, (_, k) => [k, slow * k]);
     const gap = (fast - slow) * at;
@@ -4534,8 +4558,10 @@ const QUESTIONS = [];
 
   /* Average speed across three legs: total distance over total time. */
   function spdAverageThreeLegs(i) {
-    const speeds = [[10, 20, 30], [20, 30, 60], [12, 24, 8], [15, 30, 10], [6, 12, 4]][axis(i, 0, 5)];
-    const dist = speeds.reduce((a, b) => a * b, 1) / 6 * (1 + axis(i, 1, 3));
+    const speeds = [[10, 20, 30], [20, 30, 60], [12, 24, 8], [15, 30, 10], [6, 12, 4],
+                    [10, 15, 30], [20, 60, 30], [9, 18, 6], [30, 45, 90], [8, 24, 12],
+                    [5, 10, 20], [14, 28, 7]][axis(i, 0, 12)];
+    const dist = speeds.reduce((a, b) => a * b, 1) / 6 * (1 + axis(i, 1, 4));
     const times = speeds.map(s => dist / s);
     const total = times.reduce((a, b) => a + b, 0);
     const ans = 3 * dist / total;
@@ -4553,7 +4579,7 @@ const QUESTIONS = [];
 
   /* Kilometres per hour into metres per second. */
   function spdUnitConvert(i) {
-    const kmh = 18 * (1 + axis(i, 0, 12));                // divides by 3.6 exactly
+    const kmh = 18 * (1 + axis(i, 0, 22));                // divides by 3.6 exactly
     const toMs = axis(i, 1, 2) === 0;
     const ms = kmh / 3.6;
     if (!Number.isInteger(ms)) return null;
@@ -4632,6 +4658,103 @@ const QUESTIONS = [];
       4, i);
   }
 
+  /* ═══════════════════ SPEED AND COUNTING: FOUR MORE SHAPES ═══════════════════
+     Widening the existing templates lifted both topics a long way, but these
+     four are question shapes the bank could not ask at all. */
+
+  /* Timetable arithmetic: the minutes cross the hour, which is the difficulty. */
+  function spdTimetable(i) {
+    const depH = 6 + axis(i, 0, 14), depM = 5 * axis(i, 1, 12);
+    const runM = 35 + 5 * axis(i, 2, 14);
+    const total = depH * 60 + depM + runM;
+    if (total >= 24 * 60) return null;
+    const arrH = Math.floor(total / 60), arrM = total % 60;
+    const pad = n => `${n}`.padStart(2, "0");
+    const askDuration = i % 2 === 0;
+    const hrs = Math.floor(runM / 60), mins = runM % 60;
+    const spell = (h, m) => (h ? `${h} hour${h > 1 ? "s" : ""}` : "") +
+                            (h && m ? " " : "") + (m ? `${m} minutes` : "");
+    return askDuration
+      ? mk("Speed",
+          `A train leaves at ${pad(depH)}:${pad(depM)} and arrives at ${pad(arrH)}:${pad(arrM)}. ` +
+          `How long does the journey take?`,
+          spell(hrs, mins),
+          [spell(hrs, mins + 10 <= 59 ? mins + 10 : mins - 10),
+           spell(hrs + 1, mins),
+           /* Subtracting the clock digits as if they were decimals. */
+           spell(arrH - depH, Math.abs(arrM - depM)),
+           spell(hrs, 60 - mins || 30), spell(hrs - 1 >= 0 ? hrs - 1 : hrs + 2, mins)],
+          3 + (i % 2), i)
+      : mk("Speed",
+          `A train leaves at ${pad(depH)}:${pad(depM)} and the journey takes ${spell(hrs, mins)}. ` +
+          `What time does it arrive?`,
+          `${pad(arrH)}:${pad(arrM)}`,
+          [`${pad(depH + hrs)}:${pad(depM + mins > 59 ? depM + mins - 60 : depM + mins)}`,
+           `${pad(arrH)}:${pad((arrM + 10) % 60)}`,
+           `${pad(arrH + 1)}:${pad(arrM)}`,
+           `${pad(arrH - 1 >= 0 ? arrH - 1 : arrH + 2)}:${pad(arrM)}`,
+           `${pad(arrH)}:${pad((arrM + 30) % 60)}`],
+          3 + (i % 2), i);
+  }
+
+  /* Out at one speed, back at another, total time known: find the distance.
+     The pairs are chosen so that uv/(u+v) is a whole number, which makes the
+     distance a whole number of kilometres for every whole number of hours. */
+  const RETURN_PAIRS = [[20, 30], [12, 24], [10, 15], [30, 60], [6, 12],
+                        [15, 30], [40, 60], [20, 80], [24, 8], [18, 9]];
+
+  function spdReturnUnknownDistance(i) {
+    const [u, v] = RETURN_PAIRS[axis(i, 0, 10)];
+    const step = u * v / (u + v);
+    if (!Number.isInteger(step)) return null;
+    const hours = 2 + axis(i, 1, 6);
+    const dist = step * hours;
+    return mk("Speed",
+      `A cyclist rides to a village at ${u} km/h and returns along the same road at ${v} km/h. ` +
+      `The whole journey takes ${hours} hours. How far away is the village?`,
+      `${comma(dist)} km`,
+      [`${comma(dist * 2)} km`,              // gave the whole journey, not one way
+       `${comma(Math.round((u + v) / 2 * hours))} km`,   // used the mean speed
+       `${comma(u * hours)} km`, `${comma(v * hours)} km`,
+       `${comma(Math.round(dist / 2))} km`],
+      4, i);
+  }
+
+  /* A bracelet can be turned over as well as turned round, so each arrangement
+     is counted twice by the round-table formula. */
+  function countCircularReflect(i) {
+    const n = 4 + (i % 7);
+    const ans = fact(n - 1) / 2;
+    if (!Number.isInteger(ans)) return null;
+    return mk("Counting Principle",
+      `${n} different beads are threaded onto a bracelet. Bracelets that are rotations of ` +
+      `each other, or the same bracelet turned over, count as the same. How many different ` +
+      `bracelets can be made?`,
+      comma(ans),
+      [comma(fact(n - 1)),                   // forgot it can be turned over
+       comma(fact(n)),                       // treated it as a row
+       comma(fact(n) / 2),
+       comma(ans * 2), comma(fact(n - 2))],
+      4, i);
+  }
+
+  /* Two independent choices, each a selection where order does not matter. */
+  function countChooseFromTwoGroups(i) {
+    const boys = 4 + axis(i, 0, 5), girls = 4 + axis(i, 1, 5);
+    const pickB = 2 + axis(i, 2, 2), pickG = 2 + (i % 2);
+    if (pickB >= boys || pickG >= girls) return null;
+    const ans = nCr(boys, pickB) * nCr(girls, pickG);
+    return mk("Counting Principle",
+      `A team of ${pickB} boys and ${pickG} girls is chosen from ${boys} boys and ` +
+      `${girls} girls. In how many ways can the team be chosen?`,
+      comma(ans),
+      [comma(nCr(boys, pickB) + nCr(girls, pickG)),        // added the two choices
+       comma(nCr(boys + girls, pickB + pickG)),            // ignored the split
+       comma(nPr(boys, pickB) * nPr(girls, pickG)),        // counted the orders
+       comma(ans * 2), comma(nCr(boys, pickG) * nCr(girls, pickB))],
+      4, i);
+  }
+
   /* ═══════════════════ METHODS ═══════════════════
      The technique for each template, shown in the review when a child gets the
      question wrong. Keyed by generator name so the generators themselves stay
@@ -4666,6 +4789,12 @@ const QUESTIONS = [];
     ratMapReverse: "This is the scale worked backwards, so divide the real distance by the number of kilometres each centimetre represents.",
     seqQuadraticDecreasing: "The gaps are growing while the terms fall. Find the differences, then the differences between those, and continue both patterns.",
     logTimeZone: "Add the difference if the second place is ahead, subtract it if behind. If you pass midnight, wrap around the 24-hour clock.",
+
+    /* speed and counting: four more shapes */
+    spdTimetable: "Count on in two steps: first to the next whole hour, then the rest. Subtracting the clock digits as if they were ordinary numbers goes wrong, because an hour is 60 minutes and not 100.",
+    spdReturnUnknownDistance: "Call the distance one way d. The time out is d divided by the first speed, the time back is d divided by the second, and those add to the total. Do not use the average of the two speeds.",
+    countCircularReflect: "Start with the round-table count, (n - 1) factorial. A bracelet can also be turned over, so every arrangement has been counted twice - halve it.",
+    countChooseFromTwoGroups: "The two choices are separate, so work each out and MULTIPLY. Order does not matter within either group, so both are choosing questions, not arranging ones.",
 
     /* harder percentages, fractions, algebra and the rest */
     pctReverseAfterChange: "After a 20% rise the price is 120% of what it was, so divide by 1.2 to get back - do not take 20% off the new price, because that 20% is of the wrong amount.",
@@ -5118,7 +5247,9 @@ const QUESTIONS = [];
       [spdSpeedFromMinutes, 3, 4],        // the time is given in minutes
       [figTwoTravellersGraph, 4, 4],      // two journeys on one graph
       [spdUnitConvert, 3, 4],             // km/h into m/s
-      [spdAverageThreeLegs, 4, 4]         // three legs, not two
+      [spdAverageThreeLegs, 4, 4],        // three legs, not two
+      [spdTimetable, 3, 4],               // minutes crossing the hour
+      [spdReturnUnknownDistance, 4, 4]    // out and back, total time known
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -5184,7 +5315,9 @@ const QUESTIONS = [];
       [countGreaterThan, 4, 4],               // only the leading digit is bound
       [countWordRepeatedLetters, 4, 4],       // divide the repeats out
       [countCircular, 4, 4],                  // no first seat round a table
-      [countGridPaths, 4, 4]                  // choose which moves go sideways
+      [countGridPaths, 4, 4],                 // choose which moves go sideways
+      [countCircularReflect, 4, 4],           // a bracelet can be turned over
+      [countChooseFromTwoGroups, 4, 4]        // two selections multiplied
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
