@@ -15,6 +15,43 @@ const QUESTIONS = [];
   const lcmAll = arr => arr.reduce((acc, x) => lcm(acc, x), 1);
   const isPrime = n => { if (n < 2) return false; for (let k = 2; k * k <= n; k++) if (n % k === 0) return false; return true; };
   const primesBetween = (a, b) => { const out = []; for (let k = a; k <= b; k++) if (isPrime(k)) out.push(k); return out; };
+  /* [[2, 2], [3, 1], [7, 2]] for 588: each prime with the power it appears to.
+     Factor-counting questions are answered from this rather than from a list,
+     because a list stops being countable long before the numbers get large. */
+  const primePowers = n => {
+    const out = [];
+    let m = n;
+    for (let p = 2; p * p <= m; p += 1) {
+      let e = 0;
+      while (m % p === 0) { m /= p; e += 1; }
+      if (e) out.push([p, e]);
+    }
+    if (m > 1) out.push([m, 1]);
+    return out;
+  };
+  /* "2^2 × 3 × 7^2" */
+  const powerString = pp =>
+    pp.map(([p, e]) => (e === 1 ? `${p}` : `${p}^${e}`)).join(" × ");
+  /* "2 × 2 × 3 × 7 × 7" */
+  const longString = pp =>
+    pp.flatMap(([p, e]) => Array(e).fill(p)).join(" × ");
+  /* "588 = 2 × 2 × 3 × 7 × 7 = 2^2 × 3 × 7^2", or just "66 = 2 × 3 × 11" when
+     every prime appears once and the index form would repeat the long one. */
+  const factorisationPhrase = (n, pp) => {
+    const long = longString(pp), powers = powerString(pp);
+    return long === powers ? `${n} = ${long}` : `${n} = ${long} = ${powers}`;
+  };
+
+  /* "(1 + 1) × (2 + 1) = 2 × 3 = 6", or just "(2 + 1) = 3" for a single prime. */
+  const countFormula = pp => {
+    const terms = pp.map(([, e]) => `(${e} + 1)`).join(" × ");
+    const values = pp.map(([, e]) => e + 1);
+    const total = values.reduce((a, b) => a * b, 1);
+    return values.length > 1
+      ? `${terms} = ${values.join(" × ")} = ${total}`
+      : `${terms} = ${total}`;
+  };
+
   const factorsOf = n => { const out = []; for (let k = 1; k <= n; k++) if (n % k === 0) out.push(k); return out; };
   const isSquare = n => { const r = Math.round(Math.sqrt(n)); return r >= 0 && r * r === n; };
   const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
@@ -287,8 +324,21 @@ const QUESTIONS = [];
     ];
     const n = pool[i % pool.length];
     const ans = factorsOf(n).length;
-    return mk("Numbers", `How many factors does ${n} have?`,
+    const q = mk("Numbers", `How many factors does ${n} have?`,
       `${ans}`, [`${ans + 1}`, `${ans - 1}`, `${ans + 2}`], diff(i, 4), i);
+    /* The generic METHODS line works through 36, which is not the number being
+       asked about. Work through this one. */
+    const pp = primePowers(n);
+    if (q) q.explain =
+      `Step 1. Break ${n} into primes: ${factorisationPhrase(n, pp)}.\n\n` +
+      `Step 2. Add 1 to each index and multiply them together: ` +
+      `${countFormula(pp)}.\n\n` +
+      `So ${n} has ${ans} factors. Adding 1 to each index counts the choices for ` +
+      `that prime — a factor can use it 0 times, 1 time, and so on up to the ` +
+      `index — and every combination of those choices is a different factor. ` +
+      `Pairing factors up from 1 is a good check on a small number, but it is ` +
+      `slow and easy to miss one, which is what the formula is for.`;
+    return q;
   }
 
   function numPrimeFactorCount(i) {
@@ -5413,12 +5463,24 @@ const QUESTIONS = [];
        `${all - ans}`,                        // counted the even ones instead
        `${ans + 1}`, `${ans - 1}`, `${ans + 2}`],
       4, i);
+    const pp = primePowers(n);
+    const oddPP = pp.filter(([p]) => p !== 2);
+    const twos = pp.find(([p]) => p === 2);
+    /* A power of 2 has only one odd factor, 1, which is not a question. */
+    if (!oddPP.length) return null;
     if (q1) q1.explain =
-      `An odd factor cannot contain a 2, so divide ${n} by 2 until it is odd: ` +
-      `that leaves ${odd}. Every odd factor of ${n} is a factor of ${odd}, and ` +
-      `${odd} has ${ans} factor${ans === 1 ? "" : "s"} ` +
-      `(${factorsOf(odd).join(", ")}), so the answer is ${ans}. ` +
-      `${n} has ${all} factors altogether, but ${all - ans} of them are even.`;
+      `Work from the prime factors, not from a list — a list stops being ` +
+      `countable as soon as the numbers grow.\n\n` +
+      `Step 1. Break ${n} into primes: ${factorisationPhrase(n, pp)}.\n\n` +
+      `Step 2. An odd number cannot have 2 as a factor, so throw the ` +
+      `${twos[1] === 1 ? "2" : `2^${twos[1]}`} away and keep only the odd ` +
+      `primes: ${powerString(oddPP)}.\n\n` +
+      `Step 3. To count the factors of that, add 1 to each index and multiply ` +
+      `them together: ${countFormula(oddPP)}.\n\n` +
+      `So ${n} has ${ans} odd factors, and they are ` +
+      `${factorsOf(odd).join(", ")}. ` +
+      `Counting every factor of ${n} would give ${all}; the other ${all - ans} ` +
+      `are even, and this question does not want them.`;
     return q1;
   }
 
