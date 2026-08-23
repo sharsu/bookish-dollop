@@ -2219,6 +2219,658 @@
   }
   vocMultipleMeaning.poolSize = MULTI_MEANING_ITEMS.length;
 
+
+  /* ══════════ WORD CHOICE: the floor ══════════ */
+
+  /* Homophones in context. Every option is a real word, correctly spelled, so
+     nothing can be ruled out on spelling alone - only the sentence decides. */
+  const HOMOPHONE_ITEMS = [
+    { sentence: "The team collected ______ medals and went home.", right: "their",
+      wrong: ["there", "they're", "theirs"] },
+    { sentence: "______ going to be late if the bus does not come soon.", right: "They're",
+      wrong: ["Their", "There", "Theirs"] },
+    { sentence: "The dog buried ______ bone under the apple tree.", right: "its",
+      wrong: ["it's", "its'", "their"] },
+    { sentence: "I think ______ going to rain before lunchtime.", right: "it's",
+      wrong: ["its", "its'", "it"] },
+    { sentence: "The parcel was ______ heavy for one person to lift.", right: "too",
+      wrong: ["to", "two", "towards"] },
+    { sentence: "______ coat is this, left hanging on the gate?", right: "Whose",
+      wrong: ["Who's", "Whos", "Which"] },
+    { sentence: "The noise did not ______ her concentration at all.", right: "affect",
+      wrong: ["effect", "affects", "effects"] },
+    { sentence: "The full ______ of the change will not be known for years.", right: "effect",
+      wrong: ["affect", "affecting", "effecting"] },
+    { sentence: "We ______ the turning and had to double back.", right: "passed",
+      wrong: ["past", "pasted", "pass"] },
+    { sentence: "The hall is just ______ the library on the left.", right: "past",
+      wrong: ["passed", "pasted", "passing"] },
+    { sentence: "Everyone came ______ Rashid, who was unwell.", right: "except",
+      wrong: ["accept", "excepting", "accepted"] },
+    { sentence: "She would not ______ the prize on his behalf.", right: "accept",
+      wrong: ["except", "excepting", "accepted"] },
+    { sentence: "The gate was ______ on its hinges and rattled all night.", right: "loose",
+      wrong: ["lose", "loosing", "losing"] },
+    { sentence: "Take care not to ______ the key on the way home.", right: "lose",
+      wrong: ["loose", "loosen", "loosing"] },
+    { sentence: "He needs to ______ the piece before Friday's lesson.", right: "practise",
+      wrong: ["practice", "practising", "practiced"] },
+    { sentence: "The car remained ______ at the lights for a full minute.", right: "stationary",
+      wrong: ["stationery", "stationing", "stationed"] },
+    { sentence: "She bought envelopes and paper from the ______ cupboard.", right: "stationery",
+      wrong: ["stationary", "stationing", "stationed"] },
+    { sentence: "The scarf was the perfect ______ to her winter coat.", right: "complement",
+      wrong: ["compliment", "complementing", "complimenting"] }
+  ];
+
+  function wordChoiceHomophone(i) {
+    const item = pick(HOMOPHONE_ITEMS, i);
+    const q = mkE("Word Choice",
+      `Which word completes this sentence correctly?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Every option here is a real word spelled correctly, so the spelling ` +
+      `cannot tell you which is right — only the job the word does in the ` +
+      `sentence can. Read the line with each one in turn and keep the one that ` +
+      `still makes sense: "${item.right}".`;
+    return q;
+  }
+  wordChoiceHomophone.poolSize = HOMOPHONE_ITEMS.length;
+
+  /* Dependent prepositions: which preposition a word demands is fixed by usage,
+     and the wrong one is a mistake even though the meaning survives. */
+  const PREPOSITION_ITEMS = [
+    { sentence: "Her handwriting is quite different ______ her brother's.", right: "from",
+      wrong: ["than", "to than", "of"] },
+    { sentence: "He has always been interested ______ old maps.", right: "in",
+      wrong: ["on", "about", "for"] },
+    { sentence: "Nobody thought she was capable ______ such patience.", right: "of",
+      wrong: ["to", "for", "in"] },
+    { sentence: "The result depends ______ how many people turn up.", right: "on",
+      wrong: ["of", "from", "to"] },
+    { sentence: "She apologised ______ arriving so late.", right: "for",
+      wrong: ["of", "about to", "on"] },
+    { sentence: "The town is famous ______ its bridge.", right: "for",
+      wrong: ["of", "with", "by"] },
+    { sentence: "He was accused ______ taking the last biscuit.", right: "of",
+      wrong: ["for", "with", "about"] },
+    { sentence: "They insisted ______ paying for the damage themselves.", right: "on",
+      wrong: ["to", "for", "of"] },
+    { sentence: "The report is based ______ figures collected last year.", right: "on",
+      wrong: ["of", "from", "with"] },
+    { sentence: "She is very similar ______ her grandmother in temperament.", right: "to",
+      wrong: ["with", "from", "as"] },
+    { sentence: "We must congratulate them ______ a fine performance.", right: "on",
+      wrong: ["for", "of", "about"] },
+    { sentence: "The shed was full ______ tools nobody had used for years.", right: "of",
+      wrong: ["with", "by", "from"] },
+    { sentence: "He is responsible ______ locking up each evening.", right: "for",
+      wrong: ["of", "to", "about"] },
+    { sentence: "The children were bored ______ the long wait.", right: "by",
+      wrong: ["of", "from", "at"] },
+    { sentence: "She succeeded ______ persuading them at last.", right: "in",
+      wrong: ["to", "at", "on"] },
+    { sentence: "This box is identical ______ the one we lost.", right: "to",
+      wrong: ["with", "from", "as"] }
+  ];
+
+  function wordChoicePreposition(i) {
+    const item = pick(PREPOSITION_ITEMS, i);
+    const q = mkE("Word Choice",
+      `Which word completes this sentence in correct English?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 3 + (i % 2), i);
+    if (q) q.explain =
+      `Certain words take a fixed preposition, and no rule predicts which: you ` +
+      `are different FROM, interested IN, capable OF and responsible FOR. The ` +
+      `meaning survives the wrong one, so trust your ear — "${item.right}" is ` +
+      `the form English uses here.`;
+    return q;
+  }
+  wordChoicePreposition.poolSize = PREPOSITION_ITEMS.length;
+
+  /* A word that repeats what its neighbour already says. Each sentence is
+     perfectly clear, which is what makes the redundancy hard to see. */
+  const REDUNDANT_ITEMS = [
+    { sentence: "The lorry reversed back into the loading bay.", word: "back",
+      why: "to reverse is already to go backwards" },
+    { sentence: "Each customer received a free gift at the door.", word: "free",
+      why: "a gift is not paid for, so it is free by definition" },
+    { sentence: "They repeated the announcement again at six o'clock.", word: "again",
+      why: "to repeat something is to say it again" },
+    { sentence: "The two twins arrived within a minute of each other.", word: "two",
+      why: "twins already come in twos" },
+    { sentence: "She wrote a brief summary of the main points.", word: "brief",
+      why: "a summary is short by its nature" },
+    { sentence: "In my own personal opinion the plan will not work.", word: "personal",
+      why: "\"my own\" already says whose opinion it is" },
+    { sentence: "The final outcome surprised everybody in the room.", word: "final",
+      why: "an outcome is what happens in the end" },
+    { sentence: "He returned back to the house for his gloves.", word: "back",
+      why: "to return is to go back" },
+    { sentence: "The committee met together on the first Monday.", word: "together",
+      why: "you cannot meet on your own" },
+    { sentence: "They made an advance warning of the closure.", word: "advance",
+      why: "a warning always comes beforehand" },
+    { sentence: "The tunnel was completely full of water.", word: "completely",
+      why: "full does not come in degrees" },
+    { sentence: "She was the sole author who wrote the report.", word: "who wrote",
+      why: "the author is the person who wrote it" },
+    { sentence: "The parcel arrived at about approximately noon.", word: "approximately",
+      why: "\"about\" already makes the time inexact" },
+    { sentence: "We must plan ahead for next winter.", word: "ahead",
+      why: "planning is always for what has not happened yet" },
+    { sentence: "The room was filled with a new innovation.", word: "new",
+      why: "an innovation is new by definition" },
+    { sentence: "Please revert back to me by Friday.", word: "back",
+      why: "to revert is to come back" }
+  ];
+
+  function wordChoiceRedundant(i) {
+    const item = pick(REDUNDANT_ITEMS, i);
+    const other = REDUNDANT_ITEMS.filter(x => x !== item);
+    /* Distractors are real words from the same sentence, so the question
+       cannot be answered by looking for an odd-looking word. */
+    const pool = item.sentence.replace(/[.,]/g, "").split(" ")
+      .filter(w => w.toLowerCase() !== item.word.toLowerCase() && w.length > 3);
+    const wrong = firstDistinct(item.word, [pick(pool, i), pick(pool, i + 2), pick(pool, i + 4),
+                                            pick(pool, i + 1), pick(pool, i + 3)]);
+    if (!wrong) return null;
+    const q = mkE("Word Choice",
+      `One word in this sentence is unnecessary, because another word already ` +
+      `says the same thing.\n\n"${item.sentence}"\n\nWhich word could be removed?`,
+      item.word, wrong, 4, i);
+    if (q) q.explain =
+      `The sentence reads perfectly well, which is what makes this hard — look ` +
+      `for the word that repeats something already said rather than the word ` +
+      `that looks wrong. "${item.word}" can go, because ${item.why}.`;
+    return q;
+  }
+  wordChoiceRedundant.poolSize = REDUNDANT_ITEMS.length;
+
+  /* ══════════ VOCABULARY: the floor ══════════ */
+
+  /* A is to B as C is to ?  The relation has to be named before the answer can
+     be chosen, and each distractor is related to C in some other way. */
+  const ANALOGY_ITEMS = [
+    { a: "cat", b: "kitten", c: "sheep", right: "lamb", wrong: ["flock", "wool", "field"],
+      rel: "the adult animal to its young" },
+    { a: "author", b: "book", c: "composer", right: "symphony", wrong: ["orchestra", "piano", "concert"],
+      rel: "the maker to the thing made" },
+    { a: "hot", b: "cold", c: "generous", right: "mean", wrong: ["kind", "wealthy", "giving"],
+      rel: "a word to its opposite" },
+    { a: "petal", b: "flower", c: "page", right: "book", wrong: ["writing", "paper", "library"],
+      rel: "a part to the whole it belongs to" },
+    { a: "hive", b: "bee", c: "burrow", right: "rabbit", wrong: ["hole", "garden", "digging"],
+      rel: "a home to the creature that lives in it" },
+    { a: "listen", b: "hear", c: "look", right: "see", wrong: ["watch", "eye", "glance"],
+      rel: "trying to do something, and the result of it" },
+    { a: "chapter", b: "novel", c: "act", right: "play", wrong: ["actor", "stage", "scene"],
+      rel: "a division to the work it divides" },
+    { a: "doctor", b: "hospital", c: "teacher", right: "school", wrong: ["pupil", "lesson", "book"],
+      rel: "a worker to the place they work" },
+    { a: "knife", b: "cut", c: "pen", right: "write", wrong: ["ink", "paper", "letter"],
+      rel: "a tool to what it is used for" },
+    { a: "island", b: "sea", c: "oasis", right: "desert", wrong: ["water", "camel", "palm"],
+      rel: "a place to what surrounds it" },
+    { a: "brave", b: "cowardly", c: "humble", right: "arrogant", wrong: ["modest", "quiet", "gentle"],
+      rel: "a word to its opposite" },
+    { a: "puppy", b: "dog", c: "sapling", right: "tree", wrong: ["branch", "forest", "leaf"],
+      rel: "the young to what it grows into" },
+    { a: "conductor", b: "orchestra", c: "captain", right: "team", wrong: ["ship", "match", "player"],
+      rel: "a leader to the group they lead" },
+    { a: "thermometer", b: "temperature", c: "clock", right: "time", wrong: ["hands", "hour", "alarm"],
+      rel: "an instrument to what it measures" },
+    { a: "shoal", b: "fish", c: "herd", right: "cattle", wrong: ["field", "grazing", "farmer"],
+      rel: "a collective noun to the animal it counts" },
+    { a: "whisper", b: "shout", c: "sip", right: "gulp", wrong: ["drink", "thirst", "cup"],
+      rel: "a small version of an action to a large one" }
+  ];
+
+  function vocAnalogy(i) {
+    const item = pick(ANALOGY_ITEMS, i);
+    const q = mkE("Vocabulary",
+      `${item.a} is to ${item.b} as ${item.c} is to ______\n\n` +
+      `Which word completes the pair?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Say the first pair's relationship out loud before looking at the ` +
+      `options: ${item.a} is to ${item.b} as ${item.rel}. Now apply exactly ` +
+      `that relationship to ${item.c}, and the answer is "${item.right}". Each ` +
+      `wrong option is connected to ${item.c} in some other way, which is the trap.`;
+    return q;
+  }
+  vocAnalogy.poolSize = ANALOGY_ITEMS.length;
+
+  /* Odd one out on MEANING, not on word class - vocWordGroup already asks for
+     the class. Three words share something specific and the fourth does not. */
+  const ODD_ONE_ITEMS = [
+    { set: ["violin", "cello", "flute", "viola"], odd: "flute",
+      why: "the other three are played with a bow; a flute is blown" },
+    { set: ["oak", "birch", "fern", "willow"], odd: "fern",
+      why: "the other three are trees; a fern is not" },
+    { set: ["gale", "breeze", "drizzle", "gust"], odd: "drizzle",
+      why: "the other three describe wind; drizzle is rain" },
+    { set: ["copper", "bronze", "iron", "tin"], odd: "bronze",
+      why: "bronze is a mixture of metals; the other three are pure metals" },
+    { set: ["sprint", "stroll", "dash", "bolt"], odd: "stroll",
+      why: "the other three are fast; a stroll is slow" },
+    { set: ["mutter", "yell", "whisper", "murmur"], odd: "yell",
+      why: "the other three are quiet; a yell is loud" },
+    { set: ["triangle", "hexagon", "circle", "square"], odd: "circle",
+      why: "the other three have straight sides; a circle has none" },
+    { set: ["novel", "diary", "poem", "atlas"], odd: "atlas",
+      why: "the other three are written to be read through; an atlas is looked things up in" },
+    { set: ["whale", "shark", "dolphin", "seal"], odd: "shark",
+      why: "the other three are mammals; a shark is a fish" },
+    { set: ["glance", "stare", "peer", "shout"], odd: "shout",
+      why: "the other three are ways of looking; shouting is not" },
+    { set: ["furious", "irritated", "delighted", "annoyed"], odd: "delighted",
+      why: "the other three are degrees of anger; delighted is pleasure" },
+    { set: ["chisel", "hammer", "timber", "saw"], odd: "timber",
+      why: "the other three are tools; timber is the material worked on" },
+    { set: ["Tuesday", "August", "Friday", "Sunday"], odd: "August",
+      why: "the other three are days; August is a month" },
+    { set: ["thigh", "elbow", "wrist", "knuckle"], odd: "thigh",
+      why: "the other three are joints; the thigh is not" },
+    { set: ["biography", "atlas", "dictionary", "encyclopedia"], odd: "biography",
+      why: "the other three are reference books; a biography tells one life story" },
+    { set: ["drought", "flood", "harvest", "famine"], odd: "harvest",
+      why: "the other three are disasters; a harvest is not" }
+  ];
+
+  function vocOddOneOut(i) {
+    const item = pick(ODD_ONE_ITEMS, i);
+    const q = mkE("Vocabulary",
+      `Which word does NOT belong with the others?\n\n${item.set.join(", ")}`,
+      item.odd, item.set.filter(w => w !== item.odd), 4, i);
+    if (q) q.explain =
+      `Find what THREE of them share before deciding which is left out — ` +
+      `starting from the odd word and hunting for a reason will always find one. ` +
+      `Here ${item.why}.`;
+    return q;
+  }
+  vocOddOneOut.poolSize = ODD_ONE_ITEMS.length;
+
+  /* One word that fits three unrelated sentences. Each sentence rules out some
+     of the options, and only the right word satisfies all three at once. */
+  const FITS_ALL_ITEMS = [
+    { word: "run", wrong: ["walk", "drive", "throw"],
+      lines: ["She hopes to ______ the shop on her own one day.",
+              "The play will ______ for six weeks.",
+              "Don't let the tap ______ while you clean your teeth."] },
+    { word: "light", wrong: ["heavy", "bright", "pale"],
+      lines: ["The rucksack was ______ enough to carry all day.",
+              "Would you ______ the candles before they arrive?",
+              "There was not enough ______ to read by."] },
+    { word: "sharp", wrong: ["blunt", "sudden", "clever"],
+      lines: ["Be careful, the edge is very ______.",
+              "There was a ______ rise in prices that spring.",
+              "Meet me at nine o'clock ______."] },
+    { word: "break", wrong: ["snap", "pause", "rest"],
+      lines: ["Try not to ______ the handle when you lift it.",
+              "We stopped for a ______ halfway up the hill.",
+              "The news will ______ tomorrow morning."] },
+    { word: "cold", wrong: ["cool", "chilly", "icy"],
+      lines: ["Wrap up warm — it is bitterly ______ outside.",
+              "She has had a ______ since the weekend.",
+              "His reply was polite but ______."] },
+    { word: "point", wrong: ["place", "tip", "reason"],
+      lines: ["The ______ of the pencil had snapped again.",
+              "There is no ______ in arguing about it now.",
+              "Don't ______ at people, it is rude."] },
+    { word: "clear", wrong: ["plain", "empty", "obvious"],
+      lines: ["The water was so ______ you could see the bottom.",
+              "Please ______ the table before you go out.",
+              "It is ______ that nobody had read the letter."] },
+    { word: "hard", wrong: ["firm", "difficult", "solid"],
+      lines: ["The ground was ______ with frost.",
+              "That was a ______ question to answer.",
+              "She works ______ every single evening."] },
+    { word: "fine", wrong: ["good", "thin", "well"],
+      lines: ["The weather should be ______ by Thursday.",
+              "He paid a ______ for parking on the pavement.",
+              "The thread was so ______ you could hardly see it."] },
+    { word: "change", wrong: ["alter", "coins", "swap"],
+      lines: ["Would you like to ______ your seat?",
+              "He counted the ______ into her hand.",
+              "There has been no ______ in her condition."] },
+    { word: "spell", wrong: ["write", "period", "charm"],
+      lines: ["Can you ______ your surname for me?",
+              "We had a dry ______ all through July.",
+              "The witch put a ______ on the whole village."] },
+    { word: "trip", wrong: ["journey", "stumble", "outing"],
+      lines: ["Mind the step, or you will ______ over it.",
+              "The school ______ was cancelled twice.",
+              "That was a nasty ______ on the stairs."] }
+  ];
+
+  function vocFitsAllThree(i) {
+    const item = pick(FITS_ALL_ITEMS, i);
+    const body = item.lines.map((l, k) => `${k + 1}. ${l}`).join("\n");
+    const q = mkE("Vocabulary",
+      `Which ONE word completes all three sentences?\n\n${body}`,
+      item.word, item.wrong, 4, i);
+    if (q) q.explain =
+      `Try each option in all three sentences rather than settling on the first ` +
+      `that works once — a word that fits two out of three is still wrong. Only ` +
+      `"${item.word}" fits every one, because it carries several unrelated ` +
+      `meanings.`;
+    return q;
+  }
+  vocFitsAllThree.poolSize = FITS_ALL_ITEMS.length;
+
+  /* ══════════ PUNCTUATION: the floor ══════════ */
+
+  /* QE 16 asks why a word is capitalised mid-sentence, with "it must be a
+     typing error" among the options - a question about the PURPOSE of a mark
+     rather than about correcting one. */
+  const MARK_PURPOSE_ITEMS = [
+    { sentence: "There was only one thing left to do: wait.", mark: "colon",
+      right: "It introduces the thing the first part of the sentence has been leading up to",
+      wrong: ["It joins two sentences that could each stand alone",
+              "It shows that a word has been left out",
+              "It marks the end of a list"] },
+    { sentence: "She had three jobs to finish: the letters, the accounts and the post.",
+      mark: "colon",
+      right: "It introduces a list",
+      wrong: ["It separates two equal statements",
+              "It shows somebody is speaking",
+              "It replaces the word “because”"] },
+    { sentence: "The rain had stopped; the wind had not.", mark: "semicolon",
+      right: "It links two closely related statements that could each stand alone",
+      wrong: ["It introduces an explanation of the first part",
+              "It separates items in a list",
+              "It shows that letters have been left out"] },
+    { sentence: "My cousin — the one who lives in Leeds — telephoned last night.",
+      mark: "pair of dashes",
+      right: "It sets off extra information that could be lifted out without spoiling the sentence",
+      wrong: ["It shows that the speaker hesitated",
+              "It joins two separate sentences",
+              "It marks the end of the main clause"] },
+    { sentence: "He shouted “Stop!” and everyone froze.", mark: "exclamation mark",
+      right: "It shows the force with which the word was said",
+      wrong: ["It shows that a question is being asked",
+              "It marks the end of the whole sentence",
+              "It shows the word is being quoted from a book"] },
+    { sentence: "The dog's basket had been moved into the hall.", mark: "apostrophe",
+      right: "It shows that the basket belongs to the dog",
+      wrong: ["It shows that there is more than one dog",
+              "It shows that letters have been left out",
+              "It marks the start of some speech"] },
+    { sentence: "The dogs' baskets had all been moved into the hall.", mark: "apostrophe",
+      right: "It shows that the baskets belong to more than one dog",
+      wrong: ["It shows that the baskets belong to one dog",
+              "It shows that letters have been left out",
+              "It makes the word plural"] },
+    { sentence: "It's been raining since Tuesday.", mark: "apostrophe",
+      right: "It shows that a letter has been left out of “it is”",
+      wrong: ["It shows that the rain belongs to something",
+              "It makes the word plural",
+              "It shows emphasis"] },
+    { sentence: "Marcus, who had said nothing all evening, stood up.", mark: "pair of commas",
+      right: "They separate off a description of Marcus that the sentence would still work without",
+      wrong: ["They separate two items in a list",
+              "They mark where somebody stops speaking",
+              "They join two complete sentences"] },
+    { sentence: "“When you have finished,” she said, “come and find me.”",
+      mark: "comma after “finished”",
+      right: "It shows that the speech is interrupted and will carry on afterwards",
+      wrong: ["It shows that the sentence has ended",
+              "It separates two items in a list",
+              "It shows that a word has been left out"] },
+    { sentence: "We packed sandwiches, apples, a flask of tea and two blankets.",
+      mark: "commas",
+      right: "They separate the items of a list",
+      wrong: ["They separate off extra information about the sandwiches",
+              "They join complete sentences together",
+              "They show where the speaker paused for breath"] },
+    { sentence: "Did anybody actually read the letter?", mark: "question mark",
+      right: "It shows that the sentence is asking something",
+      wrong: ["It shows the speaker is surprised",
+              "It shows that a word has been left out",
+              "It marks the end of a list"] },
+    { sentence: "The sign read STRICTLY NO ENTRY in letters a foot high.",
+      mark: "use of capital letters",
+      right: "They reproduce how the words appeared on the sign itself",
+      wrong: ["They show that the words are a proper noun",
+              "They must be a printing error",
+              "They show the start of a new sentence"] },
+    { sentence: "She wrote “impossible” underneath, and underlined it twice.",
+      mark: "pair of quotation marks",
+      right: "They show that this is the exact word she wrote",
+      wrong: ["They show that somebody is speaking aloud",
+              "They show the word is spelled wrongly",
+              "They show the word is a title"] }
+  ];
+
+  function punMarkPurpose(i) {
+    const item = pick(MARK_PURPOSE_ITEMS, i);
+    const q = mkE("Punctuation",
+      `Read this sentence.\n\n"${item.sentence}"\n\n` +
+      `Why has the ${item.mark} been used?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `This asks what the mark is DOING, not whether it is correct. Read the ` +
+      `sentence without it and see what is lost — that is the mark's job. Here ` +
+      `the ${item.mark} works because ${item.right.charAt(0).toLowerCase() + item.right.slice(1)}.`;
+    return q;
+  }
+  punMarkPurpose.poolSize = MARK_PURPOSE_ITEMS.length;
+
+  /* Direct speech broken in two around the reporting clause is the hardest
+     punctuation the papers set, because four things have to be right at once:
+     a comma inside the first speech marks, a comma after the reporting clause,
+     lower case where the speech resumes, and the closing punctuation inside the
+     final speech marks. Every distractor breaks exactly one of those four -
+     never the capitalisation of the speaker's name, which is a different skill
+     and, for "Grandpa" against "grandpa", not always decidable. */
+  const SPLIT_SPEECH_ITEMS = [
+    { right: "“Wait here,” he said, “until I come back.”",
+      wrong: ["“Wait here”, he said, “until I come back.”",
+              "“Wait here,” he said, “Until I come back.”",
+              "“Wait here,” he said, “until I come back”."] },
+    { right: "“If you ask me,” she added, “nobody has read it.”",
+      wrong: ["“If you ask me” she added, “nobody has read it.”",
+              "“If you ask me,” she added “nobody has read it.”",
+              "“If you ask me,” she added, “Nobody has read it.”"] },
+    { right: "“Tomorrow,” said the guard, “the gates open at six.”",
+      wrong: ["“Tomorrow” said the guard, “the gates open at six.”",
+              "“Tomorrow,” said the guard, “The gates open at six.”",
+              "“Tomorrow,” said the guard “the gates open at six”."] },
+    { right: "“I would go,” Ravi murmured, “but the bus has gone.”",
+      wrong: ["“I would go,” Ravi murmured, “But the bus has gone.”",
+              "“I would go”, Ravi murmured, “but the bus has gone.”",
+              "“I would go,” Ravi murmured, “but the bus has gone”."] },
+    { right: "“Look,” whispered Nell, “the light is still on.”",
+      wrong: ["“Look” whispered Nell, “the light is still on.”",
+              "“Look,” whispered Nell, “The light is still on.”",
+              "“Look,” whispered Nell “the light is still on”."] },
+    { right: "“In that case,” the doctor replied, “you must rest.”",
+      wrong: ["“In that case,” the doctor replied, “You must rest.”",
+              "“In that case”, the doctor replied, “you must rest.”",
+              "“In that case,” the doctor replied “you must rest.”"] },
+    { right: "“We tried,” admitted Tom, “but the door was locked.”",
+      wrong: ["“We tried,” admitted Tom “but the door was locked.”",
+              "“We tried” admitted Tom, “but the door was locked.”",
+              "“We tried,” admitted Tom, “But the door was locked.”"] },
+    { right: "“On Fridays,” she explained, “the library shuts at four.”",
+      wrong: ["“On Fridays,” she explained, “The library shuts at four.”",
+              "“On Fridays” she explained “the library shuts at four.”",
+              "“On Fridays,” she explained, “the library shuts at four”."] },
+    { right: "“Be quick,” called his mother, “or we shall miss it.”",
+      wrong: ["“Be quick”, called his mother, “or we shall miss it.”",
+              "“Be quick,” called his mother “or we shall miss it.”",
+              "“Be quick,” called his mother, “Or we shall miss it.”"] },
+    { right: "“At last,” muttered the driver, “somebody has noticed.”",
+      wrong: ["“At last,” muttered the driver, “Somebody has noticed.”",
+              "“At last” muttered the driver, “somebody has noticed.”",
+              "“At last,” muttered the driver “somebody has noticed.”"] },
+    { right: "“No,” said Grandpa firmly, “not before your tea.”",
+      wrong: ["“No” said Grandpa firmly, “not before your tea.”",
+              "“No,” said Grandpa firmly, “Not before your tea.”",
+              "“No,” said Grandpa firmly, “not before your tea”."] },
+    { right: "“Once upon a time,” he began, “there were three sisters.”",
+      wrong: ["“Once upon a time,” he began, “There were three sisters.”",
+              "“Once upon a time”, he began, “there were three sisters.”",
+              "“Once upon a time,” he began “there were three sisters”."] }
+  ];
+
+  function punSplitSpeech(i) {
+    const item = pick(SPLIT_SPEECH_ITEMS, i);
+    const q = mkE("Punctuation",
+      `Which sentence is punctuated correctly?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Speech broken around the reporting clause needs all of these at once: a ` +
+      `comma INSIDE the first set of speech marks, a comma after the reporting ` +
+      `clause, no capital letter where the speech picks up again — it is the ` +
+      `same sentence continuing — and the closing punctuation inside the final ` +
+      `speech marks. Check each option against all four rules.`;
+    return q;
+  }
+  punSplitSpeech.poolSize = SPLIT_SPEECH_ITEMS.length;
+
+  /* Which single mark is missing. The sentence is otherwise correct, so the
+     child has to decide what the sense of the line needs. */
+  const MISSING_MARK_ITEMS = [
+    { sentence: "Although it was late nobody wanted to go home.", mark: "a comma after “late”",
+      wrong: ["a full stop after “late”", "a semicolon after “late”", "an apostrophe in “nobody”"] },
+    { sentence: "My sisters bicycle has a puncture again.", mark: "an apostrophe in “sisters”",
+      wrong: ["a comma after “bicycle”", "a hyphen in “puncture”", "a colon after “sisters”"] },
+    { sentence: "Where did you put the tickets", mark: "a question mark at the end",
+      wrong: ["a full stop at the end", "an exclamation mark at the end", "a comma after “put”"] },
+    { sentence: "We bought apples pears and two melons.", mark: "a comma after “apples”",
+      wrong: ["a colon after “bought”", "a semicolon after “pears”", "an apostrophe in “melons”"] },
+    { sentence: "The room which had not been used for years smelled of dust.",
+      mark: "a pair of commas around “which had not been used for years”",
+      wrong: ["a comma after “years” only", "a colon after “room”", "a dash after “dust”"] },
+    { sentence: "Stop shouted the guard and the whole platform turned.",
+      mark: "speech marks around “Stop”",
+      wrong: ["a colon after “Stop”", "a semicolon after “guard”", "an apostrophe in “guards”"] },
+    { sentence: "Its going to be a long afternoon.", mark: "an apostrophe in “Its”",
+      wrong: ["a comma after “going”", "a hyphen in “long afternoon”", "a question mark at the end"] },
+    { sentence: "He had only one wish to see the sea once more.", mark: "a colon after “wish”",
+      wrong: ["a comma after “only”", "a full stop after “wish”", "an apostrophe in “seas”"] },
+    { sentence: "The path was flooded we had to turn back.", mark: "a semicolon after “flooded”",
+      wrong: ["a comma after “flooded”", "a colon after “back”", "an apostrophe in “we”"] },
+    { sentence: "What an extraordinary thing to say", mark: "an exclamation mark at the end",
+      wrong: ["a question mark at the end", "a comma after “extraordinary”", "a colon after “What”"] },
+    { sentence: "My uncle a retired sailor still keeps a telescope by the window.",
+      mark: "a pair of commas around “a retired sailor”",
+      wrong: ["a comma after “uncle” only", "a colon after “sailor”", "a dash after “window”"] },
+    { sentence: "The childrens coats were left on the bus.", mark: "an apostrophe in “childrens”",
+      wrong: ["a comma after “coats”", "a hyphen in “childrens”", "a question mark at the end"] }
+  ];
+
+  function punMissingMark(i) {
+    const item = pick(MISSING_MARK_ITEMS, i);
+    const q = mkE("Punctuation",
+      `This sentence needs one more piece of punctuation.\n\n"${item.sentence}"\n\n` +
+      `What is missing?`,
+      item.mark, item.wrong, 4, i);
+    if (q) q.explain =
+      `Read the sentence aloud and notice where the sense stumbles — that is ` +
+      `where the mark belongs. Then check what job needs doing there: joining, ` +
+      `separating, showing possession or ending. This one needs ${item.mark}.`;
+    return q;
+  }
+  punMissingMark.poolSize = MISSING_MARK_ITEMS.length;
+
+  /* ══════════ GRAMMAR: the floor ══════════ */
+
+  /* Pronoun case. The rule is simple and almost nobody applies it: take the
+     other person out of the sentence and the right form is obvious. */
+  const PRONOUN_CASE_ITEMS = [
+    { sentence: "The letter was addressed to my brother and ______.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "the letter was addressed to me" },
+    { sentence: "______ and I walked home together.", right: "She",
+      wrong: ["Her", "Herself", "Hers"], test: "she walked home" },
+    { sentence: "Between you and ______, I think the plan will fail.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "between me" },
+    { sentence: "It was ______ who found the keys, not Tom.", right: "he",
+      wrong: ["him", "himself", "his"], test: "he found the keys" },
+    { sentence: "The teacher gave Anya and ______ the same mark.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "the teacher gave me the mark" },
+    { sentence: "Nobody knew the answer better than ______.", right: "she",
+      wrong: ["her", "herself", "hers"], test: "better than she knew it" },
+    { sentence: "My cousins and ______ share a birthday.", right: "I",
+      wrong: ["me", "myself", "mine"], test: "I share a birthday" },
+    { sentence: "The prize went to ______ and his sister.", right: "him",
+      wrong: ["he", "himself", "his"], test: "the prize went to him" },
+    /* who/whom is not settled by taking the other person out - there is no
+       other person. `swap` marks the rows that need the he/him rule instead. */
+    { sentence: "______ do you think left the gate open?", right: "Who",
+      wrong: ["Whom", "Whose", "Which"], test: "he left the gate open", swap: "he" },
+    { sentence: "The man to ______ I spoke was the caretaker.", right: "whom",
+      wrong: ["who", "whose", "which"], test: "I spoke to him", swap: "him" },
+    { sentence: "Neither Priya nor ______ had seen the notice.", right: "I",
+      wrong: ["me", "myself", "mine"], test: "I had seen the notice" },
+    { sentence: "They invited my parents and ______ to the opening.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "they invited me" }
+  ];
+
+  function graPronounCase(i) {
+    const item = pick(PRONOUN_CASE_ITEMS, i);
+    const q = mkE("Grammar",
+      `Which word completes this sentence in correct English?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain = item.swap
+      ? `Substitute "he" or "him" and the choice settles itself: "${item.test}" ` +
+        `is the version that works, and "${item.swap}" goes with ` +
+        `"${item.right.toLowerCase()}" — he with who, him with whom. If "him" ` +
+        `fits, the word you want is "whom".`
+      : `Take the other person out of the sentence and the right form becomes ` +
+        `obvious: "${item.test}" is clearly correct, so "${item.right}" is the ` +
+        `form to use when the other person is put back in. "Myself" is only for ` +
+        `when you are both the doer and the one done to.`;
+    return q;
+  }
+  graPronounCase.poolSize = PRONOUN_CASE_ITEMS.length;
+
+  /* Subject-verb agreement with something in between. The verb must agree with
+     the subject, not with the nearest noun, and the papers always put a
+     tempting plural in between. */
+  const DISTANT_AGREEMENT_ITEMS = [
+    { sentence: "The box of old photographs ______ on the top shelf.", right: "is",
+      wrong: ["are", "were", "have"], subj: "box", near: "photographs" },
+    { sentence: "A crate of oranges ______ delivered every Tuesday.", right: "is",
+      wrong: ["are", "were", "have"], subj: "crate", near: "oranges" },
+    { sentence: "The list of names ______ pinned to the door.", right: "was",
+      wrong: ["were", "are", "have"], subj: "list", near: "names" },
+    { sentence: "One of the windows ______ been left open all night.", right: "has",
+      wrong: ["have", "are", "were"], subj: "one", near: "windows" },
+    { sentence: "Each of the runners ______ a number on their vest.", right: "has",
+      wrong: ["have", "are", "were"], subj: "each", near: "runners" },
+    { sentence: "The bunch of keys ______ missing since Friday.", right: "has been",
+      wrong: ["have been", "are", "were"], subj: "bunch", near: "keys" },
+    { sentence: "Neither of the answers ______ correct.", right: "is",
+      wrong: ["are", "were", "have"], subj: "neither", near: "answers" },
+    { sentence: "The collection of coins ______ worth a great deal.", right: "is",
+      wrong: ["are", "were", "have"], subj: "collection", near: "coins" },
+    { sentence: "A packet of biscuits ______ on the table untouched.", right: "sits",
+      wrong: ["sit", "are sitting", "have sat"], subj: "packet", near: "biscuits" },
+    { sentence: "Every one of the letters ______ been answered.", right: "has",
+      wrong: ["have", "are", "were"], subj: "every one", near: "letters" },
+    { sentence: "The pile of newspapers by the door ______ growing.", right: "is",
+      wrong: ["are", "were", "have"], subj: "pile", near: "newspapers" },
+    { sentence: "The captain, along with the other players, ______ waiting outside.", right: "is",
+      wrong: ["are", "were", "have"], subj: "captain", near: "players" }
+  ];
+
+  function graDistantAgreement(i) {
+    const item = pick(DISTANT_AGREEMENT_ITEMS, i);
+    const q = mkE("Grammar",
+      `Which words complete this sentence in correct English?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `The verb agrees with the SUBJECT, not with whichever noun happens to sit ` +
+      `closest to it. Strike out the middle of the sentence and the subject is ` +
+      `"${item.subj}", which is singular — so "${item.right}" is right. ` +
+      `"${item.near}" is there to tempt you into a plural verb.`;
+    return q;
+  }
+  graDistantAgreement.poolSize = DISTANT_AGREEMENT_ITEMS.length;
+
   const METHODS = {
     spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
     spellChooseCorrect: "Cover the options and write the word yourself first, then look for the one that matches.",
@@ -2303,7 +2955,10 @@
       [punCapitals, 1, 2],
       [punEqualAdjectives],            // comma between adjectives of equal weight
       [punSentenceEnding],             // the mark a sentence should end on
-      [punFullStop]                    // full stop used where it should not be
+      [punFullStop],                   // full stop used where it should not be
+      [punMarkPurpose, 3, 4],          // what the mark is doing, not whether it is right
+      [punSplitSpeech, 4, 4],          // speech broken around the reporting clause
+      [punMissingMark, 3, 4]           // which single mark is missing
     ],
     Grammar: [
       [graPastSimple, 1, 2], [graPastParticiple, 2, 3],
@@ -2315,14 +2970,19 @@
       [graPassiveVoice, 4, 4],         // recognise the passive
       [graSubordinateClause, 4, 4],    // name the clause type
       [graCountWordClass, 3, 4],       // how many adjectives in the sentence
-      [graClauseMeaning, 4, 4]         // unpick an inverted clause
+      [graClauseMeaning, 4, 4],        // unpick an inverted clause
+      [graPronounCase, 4, 4],          // take the other person out of the sentence
+      [graDistantAgreement, 4, 4]      // the verb agrees with the subject, not the nearest noun
     ],
     Vocabulary: [
       [vocSynonym], [vocAntonym], [vocDefinition], [vocIdiom],
       [vocCollective], [vocPrefix], [vocWordGroup],
       [vocRootMeaning, 3, 4],          // a root shared by three words
       [vocSuffixClass, 3, 4],          // what the suffix does to the word class
-      [vocMultipleMeaning, 4, 4]       // the same word in two senses
+      [vocMultipleMeaning, 4, 4],      // the same word in two senses
+      [vocAnalogy, 4, 4],              // name the relationship, then apply it
+      [vocOddOneOut, 3, 4],            // what do THREE of them share
+      [vocFitsAllThree, 4, 4]          // one word for three sentences
     ],
     "Word Choice": [
       [wordChoice],
@@ -2331,7 +2991,10 @@
       [wordChoiceConnotation, 4, 4],   // same meaning, different feeling
       [wordChoiceRegister, 3, 4],      // formal or informal, for a stated reader
       [wordChoiceDegree, 3, 4],        // rank the set, then pick an end
-      [wordChoiceCollocation, 3, 4]    // the pairing English actually uses
+      [wordChoiceCollocation, 3, 4],   // the pairing English actually uses
+      [wordChoiceHomophone, 4, 4],     // every option is a real word
+      [wordChoicePreposition, 3, 4],   // which preposition the word demands
+      [wordChoiceRedundant, 4, 4]      // the word that says it twice
     ],
     "Literary Devices": [
       [litIdentify], [litFindExample], [litDefinition],
