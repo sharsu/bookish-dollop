@@ -676,7 +676,12 @@ const QUESTIONS = [];
     return mk("Percentages",
       `An item costs £${original}. It is reduced by ${discount}%. What is the sale price?`,
       fmtMoney(ans),
-      [fmtMoney(original * discount / 100), fmtMoney(original - discount), fmtMoney(ans + 5)],
+      /* "original - discount" treats the percentage as pounds, which is a real
+         mistake and a negative price whenever the discount number is the larger
+         of the two - so it is offered only when it stays above zero. */
+      [fmtMoney(original * discount / 100),
+       ...(original - discount > 0 ? [fmtMoney(original - discount)] : []),
+       fmtMoney(ans + 5), fmtMoney(original), fmtMoney(ans / 2)],
       diff(i, 4), i);
   }
 
@@ -1105,7 +1110,15 @@ const QUESTIONS = [];
     return mk("Measurement",
       `Given 1 inch = 2.5 cm, what is ${inches} inches in ${askMm ? "millimetres" : "centimetres"}?`,
       `${fmt(askMm ? mm : cm)} ${askMm ? "mm" : "cm"}`,
-      [`${fmt(askMm ? cm : mm)} ${askMm ? "mm" : "cm"}`, `${fmt(inches * 2)} ${askMm ? "mm" : "cm"}`, `${fmt(inches)} ${askMm ? "mm" : "cm"}`],
+      /* Dividing by 2.5 instead of multiplying is a real mistake and also a
+         decimal, so the answer is no longer the only one on the page with a
+         point in it - which was letting it be spotted without converting. */
+      [`${fmt(askMm ? cm : mm)} ${askMm ? "mm" : "cm"}`,
+       /* The wrong factor, 1.5 instead of 2.5: fractional exactly when the
+          answer is, so the answer is never the only decimal offered. */
+       `${fmt(askMm ? inches * 15 : inches * 1.5)} ${askMm ? "mm" : "cm"}`,
+       `${fmt(inches * 2)} ${askMm ? "mm" : "cm"}`,
+       `${fmt(inches)} ${askMm ? "mm" : "cm"}`],
       diff(i, 3), i);
   }
 
@@ -1114,11 +1127,18 @@ const QUESTIONS = [];
     const nA = 3 + (i % 6), nB = 2 + (i % 5);
     const noteP = 1000 * (1 + (i % 2));
     const totalP = nA * itemA + nB * itemB;
+    /* There is no change from a note the shopping costs more than. Without this
+       the question asked for the change from £10 on an £11.26 purchase, and the
+       answer itself came out negative. */
+    if (totalP >= noteP) return null;
     const ans = (noteP - totalP) / 100;
     return mk("Measurement",
       `Buy ${nA} bags of crisps at ${itemA} p each and ${nB} bags of nuts at ${itemB} p each. Change from £${noteP / 100}?`,
       `£${ans.toFixed(2)}`,
-      [`£${(ans + 0.1).toFixed(2)}`, `£${(ans - 0.1).toFixed(2)}`, `£${(totalP / 100).toFixed(2)}`],
+      [`£${(ans + 0.1).toFixed(2)}`,
+       ...(ans - 0.1 > 0 ? [`£${(ans - 0.1).toFixed(2)}`] : []),
+       `£${(totalP / 100).toFixed(2)}`, `£${(ans + 1).toFixed(2)}`,
+       `£${(noteP / 100).toFixed(2)}`],
       diff(i, 3), i);
   }
 
@@ -1777,7 +1797,13 @@ const QUESTIONS = [];
     return mk("Percentages",
       `A shop has a ${discount}% off sale. Lisa buys a kettle normally priced at ${fmtMoney(priceA / 100)} and a CD normally priced at ${fmtMoney(priceB / 100)}. How much change should she receive from a £${note / 100} note?`,
       `£${ans.toFixed(2)}`,
-      [`£${((note - priceA - priceB) / 100).toFixed(2)}`, `£${(total / 100).toFixed(2)}`, `£${(ans + discount / 100).toFixed(2)}`],
+      /* The first is "forgot the discount", which overspends the note whenever
+         the full prices come to more than it holds. */
+      [...(note - priceA - priceB > 0
+        ? [`£${((note - priceA - priceB) / 100).toFixed(2)}`] : []),
+       `£${(total / 100).toFixed(2)}`, `£${(ans + discount / 100).toFixed(2)}`,
+       `£${(ans + 1).toFixed(2)}`, `£${((note - total * 2) / 100 > 0
+        ? (note - total * 2) / 100 : ans + 2).toFixed(2)}`],
       diff(i, 3), i);
   }
 
@@ -4199,9 +4225,13 @@ const QUESTIONS = [];
     return mk("Decimals",
       `What is ${fmt(value)} ${divide ? "÷" : "×"} ${small}?`,
       tidy(ans),
+      /* ans/10 comes before ans*10 because mk() keeps only the first three
+         distinct candidates: with the order the other way round, "50 x 0.01"
+         offered 0.5 against 5000, 50 and 5, and the answer was the only option
+         on the page with a decimal point in it. */
       [tidy(divide ? value * small : value / small),   // shifted the wrong way
        tidy(value),                                    // did not shift at all
-       tidy(ans * 10), tidy(ans / 10)],
+       tidy(ans / 10), tidy(ans * 10)],
       3 + (i % 2), i);
   }
 
@@ -4414,7 +4444,8 @@ const QUESTIONS = [];
       fmtMoney(original),
       [fmtMoney(rise ? after * (100 - pct) / 100 : after * (100 + pct) / 100),  // undid it the wrong way
        fmtMoney(after),                                                        // no change at all
-       fmtMoney(rise ? after - pct : after + pct),                             // took off the percent as money
+       ...(rise && after - pct <= 0 ? [] :
+         [fmtMoney(rise ? after - pct : after + pct)]),   // took off the percent as money
        fmtMoney(original + pct), fmtMoney(original - pct)],
       4, i);
   }
@@ -5742,6 +5773,327 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* ═══════════ single-occurrence gaps from the NewText scan ═══════════ */
+
+  /* Examberry 16 Q51: "When it is 3 o'clock in the afternoon in New York, it is
+     8 o'clock in the evening in London. The time in Los Angeles is 3 hours
+     behind New York. John started his workout in Los Angeles at 7 o'clock
+     yesterday morning. What was the time in London at that moment?"
+
+     Two offsets, and only one of them is stated. The other has to be read off a
+     pair of clock times, which is what makes this harder than logTimeZone -
+     and the answer can land on a different day, so the day is part of it. */
+  const ZONE_CHAIN = [
+    { hub: "New York", far: "London", near: "Los Angeles", hubToFar: 5, nearToHub: 3 },
+    { hub: "London", far: "Tokyo", near: "New York", hubToFar: 9, nearToHub: -5 },
+    { hub: "Paris", far: "Delhi", near: "Rio", hubToFar: 4, nearToHub: -5 },
+    { hub: "London", far: "Sydney", near: "Chicago", hubToFar: 10, nearToHub: -6 },
+    { hub: "New York", far: "Berlin", near: "Denver", hubToFar: 6, nearToHub: 2 },
+    { hub: "Cairo", far: "Beijing", near: "Lisbon", hubToFar: 6, nearToHub: -2 },
+    { hub: "London", far: "Nairobi", near: "Toronto", hubToFar: 3, nearToHub: -5 },
+    { hub: "Madrid", far: "Karachi", near: "Reykjavik", hubToFar: 4, nearToHub: -1 }
+  ];
+
+  /* 14 -> "2 o'clock in the afternoon", so the printed clock times read the way
+     the paper writes them rather than as 24-hour numbers. */
+  const spellClock = h => {
+    const part = h === 0 ? "midnight" : h === 12 ? "midday"
+      : h < 12 ? "in the morning" : h < 18 ? "in the afternoon" : "in the evening";
+    if (h === 0 || h === 12) return part;
+    const twelve = h % 12 === 0 ? 12 : h % 12;
+    return `${twelve} o'clock ${part}`;
+  };
+  /* The answer has to say WHICH day when the chain crosses midnight. */
+  const dayWord = d => (d === 0 ? "" : d > 0 ? " the next day" : " the day before");
+
+  function logTimeZoneChain(i) {
+    const z = ZONE_CHAIN[i % ZONE_CHAIN.length];
+    /* A clock time in the hub, and the same moment in the far city, from which
+       the child derives hubToFar without being told it. */
+    const hubHour = 9 + axis(i, 0, 8);
+    const farHour = ((hubHour + z.hubToFar) % 24 + 24) % 24;
+    /* The moment asked about, given in the near city. */
+    const nearHour = 5 + axis(i, 1, 10);
+    const hubAt = nearHour + z.nearToHub;
+    const farAt = hubAt + z.hubToFar;
+    const day = Math.floor(farAt / 24);
+    const farClock = ((farAt % 24) + 24) % 24;
+    /* Keep the two illustrating clock times on the same day, or the sentence
+       that sets the offset up needs a day label of its own and stops being a
+       clean way to state it. */
+    if (hubHour + z.hubToFar < 0 || hubHour + z.hubToFar > 23) return null;
+    if (Math.abs(day) > 1) return null;
+    const said = z.nearToHub >= 0
+      ? `${z.nearToHub} hours behind ${z.hub}`
+      : `${-z.nearToHub} hours ahead of ${z.hub}`;
+    const label = (h, d) => spellClock(h) + dayWord(d);
+    const wrongDir = ((nearHour - z.nearToHub + z.hubToFar) % 24 + 24) % 24;
+    const onlyOne = ((nearHour + z.hubToFar) % 24 + 24) % 24;
+    const q = mk("Logic",
+      `When it is ${spellClock(hubHour)} in ${z.hub}, it is ${spellClock(farHour)} ` +
+      `in ${z.far}. The time in ${z.near} is ${said}.\n\n` +
+      `A runner sets off in ${z.near} at ${spellClock(nearHour)}. ` +
+      `What is the time in ${z.far} at that moment?`,
+      label(farClock, day),
+      [label(wrongDir, 0),                                  // stepped the wrong way
+       label(onlyOne, 0),                                   // used only the stated offset
+       label(((nearHour + z.nearToHub) % 24 + 24) % 24, 0), // stopped at the hub
+       label(farClock, 0),                                  // right time, wrong day
+       label(((farClock + 12) % 24), day)],
+      4, i);
+    if (q) q.explain =
+      `Work out the missing offset first. It is ${spellClock(hubHour)} in ${z.hub} ` +
+      `and ${spellClock(farHour)} in ${z.far} at the same moment, so ${z.far} is ` +
+      `${z.hubToFar} hours ahead of ${z.hub}. Now go through the hub rather than ` +
+      `jumping straight across: ${z.near} is ${said}, so when it is ` +
+      `${spellClock(nearHour)} in ${z.near} it is ${spellClock(((hubAt % 24) + 24) % 24)} ` +
+      `in ${z.hub}; add the ${z.hubToFar} hours to reach ${z.far} and you get ` +
+      `${label(farClock, day)}. Two steps, each in the right direction — and ` +
+      `check whether the second one has taken you past midnight.`;
+    return q;
+  }
+
+  /* Examberry 16: a target for the month, some days already done, and the
+     average needed from here. statMissingMean finds ONE missing number given
+     the mean, which is a different question. */
+  function statRequiredAverage(i) {
+    const days = 4 + axis(i, 0, 4);            // days already done
+    const left = 3 + axis(i, 1, 5);            // days remaining
+    const doneEach = 12 + axis(i, 2, 9);
+    const needEach = 15 + (i % 11);
+    const done = days * doneEach;
+    const target = done + left * needEach;
+    /* If the rate needed happens to equal the rate already managed, or the
+       whole-month average, then a distractor is the answer - and the hint goes
+       on to call the answer a mistake. */
+    if (needEach === doneEach) return null;
+    if (Math.round(target / (days + left)) === needEach) return null;
+    const q = mk("Statistics",
+      `Ravi wants to read ${comma(target)} pages this month. ` +
+      `He has read ${doneEach} pages on each of the first ${days} days.\n\n` +
+      `There are ${left} days of the month left. How many pages a day must he ` +
+      `average over those ${left} days to reach his target?`,
+      `${needEach}`,
+      [`${Math.round(target / (days + left))}`,   // averaged over the whole month
+       `${Math.round(target / left)}`,            // forgot what he has already read
+       `${doneEach}`,                             // kept going at the same rate
+       `${needEach + 1}`, `${needEach - 1}`],
+      4, i);
+    if (q) q.explain =
+      `Two steps. He has read ${days} × ${doneEach} = ${comma(done)} pages, so he ` +
+      `still needs ${comma(target)} − ${comma(done)} = ${comma(target - done)}. ` +
+      `Spread that over the ${left} days left: ${comma(target - done)} ÷ ${left} = ` +
+      `${needEach} pages a day. Dividing the whole target by the whole month gives ` +
+      `${Math.round(target / (days + left))}, which ignores the days already gone.`;
+    return q;
+  }
+
+  /* Examberry QE 13: "what is the mean of the remaining 8 numbers".
+     statMeanAfterChange adds a number; this takes some away. */
+  /* Built so that nothing has to be rejected. Both means are printed, so both
+     have to be whole numbers, and choosing the removed values freely made that
+     a coincidence: 45 of 50 seeds were thrown away. Working from the original
+     mean instead, a removed total of gone*mean + keep*j leaves keep*(mean - j),
+     so the remaining mean is mean - j exactly, for any j. */
+  function statMeanOfRemaining(i) {
+    const keep = 6 + axis(i, 0, 5);            // how many are left
+    const gone = 2 + (i % 2);                  // how many are removed
+    const startMean = 12 + axis(i, 1, 9);
+    const n = keep + gone;
+    const total = n * startMean;
+    /* j is how far the mean moves once they are gone; 0 would leave the mean
+       unchanged, which makes one distractor the answer. */
+    const j = [1, 2, -1, -2, 3][i % 5];
+    const keepMean = startMean - j;
+    const goneTotal = gone * startMean + keep * j;
+    if (goneTotal < gone * 2 || keepMean < 2) return null;
+    /* Split the removed total into distinct plausible values. */
+    const base = Math.floor(goneTotal / gone);
+    const spread = 1 + (i % 3);
+    const removed = [];
+    for (let k = 0; k < gone - 1; k++) {
+      removed.push(base + (k % 2 === 0 ? spread : -spread));
+    }
+    removed.push(goneTotal - removed.reduce((a, b) => a + b, 0));
+    if (removed.some(v => v < 1) || new Set(removed).size !== removed.length) return null;
+    const q = mk("Statistics",
+      `The mean of ${n} numbers is ${startMean}. ` +
+      `${gone === 2 ? "Two" : "Three"} of them — ` +
+      `${removed.slice(0, -1).join(", ")} and ${removed[removed.length - 1]} — ` +
+      `are taken away.\n\nWhat is the mean of the remaining ${keep} numbers?`,
+      `${keepMean}`,
+      /* Whole numbers only. Both of the "divided by the wrong count" mistakes
+         land on a fraction, and one decimal among three integers is ruled out
+         on sight whether or not it is wrong. */
+      [`${startMean}`,                                    // assumed the mean does not move
+       `${Math.round((total - goneTotal) / n)}`,           // divided by the old count
+       `${Math.round(total / keep)}`,                      // forgot to take the total down
+       `${keepMean + 1}`, `${keepMean - 1}`, `${keepMean + 2}`],
+      4, i);
+    if (q) q.explain =
+      `Turn the mean back into a total before you do anything else: ${n} numbers ` +
+      `with a mean of ${startMean} come to ${n} × ${startMean} = ${comma(total)}. ` +
+      `Take away ${removed.join(" + ")} = ${goneTotal}, leaving ` +
+      `${comma(total)} − ${goneTotal} = ${comma(total - goneTotal)} shared between ` +
+      `${keep} numbers, so the new mean is ${comma(total - goneTotal)} ÷ ${keep} = ` +
+      `${keepMean}. The count changes as well as the total, and forgetting that is ` +
+      `the whole trap.`;
+    return q;
+  }
+
+  /* Examberry QE 11: "how much can Shikha earn in 4 weeks if she works 6 days a
+     week from 11am to 8pm". A shift read off two clock times, then three
+     multiplications - and the clock times are where it goes wrong. */
+  function meaEarningsPattern(i) {
+    const start = 7 + axis(i, 0, 5);           // 7am to 11am
+    const finish = 16 + axis(i, 1, 6);         // 4pm to 9pm
+    const hours = finish - start;
+    if (hours < 5) return null;
+    const daysWeek = 4 + (i % 3);
+    const weeks = 2 + axis(i, 2, 4);
+    const rate = 8 + (i % 7);
+    const total = hours * daysWeek * weeks * rate;
+    const clock = h => `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? "am" : "pm"}`;
+    const q = mk("Measurement",
+      `Shikha works from ${clock(start)} until ${clock(finish)}, ` +
+      `${daysWeek} days a week, and is paid £${rate} an hour.\n\n` +
+      `How much does she earn in ${weeks} weeks?`,
+      money(total),
+      [money(hours * daysWeek * rate),                 // one week only
+       /* Subtracting the clock numbers - 9 pm minus 10 am read as 9 − 10 - is
+          the mistake worth offering, but it can come out negative, and a
+          negative wage is a broken option rather than a wrong one. */
+       money(Math.abs((finish % 12 || 12) - (start % 12 || 12)) * daysWeek * weeks * rate),
+       money(hours * 7 * weeks * rate),                // counted seven days a week
+       money(hours * daysWeek * weeks * rate / 2),
+       money((hours + 1) * daysWeek * weeks * rate)],
+      4, i);
+    if (q) q.explain =
+      `Get the shift right first: ${clock(start)} to ${clock(finish)} is ${hours} ` +
+      `hours, not ${Math.abs((finish % 12) - (start % 12))} — subtracting the clock ` +
+      `numbers is the mistake to avoid, because ${clock(finish)} is ` +
+      `${finish} o'clock on a 24-hour clock. Then multiply the whole way through: ` +
+      `${hours} hours × ${daysWeek} days = ${hours * daysWeek} hours a week, ` +
+      `× ${weeks} weeks = ${comma(hours * daysWeek * weeks)} hours, ` +
+      `× £${rate} = ${money(total)}.`;
+    return q;
+  }
+
+  /* Examberry QE 13: one clock gains, another loses, and they are asked when
+     they will agree again. They agree when the gap between them reaches a whole
+     twelve hours, because a twelve-hour face cannot tell those apart. */
+  /* Every pair sums to a divisor of 720, so the answer is always a whole number
+     of hours - a child who has done the work should not then have to round. */
+  const CLOCK_DRIFT = [[2, 3], [1, 3], [3, 3], [4, 2], [2, 6], [5, 5], [1, 5],
+                       [3, 9], [6, 6], [4, 8], [2, 10], [5, 10], [3, 5], [7, 8],
+                       [1, 4], [2, 4], [3, 6], [4, 5], [2, 7], [1, 8], [4, 6],
+                       [3, 7], [2, 8], [5, 7], [6, 9], [8, 8], [7, 9], [9, 9],
+                       [8, 10], [10, 10]];
+
+  function logClocksCoincide(i) {
+    const [gain, loss] = CLOCK_DRIFT[i % CLOCK_DRIFT.length];
+    const apart = gain + loss;
+    const hours = 720 / apart;                 // 12 hours of drift, in minutes
+    if (!Number.isInteger(hours)) return null;
+    const q = mk("Logic",
+      `Two twelve-hour clocks are set to the correct time at midday. ` +
+      `One gains ${gain} minutes every hour. The other loses ${loss} minutes every hour.\n\n` +
+      `After how many hours will the two clocks next show the same time as each other?`,
+      `${comma(hours)} hours`,
+      /* "used only one clock" is the right mistake to offer, but 720 / 7 is
+         102.857, and a three-decimal artefact nobody would arrive at is not a
+         wrong answer - it is a broken option. Offered only when it divides. */
+      [...(720 % gain === 0 ? [`${comma(720 / gain)} hours`] : []),
+       ...(720 % loss === 0 ? [`${comma(720 / loss)} hours`] : []),
+       `${comma(1440 / apart)} hours`,          // drifted a whole day instead of half
+       `${comma(hours * 2)} hours`, `${comma(hours / 2)} hours`,
+       `${comma(hours + apart)} hours`],
+      4, i);
+    if (q) q.explain =
+      `The clocks do not have to be right — they only have to agree with each ` +
+      `other. Every hour, one runs ${gain} minutes fast and the other ` +
+      `${loss} minutes slow, so the gap between them opens by ` +
+      `${gain} + ${loss} = ${apart} minutes an hour. A twelve-hour face shows the ` +
+      `same time again once that gap reaches 12 hours, which is 720 minutes: ` +
+      `720 ÷ ${apart} = ${comma(hours)} hours. It is 720 and not 1440, because a ` +
+      `clock twelve hours out looks exactly like a clock that is right.`;
+    return q;
+  }
+
+  /* Examberry QE 13: "in how many minutes will it next show all the digits
+     0 1 1 2 in any order". The digits are the ones on the clock now, so the
+     question is self-contained: when does this set of four come round again? */
+  function logClockDigits(i) {
+    const startH = 9 + axis(i, 0, 12), startM = axis(i, 1, 12) * 5;
+    if (startH > 23) return null;
+    const key = t => {
+      const h = Math.floor(t / 60), m = t % 60;
+      return `${h}`.padStart(2, "0").split("").concat(`${m}`.padStart(2, "0").split(""))
+        .sort().join("");
+    };
+    const show = t => `${`${Math.floor(t / 60)}`.padStart(2, "0")}:${`${t % 60}`.padStart(2, "0")}`;
+    const from = startH * 60 + startM;
+    const want = key(from);
+    let found = -1;
+    for (let k = 1; k <= 24 * 60; k++) {
+      const t = (from + k) % (24 * 60);
+      if (key(t) === want) { found = k; break; }
+    }
+    if (found < 0) return null;
+    const at = (from + found) % (24 * 60);
+    const q = mk("Logic",
+      `A digital clock shows ${show(from)}.\n\n` +
+      `In how many minutes will it next show the same four digits, in any order?`,
+      `${found} minutes`,
+      [`${found + 1} minutes`, `${found - 1} minutes`,
+       `${60 - startM || 60} minutes`,          // just the wait to the next hour
+       `${found + 10} minutes`, `${Math.max(found - 10, 2)} minutes`],
+      4, i);
+    if (q) q.explain =
+      `The four digits on the clock now are ${show(from).replace(":", ", ")
+        .split(", ").join("").split("").join(", ")} — any order will do, so you are ` +
+      `looking for the next time made of that same set. Work forward in whole ` +
+      `hours first and check the minutes each time, rather than counting up one ` +
+      `minute at a time. The next one is ${show(at)}, which is ${found} minutes ` +
+      `after ${show(from)}.`;
+    return q;
+  }
+
+  /* Examberry QE 11: "how many pupils scored above average". The mean has to be
+     worked out before the counting can start, and the bars are what it is
+     worked out from. */
+  function statAboveMean(i) {
+    if (!D) return null;
+    /* Bar heights from two independent parts of the seed, and a class that is
+       sometimes five and sometimes six: taking the heights from i % 13 alone
+       gave the same thirteen charts over and over. */
+    const names = ["Ali", "Bea", "Cai", "Dee", "Eli", "Fay"];
+    const labels = names.slice(0, 5 + (i % 2));
+    const values = labels.map((_, k) =>
+      3 + ((i * 7 + k * 5 + Math.floor(i / 17) * 6) % 17));
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    /* A value sitting exactly on the mean makes "above" a matter of opinion. */
+    if (values.some(v => v === mean)) return null;
+    const above = values.filter(v => v > mean).length;
+    if (above === 0 || above === values.length) return null;
+    const q = mkFig("Statistics",
+      `The bar chart shows the score each pupil got in a spelling test.\n\n` +
+      `How many pupils scored above the mean score?`,
+      `${above}`,
+      [`${values.length - above}`,               // counted the ones below instead
+       `${values.length}`, `${above + 1}`, `${above - 1}`,
+       `${Math.round(mean)}`],                   // gave the mean rather than a count
+      4, i, D.barChart({ labels, values, axisLabel: "Score" }));
+    if (q) q.explain =
+      `Read every bar off the chart first: ${values.join(", ")}. They come to ` +
+      `${values.reduce((a, b) => a + b, 0)}, and there are ${values.length} pupils, ` +
+      `so the mean is ${values.reduce((a, b) => a + b, 0)} ÷ ${values.length} = ` +
+      `${fmt(mean)}. Now count only the bars taller than ${fmt(mean)} — there are ` +
+      `${above}. The question asks how MANY are above the mean, not what the mean is.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -5925,7 +6277,8 @@ const QUESTIONS = [];
       [meaEstimateWeight, 3, 3],          // is a banana 20 g or 200 g
       [numMultiItemTotal, 3, 3],          // one of one thing, several of another
       [meaCubePacking, 4, 4],             // whole cubes only, so the leftover is wasted
-      [meaCubeFromCluster, 4, 4]          // one cube out of a cuboid of cubes
+      [meaCubeFromCluster, 4, 4],         // one cube out of a cuboid of cubes
+      [meaEarningsPattern, 4, 4]          // a shift, days a week, and a rate
     ],
     Geometry: [
       [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
@@ -5953,6 +6306,10 @@ const QUESTIONS = [];
       [geoTransformCompose, 4, 4]         // translate, then rotate
     ],
     Statistics: [
+      /* question-bank/NewText, single-occurrence shapes */
+      [statRequiredAverage, 4, 4],        // what average is needed from here on
+      [statMeanOfRemaining, 4, 4],        // the mean after some are taken out
+      [statAboveMean, 4, 4],              // count the bars above the mean
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
       [statMissingMean, 3, 3],            // mean worked backwards
       [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
@@ -6013,7 +6370,10 @@ const QUESTIONS = [];
       [logClockReflexAngle, 3, 4],        // the reflex angle between the hands
       [logSumOfAgesAgo, 4, 4],            // one member not yet born
       [logDefinedOperator, 4, 4],         // an invented symbol, applied twice
-      [logBandedSeatCount, 4, 4]          // rows closed, rows short, rest full
+      [logBandedSeatCount, 4, 4],         // rows closed, rows short, rest full
+      [logTimeZoneChain, 4, 4],           // two offsets, one of them implied
+      [logClocksCoincide, 4, 4],          // one gains, one loses
+      [logClockDigits, 4, 4]              // the next time with the same digits
     ]
   };
 
