@@ -22,6 +22,10 @@ const QUESTIONS = [];
   const fmt = n => { const v = Number(n); return Number.isFinite(v) ? (Number.isInteger(v) ? `${v}` : `${Number(v.toFixed(3))}`) : `${n}`; };
   const fmtMoney = n => `£${Number(n).toFixed(2).replace(/\.00$/, "")}`;
   const comma = n => Number(n).toLocaleString("en-GB");
+  /* Money always carries both pence digits. fmt() trims a trailing zero,
+     which turns £14.30 into "£14.3", and rounds to three places, which
+     allowed "£12.155" into an option list. */
+  const money = n => `£${Number(n).toFixed(2)}`;
   const sum = arr => arr.reduce((a, b) => a + b, 0);
   const mean = arr => sum(arr) / arr.length;
   const median = arr => { const s = arr.slice().sort((a, b) => a - b), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
@@ -524,13 +528,14 @@ const QUESTIONS = [];
     const q = 5 + 5 * (i % 4);
     const final = +(v * (1 + p / 100) * (1 - q / 100)).toFixed(2);
     return mk("Decimals",
-      `A price of £${fmt(v)} is increased by ${p}% and then reduced by ${q}%. What is the final price?`,
-      `£${fmt(final)}`,
+      `A price of ${money(v)} is increased by ${p}% and then reduced by ${q}%. What is the final price?`,
+      money(final),
       /* The first two were the same expression written differently. Treating
          the two changes as one net change is the real mistake; so is
          applying only one of them. */
-      [`£${fmt(v * (1 + (p - q) / 100))}`, `£${fmt(v * (1 - q / 100))}`,
-       `£${fmt(v * (1 + p / 100))}`, `£${fmt(v)}`],
+      [money(v * (1 + (p - q) / 100)), money(v * (1 - q / 100)),
+       money(v * (1 + p / 100)), money(v),
+       money(final + 0.5), money(final - 0.5)],
       diff(i, 3), i);
   }
 
@@ -2112,7 +2117,14 @@ const QUESTIONS = [];
     return mk("BIDMAS",
       `What is ((${a} + ${b}) × ${c} − ${d}²) ÷ ${e} + ${f}?`,
       `${ans}`,
-      [`${(a + b) * c - d * d / e + f}`, `${inner / e * f}`, `${ans - f}`],
+      /* All integers. The natural mistake here - dividing the square before
+         subtracting it - cannot land on a whole number, and a single decimal
+         among integers is ruled out on sight whether or not it is wrong. */
+      [`${inner + f}`,          // never divided
+       `${inner / e * f}`,      // multiplied by f instead of adding it
+       `${ans - f}`,            // stopped before the + f
+       `${inner - e + f}`,      // subtracted the divisor
+       `${inner / e - f}`],
       4, i);
   }
 
@@ -5373,6 +5385,363 @@ const QUESTIONS = [];
     return q1;
   }
 
+
+  /* ═══ second NewText scan, batch 2 ═══ */
+
+  /* A negative number inside a sum needs its brackets, or a hint reads
+     "-1 - -6" at exactly the step children get wrong. */
+  const neg = n => (n < 0 ? `(${n})` : `${n}`);
+  const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+
+  /* Spell a small count, for questions the papers write out in words. */
+  const spellCount = n => n < 20 ? UNITS[n]
+    : n % 10 === 0 ? TENS[Math.floor(n / 10)]
+      : `${TENS[Math.floor(n / 10)]}-${UNITS[n % 10]}`;
+
+  /* Examberry 16 Q44: a recipe for N items, a list of what is in the cupboard,
+     and the most that can be made. Three ingredients have to be checked and the
+     smallest wins; checking only the one with the biggest number is the trap,
+     and one quantity is given in kilograms so the units have to be squared up
+     first.
+
+     Every pool row is chosen so the limiting ingredient divides exactly. A
+     limit of three-and-a-half batches would leave "can she make half a batch?"
+     to the reader, and that is an ambiguity, not a difficulty. */
+  /* Every row divides exactly for ALL three ingredients, not only the limiting
+     one: an ingredient that stretched to four and a half lots would put "45
+     cookies" in the option list, and half a cookie is not an answer. */
+  const RECIPE_POOL = [
+    { made: 10, item: "cookies", ing: [["butter", 250, "g", 1500], ["eggs", 3, "", 9],
+                                       ["chocolate chips", 200, "g", 800]] },
+    { made: 12, item: "buns", ing: [["flour", 200, "g", 1400], ["eggs", 2, "", 8],
+                                    ["sugar", 150, "g", 900]] },
+    { made: 8, item: "muffins", ing: [["flour", 180, "g", 900], ["eggs", 3, "", 15],
+                                      ["butter", 120, "g", 480]] },
+    { made: 6, item: "pancakes", ing: [["flour", 150, "g", 1200], ["eggs", 2, "", 6],
+                                       ["milk", 100, "ml", 500]] },
+    { made: 20, item: "biscuits", ing: [["flour", 300, "g", 2100], ["eggs", 4, "", 20],
+                                        ["butter", 250, "g", 1000]] },
+    { made: 15, item: "scones", ing: [["flour", 220, "g", 1760], ["eggs", 3, "", 12],
+                                      ["butter", 180, "g", 900]] },
+    { made: 10, item: "jam tarts", ing: [["pastry", 240, "g", 1680], ["eggs", 5, "", 20],
+                                         ["jam", 160, "g", 640]] },
+    { made: 12, item: "bread rolls", ing: [["flour", 320, "g", 1920], ["eggs", 2, "", 10],
+                                           ["milk", 200, "ml", 1000]] },
+    { made: 24, item: "flapjacks", ing: [["oats", 400, "g", 2400], ["butter", 150, "g", 1050],
+                                         ["syrup", 100, "g", 300]] },
+    { made: 9, item: "brownies", ing: [["chocolate", 180, "g", 1440], ["eggs", 3, "", 9],
+                                       ["flour", 120, "g", 720]] },
+    { made: 18, item: "shortbreads", ing: [["butter", 280, "g", 1680], ["flour", 350, "g", 1750],
+                                           ["sugar", 90, "g", 720]] },
+    { made: 16, item: "cupcakes", ing: [["flour", 240, "g", 1200], ["eggs", 4, "", 24],
+                                        ["butter", 200, "g", 1400]] },
+    { made: 14, item: "crumpets", ing: [["flour", 260, "g", 2080], ["milk", 180, "ml", 540],
+                                        ["yeast", 20, "g", 120]] },
+    { made: 30, item: "oatcakes", ing: [["oats", 250, "g", 2000], ["butter", 100, "g", 400],
+                                        ["salt", 10, "g", 70]] },
+    { made: 25, item: "doughnuts", ing: [["flour", 300, "g", 1800], ["eggs", 5, "", 15],
+                                         ["sugar", 150, "g", 1050]] },
+    { made: 21, item: "waffles", ing: [["flour", 210, "g", 1470], ["eggs", 3, "", 18],
+                                       ["milk", 160, "ml", 640]] },
+    { made: 11, item: "eclairs", ing: [["pastry", 220, "g", 1320], ["cream", 150, "ml", 1200],
+                                       ["chocolate", 110, "g", 330]] },
+    { made: 13, item: "macarons", ing: [["ground almonds", 190, "g", 1520], ["eggs", 2, "", 8],
+                                        ["sugar", 140, "g", 980]] }
+  ];
+
+  function ratLimitingIngredient(i) {
+    const r = RECIPE_POOL[i % RECIPE_POOL.length];
+    const batches = r.ing.map(([, per, , have]) => have / per);
+    const limit = Math.min(...batches);
+    /* Every ingredient, not only the limiting one, or a distractor comes out as
+       a fraction of a cookie. */
+    if (batches.some(b => !Number.isInteger(b)) || limit < 2) return null;
+    const ans = limit * r.made;
+    /* Mass in grams reads as kilograms once it passes 1000, the way a cupboard
+       is actually labelled - and that conversion is half the question. */
+    const amount = (n, unit) => unit === "g" && n >= 1000 ? `${n / 1000} kg`
+      : unit ? `${comma(n)} ${unit}` : `${n}`;
+    const needs = r.ing.map(([name, per, unit]) => `• ${amount(per, unit)} ${name}`).join("\n");
+    const has = r.ing.map(([name, , unit, have]) => `• ${amount(have, unit)} ${name}`).join("\n");
+    const sorted = [...batches].sort((a, b) => a - b);
+    const q = mk("Ratio",
+      `A recipe for ${r.made} ${r.item} needs:\n${needs}\n\n` +
+      `Sarah's cupboard contains:\n${has}\n\n` +
+      `What is the largest number of ${r.item} she can make?`,
+      `${comma(ans)}`,
+      [`${comma(Math.max(...batches) * r.made)}`,   // used only the roomiest ingredient
+       `${comma(sorted[1] * r.made)}`,              // used the middle one
+       `${comma(ans + r.made)}`,                    // one batch too many
+       `${comma(limit)}`,                           // gave the batches, not the items
+       `${comma(ans - r.made)}`],
+      4, i);
+    if (q) {
+      /* Spell the conversion out. "1.2 kg ÷ 240 g" divides kilograms by grams,
+         and squaring the units up is half of what this question is testing. */
+      const lines = r.ing.map(([name, per, unit, have], k) => {
+        const shown = amount(have, unit);
+        const inBase = unit ? `${comma(have)} ${unit}` : `${have}`;
+        const convert = shown === inBase ? "" : `${shown} is ${inBase}, and `;
+        return `${name}: ${convert}${inBase} ÷ ${amount(per, unit)} = ` +
+               `${fmt(batches[k])} lot${batches[k] === 1 ? "" : "s"}`;
+      });
+      const short = r.ing[batches.indexOf(limit)][0];
+      q.explain =
+        `Work out how many lots of the recipe each ingredient allows, then take ` +
+        `the smallest — one ingredient running out stops everything. ` +
+        `${lines.join("; ")}. The ${short} runs out first at ${limit} lots, so she ` +
+        `can make ${limit} × ${r.made} = ${comma(ans)} ${r.item}. Answering ` +
+        `${comma(Math.max(...batches) * r.made)} means only the ingredient she has ` +
+        `most of was checked.`;
+    }
+    return q;
+  }
+
+  /* Examberry 16 Q48: rows 1 to N, one block closed, another block with fewer
+     seats, the rest full. Three bands have to be kept apart, and the short
+     block sits inside the open rows, not inside the closed ones. */
+  const SEAT_POOL = [
+    { rows: 80, shut: [15, 32], few: [36, 43], small: 5, full: 8 },
+    { rows: 60, shut: [10, 21], few: [40, 45], small: 4, full: 7 },
+    { rows: 100, shut: [25, 40], few: [70, 79], small: 6, full: 9 },
+    { rows: 75, shut: [8, 19], few: [50, 58], small: 5, full: 10 },
+    { rows: 90, shut: [30, 44], few: [60, 68], small: 4, full: 8 },
+    { rows: 50, shut: [12, 20], few: [30, 36], small: 3, full: 6 },
+    { rows: 120, shut: [40, 59], few: [95, 108], small: 7, full: 12 },
+    { rows: 64, shut: [17, 28], few: [45, 52], small: 5, full: 9 },
+    { rows: 70, shut: [20, 31], few: [50, 57], small: 4, full: 9 },
+    { rows: 110, shut: [45, 62], few: [80, 91], small: 6, full: 11 },
+    { rows: 55, shut: [14, 25], few: [35, 40], small: 3, full: 7 },
+    { rows: 96, shut: [33, 50], few: [70, 81], small: 5, full: 10 },
+    { rows: 45, shut: [9, 16], few: [28, 33], small: 4, full: 8 },
+    { rows: 130, shut: [50, 71], few: [100, 113], small: 6, full: 12 },
+    { rows: 85, shut: [22, 37], few: [60, 69], small: 5, full: 11 },
+    { rows: 72, shut: [18, 29], few: [48, 55], small: 4, full: 9 },
+    { rows: 66, shut: [11, 22], few: [40, 49], small: 3, full: 8 },
+    { rows: 105, shut: [36, 53], few: [75, 86], small: 7, full: 10 }
+  ];
+
+  function logBandedSeatCount(i) {
+    const b = SEAT_POOL[i % SEAT_POOL.length];
+    const shut = b.shut[1] - b.shut[0] + 1;
+    const few = b.few[1] - b.few[0] + 1;
+    /* The short block must lie wholly outside the closed block, or a row would
+       be counted in two bands at once. */
+    if (b.few[0] <= b.shut[1] && b.few[1] >= b.shut[0]) return null;
+    if (b.few[1] > b.rows) return null;
+    const open = b.rows - shut;
+    const normal = open - few;
+    const ans = few * b.small + normal * b.full;
+    const q = mk("Logic",
+      `In a theatre the rows are numbered from 1 to ${b.rows}. ` +
+      `Rows ${b.shut[0]} to ${b.shut[1]} are closed. ` +
+      `Rows ${b.few[0]} to ${b.few[1]} have only ${b.small} seats each, ` +
+      `while every other row has ${b.full} seats.\n\n` +
+      `How many seats are available?`,
+      `${comma(ans)}`,
+      [`${comma(open * b.full)}`,                    // forgot the short rows
+       `${comma(b.rows * b.full)}`,                  // forgot both bands
+       `${comma((b.rows - few) * b.full + few * b.small)}`,  // forgot the closed rows
+       `${comma(ans + b.full)}`, `${comma(ans - b.small)}`],
+      4, i);
+    if (q) q.explain =
+      `Count the rows in each band before counting a single seat. Rows ` +
+      `${b.shut[0]} to ${b.shut[1]} is ${b.shut[1]} − ${b.shut[0]} + 1 = ${shut} ` +
+      `closed rows, so ${b.rows} − ${shut} = ${open} rows are open. Of those, ` +
+      `rows ${b.few[0]} to ${b.few[1]} is ${few} rows with ${b.small} seats — ` +
+      `${few} × ${b.small} = ${comma(few * b.small)} — and the remaining ` +
+      `${open} − ${few} = ${normal} rows have ${b.full} seats, which is ` +
+      `${normal} × ${b.full} = ${comma(normal * b.full)}. Together that is ` +
+      `${comma(ans)}. Watch the "+ 1": a block from ${b.shut[0]} to ${b.shut[1]} ` +
+      `includes both end rows.`;
+    return q;
+  }
+
+  /* Examberry 16 Q46: two exchange rates between three toys, then four
+     collections to value. Nothing can be compared until everything is priced in
+     the same toy, which is the whole point. */
+  const VALUE_POOL = [
+    { a: "teddy bear", b: "toy car", c: "action figure", nb: 2, nc: 4, cd: 2, dd: 6 },
+    { a: "kite", b: "marble", c: "yo-yo", nb: 3, nc: 6, cd: 3, dd: 12 },
+    { a: "puzzle", b: "sticker", c: "badge", nb: 2, nc: 10, cd: 2, dd: 8 },
+    { a: "drum", b: "whistle", c: "rattle", nb: 4, nc: 12, cd: 3, dd: 6 },
+    { a: "robot", b: "counter", c: "dice", nb: 2, nc: 8, cd: 4, dd: 12 },
+    { a: "train", b: "block", c: "flag", nb: 3, nc: 15, cd: 2, dd: 10 }
+  ];
+
+  function ratRelativeValueChain(i) {
+    const v = VALUE_POOL[i % VALUE_POOL.length];
+    /* Price everything in the middle toy: nb of A cost nc of B, and cd of C
+       cost dd of B. */
+    const aInB = v.nc / v.nb, cInB = v.dd / v.cd;
+    if (!Number.isInteger(aInB) || !Number.isInteger(cInB)) return null;
+    const plural = (n, word) => `${spellCount(n)} ${word}${n === 1 ? "" : "s"}`;
+    /* A wide candidate list, then four collections whose values differ. Building
+       exactly four straight from the seed made most seeds tie and threw them
+       away: 13 questions survived out of 50, and only two distinct texts. */
+    const shapes = [
+      [0, 4, 3], [2, 0, 1], [1, 3, 0], [0, 2, 1], [3, 1, 1], [1, 0, 4],
+      [0, 6, 2], [2, 2, 0], [4, 0, 2], [1, 5, 1], [0, 3, 4], [3, 0, 3],
+      [2, 4, 1], [0, 8, 1], [5, 2, 0], [1, 1, 5], [0, 10, 3], [6, 0, 1]
+    ];
+    const seen = new Set();
+    const sets = [];
+    for (let k = 0; k < shapes.length && sets.length < 4; k++) {
+      const [na, nbb, nc] = shapes[(k * 5 + i) % shapes.length];
+      const worth = na * aInB + nbb + nc * cInB;
+      if (seen.has(worth)) continue;
+      seen.add(worth);
+      const parts = [];
+      if (na) parts.push(plural(na, v.a));
+      if (nbb) parts.push(plural(nbb, v.b));
+      if (nc) parts.push(plural(nc, v.c));
+      sets.push({ label: parts.join(" and "), worth });
+    }
+    if (sets.length < 4) return null;
+    const best = sets.reduce((x, y) => (y.worth > x.worth ? y : x));
+    const rest = sets.filter(x => x !== best).sort((x, y) => y.worth - x.worth);
+    const q = mk("Ratio",
+      `${cap(spellCount(v.nb))} ${v.a}s cost the same as ${plural(v.nc, v.b)}. ` +
+      `${cap(spellCount(v.cd))} ${v.c}s cost the same as ${plural(v.dd, v.b)}.\n\n` +
+      `Which of these collections is worth the most?`,
+      best.label, rest.map(x => x.label), 4, i);
+    if (q) q.explain =
+      `Put a price on everything in ${v.b}s first, because that is the only toy ` +
+      `both facts mention. ${cap(spellCount(v.nb))} ${v.a}s cost ${v.nc} ${v.b}s, so ` +
+      `one ${v.a} is worth ${aInB} ${v.b}s; ${spellCount(v.cd)} ${v.c}s cost ` +
+      `${v.dd} ${v.b}s, so one ${v.c} is worth ${cInB} ${v.b}s. Now every ` +
+      `collection can be added up in ${v.b}s: ${sets.map(x => `${x.label} = ${x.worth}`).join("; ")}. ` +
+      `The largest is ${best.worth}, so the answer is ${best.label}. Counting the ` +
+      `number of toys instead of their value is the trap.`;
+    return q;
+  }
+
+  /* Examberry 16 Q45: the usual journey, then half the speed and some extra
+     stops. Half the speed is twice the time - not half the time - and that is
+     the one step the question is really asking about. */
+  /* The journey time must be even. One distractor halves it - the "half the
+     time" mistake the question is built around - and an odd run printed options
+     like "10:50.5 am". */
+  const BUS_POOL = [
+    [8, 16, 140, 3, 10], [7, 45, 100, 2, 15], [9, 20, 90, 4, 5], [6, 50, 160, 3, 10],
+    [8, 5, 80, 2, 20], [10, 35, 120, 3, 5], [7, 12, 110, 4, 10], [9, 48, 90, 2, 10],
+    [6, 30, 130, 3, 10], [8, 40, 96, 2, 10], [7, 5, 146, 4, 5], [9, 55, 70, 3, 15],
+    [6, 15, 174, 2, 10], [10, 10, 106, 4, 10], [8, 25, 130, 2, 15], [7, 50, 116, 3, 10],
+    [9, 5, 80, 4, 15], [6, 45, 156, 2, 20]
+  ];
+
+  function spdHalfSpeedWithStops(i) {
+    const [h, m, run, stops, each] = BUS_POOL[i % BUS_POOL.length];
+    const usual = h * 60 + m + run;
+    const late = h * 60 + m + run * 2 + stops * each;
+    if (late >= 24 * 60 || run % 2) return null;
+    const clock = t => {
+      const hh = Math.floor(t / 60) % 24, mm = t % 60;
+      const ampm = hh < 12 ? "am" : "pm";
+      const show = hh % 12 === 0 ? 12 : hh % 12;
+      return `${show}:${`${mm}`.padStart(2, "0")} ${ampm}`;
+    };
+    const q = mk("Speed",
+      `A bus leaves its depot at ${clock(h * 60 + m)} each day and usually ` +
+      `reaches its destination at ${clock(usual)}. One Monday, because of ice on ` +
+      `the road, it travelled at half its usual speed for the whole journey. It ` +
+      `also made ${spellCount(stops)} extra stops of ${each} minutes each.\n\n` +
+      `What time did the bus reach its destination that Monday?`,
+      clock(late),
+      [clock(h * 60 + m + run * 2),                       // forgot the stops
+       clock(h * 60 + m + run + stops * each),            // forgot the speed
+       clock(h * 60 + m + run / 2 + stops * each),        // halved the time, not the speed
+       clock(late + each), clock(late - each)],
+      4, i);
+    if (q) q.explain =
+      `The usual journey takes ${clock(usual)} − ${clock(h * 60 + m)} = ${run} ` +
+      `minutes. Half the speed means TWICE the time, not half of it: ` +
+      `${run} × 2 = ${run * 2} minutes. The ${spellCount(stops)} stops add ` +
+      `${stops} × ${each} = ${stops * each} minutes, giving ` +
+      `${run * 2} + ${stops * each} = ${run * 2 + stops * each} minutes ` +
+      `altogether. From ${clock(h * 60 + m)} that is ${clock(late)}. Halving the ` +
+      `time instead of doubling it gives ${clock(h * 60 + m + run / 2 + stops * each)}, ` +
+      `which has the bus arriving early on the day it was delayed.`;
+    return q;
+  }
+
+  /* Examberry 16 Q49: a cuboid built from n identical cubes, its total volume
+     given, and the surface area of ONE cube wanted. Divide first, then take the
+     cube root, then six faces - three steps in a fixed order. */
+  /* Count and side are paired explicitly rather than drawn from two indices.
+     Taking the count from i % 14 and the side from axis(i, 1, 4) looked like it
+     covered every combination and in fact never produced (24 cubes, side 3) -
+     the paper's own question - because the two indices never coincided there. */
+  const CLUSTER_POOL = [
+    [24, 3], [8, 2], [12, 4], [16, 3], [18, 2], [27, 2], [32, 5], [36, 3],
+    [40, 2], [48, 4], [54, 3], [60, 2], [64, 3], [72, 2], [20, 4], [30, 3],
+    [45, 2], [50, 3], [90, 2], [21, 4]
+  ];
+
+  function meaCubeFromCluster(i) {
+    const [n, side] = CLUSTER_POOL[i % CLUSTER_POOL.length];
+    const one = side ** 3;
+    const total = n * one;
+    const ans = 6 * side * side;
+    const q = mk("Measurement",
+      `A sculpture in the shape of a cuboid is built from ${n} identical glass ` +
+      `cubes. The volume of the whole sculpture is ${comma(total)} cm³.\n\n` +
+      `What is the surface area of one glass cube?`,
+      `${comma(ans)} cm²`,
+      [`${comma(one)} cm²`,                    // gave the volume of one cube
+       `${comma(side * side)} cm²`,            // one face, not six
+       `${comma(6 * side)} cm²`,               // six times the side
+       `${comma(n * ans)} cm²`,                // every cube's surface added up
+       `${comma(4 * side * side)} cm²`],
+      4, i);
+    if (q) q.explain =
+      `Three steps, in this order. One cube's volume is ` +
+      `${comma(total)} ÷ ${n} = ${comma(one)} cm³. A cube of volume ${comma(one)} ` +
+      `has sides of ${side} cm, because ${side} × ${side} × ${side} = ${comma(one)}. ` +
+      `A cube has six square faces, so the surface area is 6 × ${side} × ${side} = ` +
+      `${comma(ans)} cm². Stopping at ${comma(one)} gives the volume, not the ` +
+      `surface area, and one face alone is ${comma(side * side)} cm².`;
+    return q;
+  }
+
+  /* Examberry 16 Q47: one end of a line and its midpoint are given, and the far
+     end is wanted. The midpoint is not "the difference" - it is halfway, so the
+     step from A to the midpoint has to be taken twice. */
+  function geoMissingEndpoint(i) {
+    const ax = -6 + axis(i, 0, 12), ay = -6 + axis(i, 1, 12);
+    const dx = 1 + axis(i, 2, 6), dy = 1 + ((i + 3) % 6);
+    const mx = ax + dx, my = ay + dy;
+    const bx = mx + dx, by = my + dy;
+    if (Math.abs(bx) > 20 || Math.abs(by) > 20) return null;
+    const askX = i % 2 === 0;
+    const known = askX ? by : bx;
+    const q = mk("Geometry",
+      `Point A has coordinates (${ax}, ${ay}). ` +
+      `Point B has coordinates ${askX ? `(d, ${known})` : `(${known}, d)`}. ` +
+      `The midpoint of the line joining A and B is (${mx}, ${my}).\n\n` +
+      `What is the value of d?`,
+      `${askX ? bx : by}`,
+      /* Integers only: averaging A with the midpoint - the other obvious
+         mistake - lands on a half whenever the step is odd, and one decimal
+         among three whole numbers is discounted on sight. */
+      [`${askX ? dx : dy}`,                       // gave the step, not the far end
+       `${askX ? mx : my}`,                       // gave the midpoint back
+       `${askX ? mx + 2 * dx : my + 2 * dy}`,     // stepped twice from the midpoint
+       `${askX ? ax : ay}`,                       // gave A's coordinate
+       `${askX ? ax - dx : ay - dy}`],            // stepped the wrong way
+      4, i);
+    if (q) q.explain =
+      `The midpoint is halfway, so whatever step takes you from A to it takes ` +
+      `you the same distance again to B. Along the ${askX ? "x" : "y"}-axis, A is ` +
+      `at ${askX ? ax : ay} and the midpoint is at ${askX ? mx : my}, a step of ` +
+      `${askX ? mx : my} − ${neg(askX ? ax : ay)} = ${askX ? dx : dy}. Take that step ` +
+      `again: ${askX ? mx : my} + ${askX ? dx : dy} = ${askX ? bx : by}, so ` +
+      `d = ${askX ? bx : by}. Checking it the other way round, ` +
+      `(${askX ? ax : ay} + ${neg(askX ? bx : by)}) ÷ 2 = ${askX ? mx : my}. ` +
+      `Answering ${askX ? dx : dy} gives the step rather than the point.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -5520,10 +5889,14 @@ const QUESTIONS = [];
       [ratFractionOfWhole, 3, 4],         // fraction of the whole, and back
       [ratBestValue, 3, 4],               // per-item cost across pack sizes
       [ratCompareTwoRatios, 3, 4],        // equivalent, or one larger
+      /* question-bank/NewText, second scan */
+      [ratLimitingIngredient, 4, 4],      // the ingredient that runs out first
+      [ratRelativeValueChain, 4, 4],      // price everything in one currency
       [ratEqualise, 4, 4]                 // move enough to even them up
     ],
     Speed: [
       [spdCombinedTaps, 4, 4],            // two taps filling one tank
+      [spdHalfSpeedWithStops, 4, 4],      // half the speed is twice the time
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
       [spdMphHoursMin, 2, 3],             // mixed hours and minutes
       [spdGapBetweenTwo, 3, 3],
@@ -5551,9 +5924,11 @@ const QUESTIONS = [];
       [meaPourFromContainer, 3, 3],       // litres in, millilitres out
       [meaEstimateWeight, 3, 3],          // is a banana 20 g or 200 g
       [numMultiItemTotal, 3, 3],          // one of one thing, several of another
-      [meaCubePacking, 4, 4]              // whole cubes only, so the leftover is wasted
+      [meaCubePacking, 4, 4],             // whole cubes only, so the leftover is wasted
+      [meaCubeFromCluster, 4, 4]          // one cube out of a cuboid of cubes
     ],
     Geometry: [
+      [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
       [geoComplementary, 1, 2], [geoTriangleArea, 2, 2], [geoLinesSymmetry, 1, 2],
       [geoRotSymmetry, 2, 2], [geoPrismFEV, 2, 2], [geoCuboidMissingEdge, 2, 2],
@@ -5637,7 +6012,8 @@ const QUESTIONS = [];
       [logTimeZone, 4, 4],                // hours ahead or behind, across midnight
       [logClockReflexAngle, 3, 4],        // the reflex angle between the hands
       [logSumOfAgesAgo, 4, 4],            // one member not yet born
-      [logDefinedOperator, 4, 4]          // an invented symbol, applied twice
+      [logDefinedOperator, 4, 4],         // an invented symbol, applied twice
+      [logBandedSeatCount, 4, 4]          // rows closed, rows short, rest full
     ]
   };
 
