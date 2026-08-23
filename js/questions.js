@@ -6094,6 +6094,218 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* ═══════════ shapes the scan attests more than once ═══════════ */
+
+  /* Examberry 16 and QE 12: "what direction will he be facing after making a
+     405 degree clockwise turn followed by a 315 degree anticlockwise turn and
+     then a 540 degree clockwise turn?"
+
+     geoCompassTurn does a single turn of at most three right angles. Three
+     turns, each possibly more than a full revolution, is a different question:
+     the angles have to be reduced and composed, and a full turn counts for
+     nothing. Every angle is a multiple of 45 so the answer lands on a named
+     point. */
+  const TURN_ANGLES = [405, 315, 540, 450, 630, 225, 270, 720, 495, 585, 360, 135];
+
+  function geoCompassTurnSequence(i) {
+    const from = i % 8;
+    /* A stride for each angle, each coprime with the pool length, so the three
+       do not move in lockstep. With (i * 3 + k * 5) they did: i * 3 mod 12
+       reaches only four values, and fifty seeds gave seven questions. */
+    const pickAngle = k => TURN_ANGLES[(i * [5, 7, 11][k]) % TURN_ANGLES.length];
+    const turns = [0, 1, 2].map(k => ({
+      deg: pickAngle(k),
+      cw: ((i >> k) & 1) === 0
+    }));
+    /* In eighths of a turn, so the arithmetic stays whole. */
+    const netPoints = turns.reduce((t, x) => t + (x.cw ? 1 : -1) * (x.deg / 45), 0);
+    const to = ((from + netPoints) % 8 + 8) % 8;
+    if (to === from) return null;              // "no change" is a poor question
+    const spell = t => `${t.deg}° ${t.cw ? "clockwise" : "anticlockwise"}`;
+    /* Every distractor is itself a compass point, and each is a real mistake:
+       ignoring the direction of the turns, or forgetting that a whole
+       revolution changes nothing. */
+    const allCw = ((from + turns.reduce((t, x) => t + x.deg / 45, 0)) % 8 + 8) % 8;
+    const noReduce = ((from + turns.reduce((t, x) =>
+      t + (x.cw ? 1 : -1) * ((x.deg % 360) / 45), 0)) % 8 + 8) % 8;
+    const q = mk("Geometry",
+      `A walker is facing ${COMPASS[from]}. She makes a ${spell(turns[0])} turn, ` +
+      `then a ${spell(turns[1])} turn, and finally a ${spell(turns[2])} turn.\n\n` +
+      `Which direction is she facing now?`,
+      COMPASS[to],
+      [COMPASS[allCw], COMPASS[noReduce],
+       COMPASS[(to + 4) % 8], COMPASS[(to + 1) % 8], COMPASS[(to + 7) % 8],
+       COMPASS[(to + 2) % 8]],
+      4, i);
+    if (q) {
+      const parts = turns.map(t => `${t.cw ? "+" : "−"}${t.deg}`).join(" ");
+      q.explain =
+        `Add the turns up as one, counting clockwise as positive and ` +
+        `anticlockwise as negative: ${parts} = ` +
+        `${netPoints * 45 >= 0 ? "+" : "−"}${Math.abs(netPoints * 45)}°. ` +
+        `Now take off whole revolutions, because 360° brings you back to where ` +
+        `you started: that leaves ${((netPoints * 45) % 360 + 360) % 360}° ` +
+        `clockwise. From ${COMPASS[from]}, turning ` +
+        `${((netPoints * 45) % 360 + 360) % 360}° clockwise ` +
+        `(${((netPoints % 8) + 8) % 8} eighths of a turn) faces you ` +
+        `${COMPASS[to]}. Reducing each turn before adding them works just as ` +
+        `well — what does not work is ignoring which way each one goes.`;
+    }
+    return q;
+  }
+
+  /* QE 13: "what coordinates would Jack have ended up at if he had turned 810
+     degrees clockwise instead, then walked the same distance?" The same
+     reduction, with the answer as a point rather than a compass name. */
+  function geoTurnThenWalk(i) {
+    const x = -4 + axis(i, 0, 9), y = -4 + axis(i, 1, 9);
+    const quarters = [450, 540, 630, 720, 810, 900, 990, 1080][(i * 3) % 8];
+    const cw = i % 2 === 0;
+    const dist = 2 + axis(i, 2, 7);
+    /* Facing north to begin with; quarter turns keep the walk on an axis. */
+    const steps = ((cw ? 1 : -1) * (quarters / 90)) % 4;
+    const facing = ((steps % 4) + 4) % 4;                 // 0 N, 1 E, 2 S, 3 W
+    const move = [[0, 1], [1, 0], [0, -1], [-1, 0]][facing];
+    const ex = x + move[0] * dist, ey = y + move[1] * dist;
+    if (Math.abs(ex) > 20 || Math.abs(ey) > 20) return null;
+    const at = f => {
+      const m = [[0, 1], [1, 0], [0, -1], [-1, 0]][((f % 4) + 4) % 4];
+      return `(${x + m[0] * dist}, ${y + m[1] * dist})`;
+    };
+    const q = mk("Geometry",
+      `Jack is standing at (${x}, ${y}), facing north. ` +
+      `He turns ${quarters}° ${cw ? "clockwise" : "anticlockwise"} and then ` +
+      `walks ${dist} units forwards.\n\nWhat are his coordinates now?`,
+      at(facing),
+      [at(facing + 2),                         // ended up facing the opposite way
+       at(-steps),                             // turned the wrong way
+       at(facing + 1), at(facing + 3),
+       `(${x}, ${y})`],                        // never moved
+      4, i);
+    if (q) q.explain =
+      `${quarters}° is ${quarters / 90} quarter turns, and four of those bring ` +
+      `you back to the start — so take off whole revolutions first: ` +
+      `${quarters} ÷ 360 leaves ${quarters % 360}°, which is ` +
+      `${(quarters % 360) / 90} quarter turn${(quarters % 360) / 90 === 1 ? "" : "s"} ` +
+      `${cw ? "clockwise" : "anticlockwise"}. From north that leaves him facing ` +
+      `${["north", "east", "south", "west"][facing]}, so walking ${dist} units ` +
+      `changes only the ${facing % 2 === 0 ? "y" : "x"}-coordinate: ` +
+      `(${x}, ${y}) becomes ${at(facing)}.`;
+    return q;
+  }
+
+  /* QE 10 and QE 12: "after how many days will he have finished the packet of
+     flour", "for how many complete days will the 5 packs of treats last".
+
+     Those two wordings have different answers - one is a floor and the other a
+     ceiling - so each question asks one of them plainly and offers the other as
+     the distractor, which is the mistake actually worth catching. */
+  const SUPPLY_POOL = [
+    { thing: "flour", packs: 1, each: 2000, unit: "g", perDay: 150, holder: "sack" },
+    { thing: "rice", packs: 1, each: 1500, unit: "g", perDay: 220, holder: "bag" },
+    { thing: "dog treats", packs: 5, each: 12, unit: "", perDay: 7, holder: "box" },
+    { thing: "cat biscuits", packs: 4, each: 250, unit: "g", perDay: 90, holder: "tub" },
+    { thing: "oats", packs: 1, each: 3000, unit: "g", perDay: 175, holder: "sack" },
+    { thing: "birdseed", packs: 3, each: 400, unit: "g", perDay: 130, holder: "bag" },
+    { thing: "tea bags", packs: 2, each: 80, unit: "", perDay: 9, holder: "box" },
+    { thing: "washing powder", packs: 1, each: 2400, unit: "g", perDay: 140, holder: "drum" },
+    { thing: "hamster food", packs: 6, each: 45, unit: "g", perDay: 24, holder: "packet" },
+    { thing: "coffee", packs: 2, each: 227, unit: "g", perDay: 18, holder: "tin" },
+    { thing: "chicken feed", packs: 4, each: 900, unit: "g", perDay: 260, holder: "sack" },
+    { thing: "sugar cubes", packs: 3, each: 60, unit: "", perDay: 11, holder: "box" }
+  ];
+
+  function numSupplyDuration(i) {
+    const p = SUPPLY_POOL[i % SUPPLY_POOL.length];
+    const total = p.packs * p.each;
+    const full = Math.floor(total / p.perDay);
+    const runsOut = Math.ceil(total / p.perDay);
+    /* If it divides exactly the two answers are the same and the question has
+       nothing in it. */
+    if (full === runsOut) return null;
+    /* Not i % 2: the pool row is i % 12 and 12 is even, so i % 2 carried no
+       information the row did not already carry, and each row only ever asked
+       one of the two questions. */
+    const askComplete = Math.floor(i / SUPPLY_POOL.length) % 2 === 0;
+    const amount = n => (p.unit ? `${comma(n)} ${p.unit}` : `${comma(n)}`);
+    const stock = p.packs === 1
+      ? `A ${p.holder} of ${p.thing} holds ${amount(p.each)}.`
+      : `${p.packs} ${p.holder}s of ${p.thing} hold ${amount(p.each)} each.`;
+    const q = mk("Numbers",
+      `${stock} ${amount(p.perDay)} of ${p.thing} ${p.unit ? "is" : "are"} used ` +
+      `every day.\n\n` +
+      (askComplete
+        ? `For how many complete days will the ${p.thing} last?`
+        : `On which day will the ${p.thing} run out?`),
+      askComplete ? `${full}` : `day ${runsOut}`,
+      askComplete
+        ? [`${runsOut}`,                         // the day it runs out, not the last full one
+           `${Math.round(total / p.perDay)}`,
+           `${full + 2}`, `${full - 1}`, `${p.each}`]
+        : [`day ${full}`,                        // the last complete day
+           `day ${Math.round(total / p.perDay)}`,
+           `day ${runsOut + 1}`, `day ${runsOut - 2}`, `day ${p.packs * p.perDay}`],
+      4, i);
+    if (q) q.explain =
+      `There ${p.packs === 1 ? "is" : "are"} ${p.packs === 1 ? "" : `${p.packs} × ` +
+      `${amount(p.each)} = `}${amount(total)} altogether, and ` +
+      `${amount(total)} ÷ ${amount(p.perDay)} = ${fmt(total / p.perDay)}. ` +
+      (askComplete
+        ? `That means ${full} whole days are covered, with some left over but not ` +
+          `enough for another full day — so the answer is ${full}. Day ${runsOut} ` +
+          `is the day it runs out, which is the other question.`
+        : `Day ${full} is the last day there is enough for, so it runs out ` +
+          `during day ${runsOut} — round UP for this one. ${full} would be the ` +
+          `answer to "how many complete days will it last".`);
+    return q;
+  }
+
+  /* QE 10 and QE 14: "what is the smallest possible range of this set of
+     numbers", "what is the greatest possible range of these three numbers".
+     One member of the set is unknown within stated limits, so the range is not
+     one number but a span, and the question asks for an end of it. */
+  function statPossibleRange(i) {
+    const a = 3 + axis(i, 0, 8);
+    const b = a + 3 + (i % 5);
+    const c = b + 2 + axis(i, 1, 6);
+    const known = [a, b, c];
+    const lo = 1 + (i % 3), hi = c + 2 + axis(i, 2, 9);
+    const spans = [];
+    for (let n = lo; n <= hi; n++) {
+      const set = [...known, n];
+      spans.push(Math.max(...set) - Math.min(...set));
+    }
+    const least = Math.min(...spans), most = Math.max(...spans);
+    if (least === most) return null;
+    const askLeast = i % 2 === 0;
+    const plain = Math.max(...known) - Math.min(...known);
+    const q = mk("Statistics",
+      `A set of four numbers is ${known.join(", ")} and n, where n is a whole ` +
+      `number from ${lo} to ${hi}.\n\n` +
+      `What is the ${askLeast ? "smallest" : "greatest"} possible range of the set?`,
+      `${askLeast ? least : most}`,
+      [`${askLeast ? most : least}`,             // the other end of the span
+       `${plain}`,                               // ignored n altogether
+       `${hi - lo}`,                             // the range of n itself
+       `${(askLeast ? least : most) + 1}`, `${(askLeast ? least : most) - 1}`],
+      4, i);
+    if (q) q.explain =
+      `The range is the largest number minus the smallest, and n can move, so ` +
+      `try n at each end of what it is allowed to be. ` +
+      (askLeast
+        ? `To make the range as SMALL as possible, put n between the numbers you ` +
+          `already have — anywhere from ${Math.min(...known)} to ` +
+          `${Math.max(...known)} leaves the range at ${Math.max(...known)} − ` +
+          `${Math.min(...known)} = ${plain}, and n can reach that, so the smallest ` +
+          `possible range is ${least}.`
+        : `To make the range as LARGE as possible, push n to whichever limit is ` +
+          `further from the others: n = ${spans.indexOf(most) + lo} gives a range ` +
+          `of ${most}. Ignoring n altogether gives ${plain}, which is the range ` +
+          `of the three numbers you were shown rather than of the set.`);
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -6137,6 +6349,7 @@ const QUESTIONS = [];
       [numOddFactorCount, 4, 4],          // strip the 2s out first
       [numFactorsNotFactors, 4, 4],       // two factor lists, then subtract
       [numDistinctPrimeFactors, 4, 4],    // different primes, not counting repeats
+      [numSupplyDuration, 4, 4],          // complete days, or the day it runs out
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -6282,6 +6495,8 @@ const QUESTIONS = [];
     ],
     Geometry: [
       [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
+      [geoCompassTurnSequence, 4, 4],     // three turns, angles over a full revolution
+      [geoTurnThenWalk, 4, 4],            // reduce the turn, then walk
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
       [geoComplementary, 1, 2], [geoTriangleArea, 2, 2], [geoLinesSymmetry, 1, 2],
       [geoRotSymmetry, 2, 2], [geoPrismFEV, 2, 2], [geoCuboidMissingEdge, 2, 2],
@@ -6310,6 +6525,7 @@ const QUESTIONS = [];
       [statRequiredAverage, 4, 4],        // what average is needed from here on
       [statMeanOfRemaining, 4, 4],        // the mean after some are taken out
       [statAboveMean, 4, 4],              // count the bars above the mean
+      [statPossibleRange, 4, 4],          // one member unknown, so the range is a span
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
       [statMissingMean, 3, 3],            // mean worked backwards
       [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
