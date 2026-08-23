@@ -860,17 +860,57 @@ const QUESTIONS = [];
       diff(i, 3), i);
   }
 
+  /* "Two angles sum to k times the third; the largest is d° more than the second
+     largest." The two that sum to k times the third are A and B, and the wording
+     only holds if the third angle C is the SMALLEST of the three - otherwise C
+     sits between A and B, C is the second largest, and the difference between the
+     largest and the second largest is not d at all.
+
+     That is what went wrong: at k = 2, C = 60 and A + B = 120, so for d = 8 the
+     angles are 64, 60 and 56. The largest beats the second largest by 4, and the
+     answer to the question as written is 68 (68, 60, 52) - which was not even
+     offered. Half of this template's questions were in that state.
+
+     B > C requires C * (k - 2) > d. At k = 2 that is 0 > d, which never holds,
+     so k = 2 is gone. */
   function algTriangleAngles(i) {
-    const kPool = [3, 4, 5, 2];
-    const k = kPool[i % kPool.length];
-    const d = 5 + 3 * (i % 30);
+    const kPool = [3, 4, 5];
+    /* k from a different part of the seed than d: with k = kPool[i % 3] and
+       d = 5 + 3 * (i % 30), the fact that 3 divides 30 meant i % 30 already
+       fixed i % 3, so each base only ever saw a third of the values of d. */
+    const k = kPool[Math.floor(i / 11) % kPool.length];
     const C = 180 / (k + 1);
-    const A = (k * C + d) / 2, B = k * C - A;
-    if (B <= 0) return algTriangleAngles(i + 1);
-    return mk("Algebra",
+    const kc = k * C;
+    /* d is chosen from the values that WORK rather than tested afterwards:
+       below C * (k - 2) so the third angle is the smallest, and matching the
+       parity of k * C so the angles come out whole. */
+    const lo = kc % 2 === 0 ? 6 : 5;
+    let hi = C * (k - 2) - 1;
+    if ((hi - lo) % 2) hi -= 1;
+    if (hi < lo) return null;
+    const count = (hi - lo) / 2 + 1;
+    const d = lo + 2 * (i % count);
+    const A = (kc + d) / 2, B = kc - A;
+    /* Belt and braces: if any of that reasoning is ever wrong, the question is
+       dropped rather than printed with a condition it does not satisfy. */
+    if (!(B > C)) return null;
+    if (!Number.isInteger(A) || !Number.isInteger(B) || !Number.isInteger(C)) return null;
+    const q = mk("Algebra",
       `In a triangle, two angles sum to ${k} times the third. The largest is ${d}° more than the second largest. Find the largest angle.`,
-      `${fmt(A)}°`, [`${fmt(B)}°`, `${fmt(C)}°`, `${fmt(A + 10)}°`],
+      `${A}°`,
+      [`${B}°`,                    // the second largest
+       `${C}°`,                    // the third angle
+       `${A - d}°`, `${A + d}°`, `${180 - A}°`],
       diff(i, 3), i);
+    if (q) q.explain =
+      `Call the third angle C. The other two come to ${k}C, so the whole triangle ` +
+      `is C + ${k}C = ${k + 1}C = 180°, giving C = ${C}°. That leaves ` +
+      `${k} × ${C} = ${k * C}° to share between the largest and the second ` +
+      `largest, and they differ by ${d}°. So the largest is ` +
+      `(${k * C} + ${d}) ÷ 2 = ${A}° and the second largest is ${B}°. Check the ` +
+      `order before you finish: ${A}, ${B} and ${C} — the third angle really is ` +
+      `the smallest here, so "second largest" means ${B}° and not ${C}°.`;
+    return q;
   }
 
   /* ═══════════════════ SEQUENCES ═══════════════════ */
