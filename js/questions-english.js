@@ -450,6 +450,75 @@
     return mkLabelled("Spelling", stem, set.bad === -1 ? 4 : set.bad, set.level);
   }
 
+
+  /* The SPAG workbook's spelling section: a sentence in four labelled groups,
+     one of which may hold a misspelling. Harder than a list of four words,
+     because the mistake sits inside running text rather than on its own, and
+     roughly one sentence in four is clean - a child who has learnt that
+     something is always wrong gets caught. */
+  const SPELL_SEGMENTS = [
+    { parts: ["The registrar agreed", "to except the amended", "application", "before noon."],
+      bad: 1, fix: "accept", note: "to accept is to receive; to except is to leave out" },
+    { parts: ["A silver lamp stood", "beside the stone alter", "in the chapel", "near the door."],
+      bad: 1, fix: "altar", note: "an altar is in a church; to alter is to change" },
+    { parts: ["The brass label", "remained attached", "to the case", "during transport."],
+      bad: -1 },
+    { parts: ["The courier checked", "the adress carefully", "before sealing", "the parcel."],
+      bad: 1, fix: "address", note: "address has a double d as well as a double s" },
+    { parts: ["After the market opened,", "the chef selected", "the berrys carefully", "for the tart."],
+      bad: 2, fix: "berries", note: "a noun ending in a consonant plus y takes -ies, not -ys" },
+    { parts: ["The last witness", "supplied fresh information", "about the alotment", "that morning."],
+      bad: 2, fix: "allotment", note: "allotment doubles the l, like allow and allocate" },
+    { parts: ["The sudden frost", "may effect the seedlings", "near the eastern wall", "this week."],
+      bad: 1, fix: "affect", note: "to affect is to change something; an effect is the result" },
+    { parts: ["The aparatus arrived", "in a sealed container", "shortly before noon", "on Tuesday."],
+      bad: 0, fix: "apparatus", note: "apparatus doubles the p" },
+    { parts: ["The librarian recommended", "a thorough search", "of the upper shelves", "before closing."],
+      bad: -1 },
+    { parts: ["The commitee agreed", "to postpone the vote", "until the surveyor", "had reported."],
+      bad: 0, fix: "committee", note: "committee doubles the m, the t and the e" },
+    { parts: ["Every seperate entry", "had been recorded", "in the ledger", "by the clerk."],
+      bad: 0, fix: "separate", note: "separate has an a in the middle - there is a rat in separate" },
+    { parts: ["The engineer described", "the neccessary repairs", "to the pumping station", "in detail."],
+      bad: 1, fix: "necessary", note: "necessary has one c and a double s" },
+    { parts: ["A grey heron waited", "beside the shallow water", "until the tide", "had turned."],
+      bad: -1 },
+    { parts: ["The pupils recieved", "their certificates", "at the assembly", "on Friday morning."],
+      bad: 0, fix: "received", note: "i before e except after c, and this follows a c" },
+    { parts: ["The old bridge", "was clearly noticable", "from the far bank", "of the estuary."],
+      bad: 1, fix: "noticeable", note: "notice keeps its e before -able, to keep the c soft" },
+    { parts: ["The archaeologist", "brushed the surface", "of the buried mosaic", "with great care."],
+      bad: -1 },
+    { parts: ["The rythm of the drums", "carried across the valley", "long after dusk", "had fallen."],
+      bad: 0, fix: "rhythm", note: "rhythm has an h after the r and no vowels but the y" },
+    { parts: ["The council published", "a questionaire", "about the proposed route", "last month."],
+      bad: 1, fix: "questionnaire", note: "questionnaire doubles the n" },
+    { parts: ["Their neighbour offered", "to collect the parcel", "from the sorting office", "on Thursday."],
+      bad: -1 },
+    { parts: ["The mischevious puppy", "had buried both slippers", "somewhere in the garden", "before breakfast."],
+      bad: 0, fix: "mischievous", note: "mischievous ends -ievous, with no extra i before the ous" }
+  ];
+
+  function spellFindSegment(i) {
+    const item = pick(SPELL_SEGMENTS, i);
+    const display = item.parts.map((part, idx) => `${"ABCD"[idx]}  ${part}`).join("\n");
+    const stem = `One part of this sentence contains a spelling mistake. Which part is it?\n\n` +
+      `${display}\n\n(If there is no mistake, choose "No mistake".)`;
+    const q = mkLabelled("Spelling", stem, item.bad === -1 ? 4 : item.bad,
+      item.bad === -1 ? 4 : 3 + (i % 2));
+    q.explain = item.bad === -1
+      ? `Every word here is spelled correctly, so the answer is "No mistake". ` +
+        `Check each group in turn rather than assuming something must be wrong — ` +
+        `about one sentence in four of these is clean, and that is what the ` +
+        `option is there for.`
+      : `Part ${"ABCD"[item.bad]} should read "${item.fix}". ` +
+        `${item.note.charAt(0).toUpperCase() + item.note.slice(1)}. Read ` +
+        `each group on its own, one word at a time: a misspelling inside running ` +
+        `text is much easier to slide past than one in a list.`;
+    return q;
+  }
+  spellFindSegment.poolSize = SPELL_SEGMENTS.length;
+
   /* ═══════════════════ PUNCTUATION ═══════════════════ */
 
   const OWNERS = [
@@ -627,7 +696,20 @@
     { parts: ["We were lucky to win tickets", "to see The Nutcracker", "this Winter.", "It was wonderful."], bad: 2 },
     { parts: ["Hippo sweat has", "special properties to protect", "the skin from", "the suns harmful rays."], bad: 3 },
     { parts: ["The same fluid,", "red in colour", "also moisturises", "and serves as an antibiotic."], bad: 1 },
-    { parts: ["Its true that", "hippos are omnivores,", "but they are not", "gentle creatures."], bad: 0 }
+    { parts: ["Its true that", "hippos are omnivores,", "but they are not", "gentle creatures."], bad: 0 },
+    /* MKT QE Boys SPaG workbook, question-bank/20260823-Onwards. */
+    { parts: ["The delay had one cause;", "dense fog", "covered the marina", "until midday."], bad: 0 },
+    { parts: ["The conservatory closed at dusk;", "Nobody noticed", "the missing signal", "until later."], bad: 1 },
+    { parts: ["The guide called,", "\u2018Keep clear of the nest?\u2019", "when the engineers", "approached the cliff."], bad: 1 },
+    { parts: ["The injured heron", "spread it\u2019s wings", "beside the stadium", "at first light."], bad: 1 },
+    { parts: ["Although the map", "appeared delicate", "the archaeologist", "examined it again."], bad: 1 },
+    { parts: ["The winter storm damaged", "the weather vane", "above the warehouse", "at midday"], bad: 3 },
+    { parts: ["The northern route", "beyond the courtyard, however", "remained open", "throughout the storm."], bad: 1 },
+    { parts: ["The musicians instruments", "were stored below the stage", "at the pavilion", "before dawn."], bad: 0 },
+    { parts: ["\u2018Has the tide risen!\u2019", "asked the harbour master", "after checking the lantern", "before dawn."], bad: 0 },
+    { parts: ["The expedition packed:", "ropes, torches", "and a waterproof satchel", "for the crossing."], bad: -1 },
+    { parts: ["The walkers from the airfield", "followed the River Thames", "towards London", "during the morning."], bad: -1 },
+    { parts: ["\u2018Where did you find the receipt?\u2019", "asked the wildlife officer", "quietly, before", "the meeting began."], bad: -1 }
   ];
 
   function punFindSegment(i) {
@@ -3585,7 +3667,8 @@
   const generators = {
     Spelling: [
       [spellFindMisspelt], [spellChooseCorrect], [spellInSentence], [spellHomophone],
-      [spellAnyMistake]                // includes sets with no mistake at all
+      [spellAnyMistake],               // includes sets with no mistake at all
+      [spellFindSegment, 3, 4]         // the misspelling inside running text
     ],
     Punctuation: [
       [punApostropheSingular, 1, 2],   // one owner, apostrophe before the s

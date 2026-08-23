@@ -6306,6 +6306,417 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* ── the clockwork toy in the maze ────────────────────────────────────
+     Cells are (x, y), x left to right and y top to bottom. A wall in vWalls at
+     [x, y] closes the right edge of that cell; one in hWalls closes its bottom
+     edge. Directions are indexed up, right, down, left, so turning clockwise is
+     simply +1. */
+  const MAZE_DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  const MAZE_DIR_NAMES = ["up", "right", "down", "left"];
+
+  function runMaze(m) {
+    const wall = (list, x, y) => list.some(p => p[0] === x && p[1] === y);
+    let x = m.start.x, y = m.start.y;
+    let d = MAZE_DIR_NAMES.indexOf(m.facing || "up");
+    const seen = new Set();
+    const legs = [];
+    let leg = { dir: d, steps: 0 };
+    for (let n = 0; n < 5000; n++) {
+      const key = `${x},${y},${d}`;
+      /* The toy is deterministic, so being in a cell facing a direction it has
+         already faced there means the whole path from here repeats: it is in a
+         loop and will never get out. */
+      if (seen.has(key)) {
+        legs.push(leg);
+        return { escaped: null, legs, loop: true };
+      }
+      seen.add(key);
+      const [dx, dy] = MAZE_DIRS[d];
+      const nx = x + dx, ny = y + dy;
+      let blocked;
+      if (nx < 0 || ny < 0 || nx >= m.cols || ny >= m.rows) {
+        const out = nx < 0 ? m.exits.find(e => e.side === "left" && e.at === y)
+          : nx >= m.cols ? m.exits.find(e => e.side === "right" && e.at === y)
+            : ny < 0 ? m.exits.find(e => e.side === "top" && e.at === x)
+              : m.exits.find(e => e.side === "bottom" && e.at === x);
+        if (out) {
+          leg.steps += 1;
+          legs.push(leg);
+          return { escaped: out.label, legs, loop: false };
+        }
+        blocked = true;
+      } else if (dx === 1) blocked = wall(m.vWalls, x, y);
+      else if (dx === -1) blocked = wall(m.vWalls, nx, y);
+      else if (dy === 1) blocked = wall(m.hWalls, x, y);
+      else blocked = wall(m.hWalls, x, ny);
+
+      if (blocked) {
+        /* Pushed even when it moved nowhere: a turn into a wall is part of the
+           path, and without it the hint reads "down, then up", which is not a
+           clockwise turn. What to say about them is the hint's business. */
+        legs.push(leg);
+        d = (d + 1) % 4;
+        leg = { dir: d, steps: 0 };
+      } else { x = nx; y = ny; leg.steps += 1; }
+    }
+    return { escaped: null, legs, loop: true };
+  }
+
+  /* Laid out by hand rather than generated, so every picture is a maze a person
+     would draw. The answer to each comes from the simulation, not from the
+     layout being designed backwards from an answer.
+
+     The release points, though, WERE chosen: every cell and every starting
+     direction was searched, paths of fewer than three turns thrown out, and the
+     rest picked to spread the answers across all five options. Left to a
+     plausible-looking guess the pool had one maze the toy walked straight out
+     of without turning once, three more that escaped after a single turn, no
+     maze at all whose answer was Exit 1, and a third answering "never escapes"
+     - which is a third of the marks for choosing the same option every time. */
+  const MAZE_POOL = [
+    { cols: 6, rows: 5, vWalls: [[1, 1], [3, 2], [3, 3]], hWalls: [[2, 1], [4, 2]],
+      exits: [{ side: "left", at: 1, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 2, label: 4 }],
+      start: { x: 1, y: 4 }, facing: "up" },
+    { cols: 6, rows: 5, vWalls: [[2, 0], [2, 1], [4, 3]], hWalls: [[1, 2], [3, 1]],
+      exits: [{ side: "left", at: 3, label: 1 }, { side: "top", at: 1, label: 2 },
+              { side: "right", at: 0, label: 3 }, { side: "bottom", at: 4, label: 4 }],
+      start: { x: 3, y: 0 }, facing: "down" },
+    { cols: 5, rows: 5, vWalls: [[1, 2], [3, 0], [1, 3]], hWalls: [[2, 2], [0, 1]],
+      exits: [{ side: "left", at: 4, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 3, label: 3 }, { side: "bottom", at: 1, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 4, vWalls: [[1, 0], [3, 2], [4, 1]], hWalls: [[2, 0], [4, 2]],
+      exits: [{ side: "left", at: 2, label: 1 }, { side: "top", at: 3, label: 2 },
+              { side: "right", at: 1, label: 3 }, { side: "bottom", at: 1, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 5, rows: 6, vWalls: [[2, 1], [1, 4], [3, 3]], hWalls: [[1, 1], [3, 4]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 1, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 6, rows: 5, vWalls: [[0, 2], [2, 3], [4, 0], [4, 4]], hWalls: [[3, 2]],
+      exits: [{ side: "left", at: 4, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 3, label: 3 }, { side: "bottom", at: 0, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "up" },
+    { cols: 5, rows: 5, vWalls: [[1, 1], [2, 3], [3, 2]], hWalls: [[0, 3], [2, 0], [4, 2]],
+      exits: [{ side: "left", at: 2, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 6, vWalls: [[1, 2], [3, 1], [4, 4], [2, 5]], hWalls: [[0, 0], [3, 3]],
+      exits: [{ side: "left", at: 5, label: 1 }, { side: "top", at: 0, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 4, label: 4 }],
+      start: { x: 1, y: 0 }, facing: "up" },
+    { cols: 5, rows: 4, vWalls: [[2, 0], [1, 2], [3, 3]], hWalls: [[1, 0], [3, 1]],
+      exits: [{ side: "left", at: 1, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 2, label: 4 }],
+      start: { x: 1, y: 1 }, facing: "up" },
+    { cols: 6, rows: 5, vWalls: [[1, 3], [3, 0], [4, 2]], hWalls: [[2, 3], [0, 1], [5, 1]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 5, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 5, rows: 6, vWalls: [[1, 0], [2, 2], [3, 4]], hWalls: [[0, 2], [2, 4], [4, 1]],
+      exits: [{ side: "left", at: 3, label: 1 }, { side: "top", at: 3, label: 2 },
+              { side: "right", at: 5, label: 3 }, { side: "bottom", at: 0, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 4, vWalls: [[0, 1], [2, 2], [4, 0], [3, 3]], hWalls: [[1, 1], [4, 1]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 5, label: 4 }],
+      start: { x: 4, y: 2 }, facing: "down" }
+  ];
+
+  function logMazeBounce(i) {
+    if (!D) return null;
+    const m = MAZE_POOL[i % MAZE_POOL.length];
+    const run = runMaze(m);
+    const NEVER = "It never escapes from the maze";
+    const answer = run.escaped ? `Exit ${run.escaped}` : NEVER;
+    /* The other four possibilities, in the paper's own order, minus whichever
+       one is right. The "never escapes" option always stays on the page: it is
+       the answer a child reaches by giving up on the tracing, and leaving it
+       out would make the question easier than the paper's. */
+    const all = ["Exit 1", "Exit 2", "Exit 3", "Exit 4", NEVER];
+    const wrong = all.filter(o => o !== answer);
+    const q = mkFig("Logic",
+      `A clockwork toy is released into the maze shown, at the dot, travelling ` +
+      `in the direction of the arrow.\n\n` +
+      `Every time it meets a wall it turns 90° clockwise and carries on ` +
+      `forwards. It escapes only by travelling out through an exit — passing ` +
+      `alongside one does not count.\n\n` +
+      `Through which exit does the toy escape?`,
+      answer,
+      [wrong[wrong.length - 1], wrong[0], wrong[1], wrong[2]],
+      4, i, D.maze(m));
+    if (q) {
+      /* A leg on which the toy moved nowhere - blocked the moment it turned -
+         still has to be reported, or consecutive legs look like an
+         anticlockwise turn. Dropping them described "down, then up", which is
+         two clockwise turns and reads as one anticlockwise one. */
+      const parts = [];
+      let extraTurns = 0;
+      run.legs.forEach(l => {
+        if (!l.steps) { extraTurns += 1; return; }
+        if (!parts.length && extraTurns) {
+          parts.push(`cannot move at first, so turns clockwise ` +
+            `${extraTurns === 1 ? "once" : extraTurns === 2 ? "twice" : `${extraTurns} times`}`);
+          extraTurns = 0;
+        } else if (parts.length) {
+          const t = extraTurns + 1;
+          parts.push(`turns clockwise ${t === 1 ? "once" : t === 2 ? "twice" : `${t} times`}`);
+        }
+        parts.push(`goes ${l.steps} ${l.steps === 1 ? "square" : "squares"} ${MAZE_DIR_NAMES[l.dir]}`);
+        extraTurns = 0;
+      });
+      const path = parts.join(", ");
+      q.explain =
+        `Trace it one leg at a time, and remember that clockwise from up is ` +
+        `right, then down, then left. Do not try to see the answer — the path ` +
+        `is the only way to it. This toy ${path}` +
+        (run.escaped
+          ? `, and that last leg takes it out through Exit ${run.escaped}.`
+          : `, and then arrives back in a square it has already been in, facing ` +
+            `the same way as before. From there the whole path repeats, so it ` +
+            `circles for ever and never escapes.`) +
+        ` A toy running alongside an opening does not leave through it: it has ` +
+        `to be travelling at the wall the opening is in.`;
+    }
+    return q;
+  }
+
+
+  /* ═══════════ from question-bank/20260823-Onwards ═══════════ */
+
+  /* MKT Estimation Q1-3: "which is the most reasonable estimate for the height
+     of a classroom door?" The bank had meaEstimateWeight, which is mass only;
+     these are lengths, heights and capacities. Every wrong option is the right
+     answer moved by a power of ten or a small factor, because the skill being
+     tested is recognising the order of magnitude, not the exact figure. */
+  /* No two options in a row may share a numeral. mk() compares options by
+     value, so "3 litres" and "3 ml" are one option to it, and a row that
+     offered both ran short of distractors and had nudge() invent "307 ml".
+     The unit-confusion distractor is the most useful one here, so it stays -
+     it just cannot reuse the number the answer already uses. */
+  const SIZE_ESTIMATES = [
+    ["the height of a classroom door", "2 m", ["20 cm", "10 m", "25 m", "1 m"]],
+    ["the length of a new pencil", "18 cm", ["2 cm", "180 cm", "90 cm", "5 m"]],
+    ["the length of a double-decker bus", "11 m", ["1 m", "110 m", "35 m", "60 cm"]],
+    ["the width of a front door", "80 cm", ["8 m", "300 cm", "20 cm", "2 mm"]],
+    ["the length of a swimming pool", "25 m", ["2 m", "250 m", "80 m", "5 cm"]],
+    ["the capacity of a teaspoon", "5 ml", ["50 ml", "500 ml", "2 litres", "1 mm"]],
+    ["the capacity of a bath", "150 litres", ["15 litres", "1,500 litres", "20 ml", "500 litres"]],
+    ["the capacity of a mug", "300 ml", ["30 ml", "3 litres", "20 litres", "5 ml"]],
+    ["the length of a football pitch", "100 m", ["10 m", "1,000 m", "30 m", "400 cm"]],
+    ["the length of a house brick", "22 cm", ["2 cm", "220 cm", "70 cm", "3 m"]],
+    ["the height of a classroom ceiling", "3 m", ["30 cm", "25 m", "10 m", "1 m"]],
+    ["the height of an adult", "1.7 m", ["17 m", "70 cm", "7 m", "20 cm"]],
+    ["the length of a family car", "4 m", ["40 cm", "45 m", "12 m", "1 m"]],
+    ["the height of a kitchen worktop", "90 cm", ["9 m", "300 cm", "30 cm", "2 mm"]],
+    ["the thickness of a pound coin", "3 mm", ["2 cm", "30 mm", "1 cm", "20 mm"]],
+    ["the capacity of a kettle", "1.7 litres", ["17 litres", "170 ml", "20 ml", "10 litres"]]
+  ];
+
+  function meaEstimateSize(i) {
+    const [thing, ans, wrong] = SIZE_ESTIMATES[i % SIZE_ESTIMATES.length];
+    /* Refuse a row that reuses a numeral rather than letting mk() drop the
+       duplicate and nudge() invent a replacement. */
+    const numerals = [ans, ...wrong].map(o => Number(String(o).replace(/[^0-9.]/g, "")));
+    if (new Set(numerals).size !== numerals.length) return null;
+    const q = mk("Measurement",
+      `Which of these is the most reasonable estimate for ${thing}?`,
+      ans, wrong, 3 + (i % 2), i);
+    if (q) q.explain =
+      `Nobody expects you to know this exactly — the options are a factor of ten ` +
+      `or more apart, so the question is which one is the right SIZE. Picture ` +
+      `${thing.replace(/^the /, "")} against something you know: ${ans} is the ` +
+      `only estimate that is not absurd. Check the unit as well as the number, ` +
+      `because that is where most of these go wrong.`;
+    return q;
+  }
+
+  /* MKT Estimation Q4-5: "using sensible real-life estimates, approximately what
+     is the difference between the mass of a pony and the mass of a goat?" Two
+     estimates are needed before any arithmetic, and the answer guide prints the
+     figures it used - so the hint does too, otherwise the question looks like
+     guesswork rather than method. */
+  const COMBINE_ESTIMATES = [
+    { a: "a pony", av: 300, b: "a goat", bv: 50, unit: "kg", what: "mass" },
+    { a: "a city minibus", av: 6, b: "a touring caravan", bv: 7, unit: "m", what: "length" },
+    { a: "an adult", av: 70, b: "a five-year-old child", bv: 20, unit: "kg", what: "mass" },
+    { a: "a double-decker bus", av: 11, b: "a family car", bv: 4, unit: "m", what: "length" },
+    { a: "a filled bath", av: 150, b: "a household bucket", bv: 10, unit: "litres", what: "capacity" },
+    { a: "a bag of cement", av: 25, b: "a bag of sugar", bv: 1, unit: "kg", what: "mass" },
+    { a: "a tennis court", av: 24, b: "a family car", bv: 4, unit: "m", what: "length" },
+    { a: "a car fuel tank", av: 50, b: "a watering can", bv: 8, unit: "litres", what: "capacity" },
+    { a: "an adult cow", av: 600, b: "a large dog", bv: 40, unit: "kg", what: "mass" },
+    { a: "a lamp post", av: 8, b: "a front door", bv: 2, unit: "m", what: "height" },
+    { a: "a wheelie bin", av: 240, b: "a kettle", bv: 2, unit: "litres", what: "capacity" },
+    { a: "a piano", av: 300, b: "a bicycle", bv: 12, unit: "kg", what: "mass" }
+  ];
+
+  function meaEstimateCombine(i) {
+    const e = COMBINE_ESTIMATES[i % COMBINE_ESTIMATES.length];
+    const add = i % 2 === 0;
+    const ans = add ? e.av + e.bv : e.av - e.bv;
+    if (ans <= 0) return null;
+    const amount = n => `${comma(n)} ${e.unit}`;
+    const q = mk("Measurement",
+      `Using sensible real-life estimates, approximately what is the ` +
+      `${add ? "combined" : "difference between the"} ${e.what} ` +
+      `${add ? `of ${e.a} and ${e.b}` : `of ${e.a} and the ${e.what} of ${e.b}`}?`,
+      amount(ans),
+      [amount(add ? e.av - e.bv : e.av + e.bv),   // did the other operation
+       amount(e.av), amount(e.bv),                // gave one estimate on its own
+       amount(ans * 10), amount(Math.round(ans / 10))],
+      4, i);
+    if (q) q.explain =
+      `Estimate each one first, then do the arithmetic — and a sensible estimate ` +
+      `is all that is wanted. Take ${e.a} at about ${amount(e.av)} and ${e.b} at ` +
+      `about ${amount(e.bv)}. Then ${e.av} ${add ? "+" : "−"} ${e.bv} = ` +
+      `${amount(ans)}. The options are far enough apart that a rough estimate ` +
+      `still lands on the right one.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q1: "how many three-digit numbers can have the product of the
+     digits equal 16?" Counted rather than reasoned about - the arrangements of
+     1, 2 and 8 alongside 1, 4, 4 and 2, 2, 4 are easy to half-count. */
+  function countDigitProduct(i) {
+    const targets = [16, 12, 8, 18, 24, 6, 32, 36, 20, 27, 4, 48];
+    const target = targets[i % targets.length];
+    let count = 0;
+    for (let n = 100; n <= 999; n += 1) {
+      const d = [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
+      if (d[0] * d[1] * d[2] === target) count += 1;
+    }
+    if (count < 4) return null;
+    const q = mk("Counting Principle",
+      `How many three-digit numbers have digits whose product is ${target}?`,
+      `${count}`,
+      [`${count - 3}`, `${count + 3}`, `${count - 1}`, `${count + 1}`, `${count * 2}`],
+      4, i);
+    if (q) q.explain =
+      `Work out which SETS of three digits multiply to ${target}, then count the ` +
+      `arrangements of each set — that is where these go wrong, because a set ` +
+      `with three different digits has 6 arrangements but a set with a repeated ` +
+      `digit has only 3. Remember a digit cannot be 0 (the product would be 0) ` +
+      `and the first digit cannot be 0 anyway. Altogether there are ${count}.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q42: "the sum of the smallest 4-digit number divisible by 3 and
+     the largest 4-digit number divisible by 5". Both ends have to be stepped in
+     from 1000 and 9999 to the nearest multiple, and in opposite directions. */
+  function numExtremeDivisible(i) {
+    /* Three indices that all reduce to i % 8 give eight questions out of fifty.
+       The digit count is taken from a different part of the seed. */
+    const digits = 3 + (Math.floor(i / 8) % 2);
+    const lo = 10 ** (digits - 1), hi = 10 ** digits - 1;
+    const p = [3, 4, 6, 7, 8, 9, 11, 12][(i * 3) % 8];
+    const qd = [5, 3, 4, 6, 7, 9, 8, 11][(i * 5) % 8];
+    if (p === qd) return null;
+    const smallest = Math.ceil(lo / p) * p;
+    const largest = Math.floor(hi / qd) * qd;
+    const ans = smallest + largest;
+    const q = mk("Numbers",
+      `What is the sum of the smallest ${digits}-digit number divisible by ${p} ` +
+      `and the largest ${digits}-digit number divisible by ${qd}?`,
+      `${comma(ans)}`,
+      [`${comma(lo + hi)}`,                       // never stepped to a multiple
+       `${comma(lo + largest)}`,                  // only stepped the top end
+       `${comma(smallest + hi)}`,                 // only stepped the bottom end
+       `${comma(ans + p)}`, `${comma(ans - qd)}`],
+      4, i);
+    if (q) q.explain =
+      `Take the two ends separately, and step INWARDS from each. The smallest ` +
+      `${digits}-digit number is ${comma(lo)}; ${comma(lo)} ÷ ${p} is not whole, ` +
+      `so go up to the next multiple of ${p}, which is ${comma(smallest)}. The ` +
+      `largest is ${comma(hi)}; come down to the previous multiple of ${qd}, ` +
+      `which is ${comma(largest)}. Then ${comma(smallest)} + ${comma(largest)} = ` +
+      `${comma(ans)}. Using ${comma(lo)} and ${comma(hi)} unchanged gives ` +
+      `${comma(lo + hi)}, and neither of those is a multiple.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q41: "if x is an even number then 3x + 6 is ...". A property of
+     the whole expression, not a value, so testing one number is not enough -
+     though testing one number does rule options out, which is the method. */
+  const EXPR_PROPERTIES = [
+    { given: "even", expr: "3x + 6", right: "even and divisible by 6",
+      wrong: ["odd and divisible by 3", "odd and divisible by 9",
+              "divisible by 3 but never by 2"],
+      why: "x is even, so x = 2k and 3x + 6 = 6k + 6 = 6(k + 1) — a multiple of 6, and every multiple of 6 is even" },
+    { given: "odd", expr: "3x + 3", right: "even and divisible by 6",
+      wrong: ["odd and divisible by 3", "odd but never divisible by 3",
+              "divisible by 9"],
+      why: "3x + 3 = 3(x + 1), and x is odd so x + 1 is even — three times an even number is a multiple of 6" },
+    { given: "even", expr: "4x + 8", right: "divisible by 8",
+      wrong: ["odd", "divisible by 3", "divisible by 5"],
+      why: "4x + 8 = 4(x + 2), and x is even so x + 2 is even — four times an even number is a multiple of 8" },
+    { given: "odd", expr: "2x + 1", right: "always odd",
+      wrong: ["always even", "always divisible by 3", "always prime"],
+      why: "2x is even whatever x is, and one more than an even number is odd" },
+    { given: "even", expr: "5x + 10", right: "divisible by 10",
+      wrong: ["odd", "divisible by 3", "never divisible by 5"],
+      why: "5x + 10 = 5(x + 2), and x is even so x + 2 is even — five times an even number is a multiple of 10" },
+    { given: "odd", expr: "x + 1", right: "always even",
+      wrong: ["always odd", "always divisible by 4", "always prime"],
+      why: "one more than an odd number is always even" },
+    { given: "even", expr: "x² + x", right: "always even",
+      wrong: ["always odd", "always divisible by 4", "always a square number"],
+      why: "x² + x = x(x + 1), and one of any two consecutive numbers is even, so the product always is" },
+    { given: "odd", expr: "4x + 2", right: "even but never divisible by 4",
+      wrong: ["divisible by 4", "always odd", "always divisible by 3"],
+      why: "4x + 2 = 2(2x + 1), and 2x + 1 is odd — twice an odd number is even but not a multiple of 4" }
+  ];
+
+  function algExpressionProperty(i) {
+    const e = EXPR_PROPERTIES[i % EXPR_PROPERTIES.length];
+    const q = mk("Algebra",
+      `x is ${e.given === "even" ? "an even" : "an odd"} whole number.\n\n` +
+      `Which of these is true of ${e.expr} for every such x?`,
+      e.right, e.wrong, 4, i);
+    if (q) q.explain =
+      `Try a number first to throw options out — but one number cannot prove an ` +
+      `option right, so finish with the algebra. ${e.why}. So ${e.expr} is ` +
+      `${e.right}.`;
+    return q;
+  }
+
+  /* MKT Maths 9: a week of lowest and highest temperatures, and the largest
+     daily range. The range of one day, not of the week, and the minima go below
+     zero - which is where it goes wrong. */
+  function statLargestDailyRange(i) {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const mins = days.map((_, k) => -5 + ((i * 3 + k * 5) % 11));
+    const maxes = mins.map((m, k) => m + 3 + ((i * 2 + k * 7) % 9));
+    const spans = mins.map((m, k) => maxes[k] - m);
+    const best = Math.max(...spans);
+    if (spans.filter(v => v === best).length > 1) return null;   // one clear answer
+    const overall = Math.max(...maxes) - Math.min(...mins);
+    const table = `        ${days.join("   ")}\n` +
+      `lowest  ${mins.map(v => `${v}°C`.padStart(5)).join(" ")}\n` +
+      `highest ${maxes.map(v => `${v}°C`.padStart(5)).join(" ")}`;
+    const q = mk("Statistics",
+      `The table shows the lowest and highest temperature recorded on each day ` +
+      `of one week.\n\n${table}\n\nWhat is the largest range of temperature ` +
+      `recorded in a single day?`,
+      `${best}°C`,
+      [`${overall}°C`,                                   // the whole week's range
+       `${Math.min(...spans)}°C`,                        // the smallest daily range
+       `${Math.max(...maxes) - Math.max(...mins)}°C`,     // ranges of each row
+       `${best + 1}°C`, `${best - 1}°C`],
+      4, i);
+    if (q) q.explain =
+      `Work out the range for each day on its own — highest minus lowest — and ` +
+      `then take the biggest of those. The daily ranges are ` +
+      `${spans.map((v, k) => `${days[k]} ${v}`).join(", ")}, so the answer is ` +
+      `${best}°C. Watch the days with a lowest temperature below zero: ` +
+      `subtracting a negative number makes the range LARGER, not smaller. ` +
+      `Taking the highest of the week away from the lowest of the week gives ` +
+      `${overall}°C, which is the range across the whole week rather than in one day.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -6350,6 +6761,7 @@ const QUESTIONS = [];
       [numFactorsNotFactors, 4, 4],       // two factor lists, then subtract
       [numDistinctPrimeFactors, 4, 4],    // different primes, not counting repeats
       [numSupplyDuration, 4, 4],          // complete days, or the day it runs out
+      [numExtremeDivisible, 4, 4]         // step inwards from each end
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -6408,6 +6820,7 @@ const QUESTIONS = [];
       [bidBracketsFourTerms, 4, 4]        // place brackets in four terms           // place the brackets
     ],
     Algebra: [
+      [algExpressionProperty, 4, 4],      // a property of the expression, not a value
       [algSubLinear, 1, 1], [algSubMulti, 2, 3], [algSubQuadratic, 3, 3],
       [algSolve1Step, 1, 1], [algSolve2Step, 2, 2], [algSolveBothSides, 2, 3],
       [algSimplifyTerms, 2, 2], [algCustomOp, 2, 3],
@@ -6491,7 +6904,10 @@ const QUESTIONS = [];
       [numMultiItemTotal, 3, 3],          // one of one thing, several of another
       [meaCubePacking, 4, 4],             // whole cubes only, so the leftover is wasted
       [meaCubeFromCluster, 4, 4],         // one cube out of a cuboid of cubes
-      [meaEarningsPattern, 4, 4]          // a shift, days a week, and a rate
+      [meaEarningsPattern, 4, 4],         // a shift, days a week, and a rate
+      /* question-bank/20260823-Onwards */
+      [meaEstimateSize, 3, 4],            // a sensible length, height or capacity
+      [meaEstimateCombine, 4, 4]          // estimate two things, then combine
     ],
     Geometry: [
       [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
@@ -6526,6 +6942,7 @@ const QUESTIONS = [];
       [statMeanOfRemaining, 4, 4],        // the mean after some are taken out
       [statAboveMean, 4, 4],              // count the bars above the mean
       [statPossibleRange, 4, 4],          // one member unknown, so the range is a span
+      [statLargestDailyRange, 4, 4],      // the range of one day, not of the week
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
       [statMissingMean, 3, 3],            // mean worked backwards
       [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
@@ -6540,6 +6957,7 @@ const QUESTIONS = [];
       [statMeanAfterChange, 4, 4]         // the count changes as well as the mean
     ],
     "Counting Principle": [
+      [countDigitProduct, 4, 4],          // digit sets, then their arrangements
       /* The topic had only hand-written questions before, and none that a
          generator could vary. Pitched where the papers set it. */
       [countHandshakes, 3, 3],                // pairs, so halve the double count
@@ -6589,7 +7007,8 @@ const QUESTIONS = [];
       [logBandedSeatCount, 4, 4],         // rows closed, rows short, rest full
       [logTimeZoneChain, 4, 4],           // two offsets, one of them implied
       [logClocksCoincide, 4, 4],          // one gains, one loses
-      [logClockDigits, 4, 4]              // the next time with the same digits
+      [logClockDigits, 4, 4],             // the next time with the same digits
+      [logMazeBounce, 4, 4]               // turn clockwise at every wall
     ]
   };
 
