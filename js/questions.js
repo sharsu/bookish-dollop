@@ -860,56 +860,91 @@ const QUESTIONS = [];
       diff(i, 3), i);
   }
 
-  /* "Two angles sum to k times the third; the largest is d° more than the second
-     largest." The two that sum to k times the third are A and B, and the wording
-     only holds if the third angle C is the SMALLEST of the three - otherwise C
-     sits between A and B, C is the second largest, and the difference between the
-     largest and the second largest is not d at all.
+  /* Three angles a > b > c summing to 180, where two of them add up to k times
+     the third and the largest is d° more than the second largest.
 
-     That is what went wrong: at k = 2, C = 60 and A + B = 120, so for d = 8 the
-     angles are 64, 60 and 56. The largest beats the second largest by 4, and the
-     answer to the question as written is 68 (68, 60, 52) - which was not even
-     offered. Half of this template's questions were in that state.
+     WHICH two add up is the question, and the old wording - "two angles sum to
+     k times the third" - never said. "The third" only means "the remaining
+     one", so the generator and the solver could each pick a different reading
+     and both be sure. They did: the generator assumed the pair was the two
+     largest, and for k = 2 that is impossible, so half the questions stated a
+     condition their own answer did not meet. Each pairing now names its angles.
 
-     B > C requires C * (k - 2) > d. At k = 2 that is 0 > d, which never holds,
-     so k = 2 is gone. */
+     `solve` returns the three angles for a pairing; whether a given (k, d) works
+     is decided by testing them, not by a remembered range. */
+  const ANGLE_PAIRINGS = [
+    { pair: "the two largest angles sum to K times the smallest angle",
+      ks: [3, 4, 5],
+      solve: (k, T, d) => ({ c: T, b: (k * T - d) / 2, a: (k * T - d) / 2 + d }),
+      why: (k, T) => `The two largest add up to ${k} times the smallest, so the ` +
+        `smallest plus ${k} of itself is the whole 180°: ${k + 1} × smallest = 180, ` +
+        `giving a smallest angle of ${T}°.`,
+      work: (T, d, a, b) => `The largest and the second largest are what is left, ` +
+        `so they come to 180 − ${T} = ${180 - T}° between them, and they differ ` +
+        `by ${d}°. Splitting that: the largest is (${180 - T} + ${d}) ÷ 2 = ${a}° ` +
+        `and the second largest is ${a} − ${d} = ${b}°.` },
+    { pair: "the largest and the smallest angles sum to K times the second largest angle",
+      ks: [2, 3, 4, 5],
+      solve: (k, T, d) => ({ b: T, a: T + d, c: k * T - (T + d) }),
+      why: (k, T) => `The largest and the smallest add up to ${k} times the second ` +
+        `largest, so the second largest plus ${k} of itself is the whole 180°: ` +
+        `${k + 1} × second largest = 180, giving a second largest of ${T}°.`,
+      /* The difference is between the largest and the SECOND largest, and the
+         second largest is the one just found - so the largest comes straight
+         from it, and the smallest is whatever is left. */
+      work: (T, d, a, b, c) => `The difference given is between the largest and ` +
+        `the second largest, and the second largest is the one just found — so ` +
+        `the largest is ${T} + ${d} = ${a}°. The smallest is then whatever is ` +
+        `left: 180 − ${T} − ${a} = ${c}°.` },
+    { pair: "the two smallest angles have the same sum as the largest angle",
+      ks: [1],
+      solve: (k, T, d) => ({ a: T, b: T - d, c: k * T - (T - d) }),
+      why: (k, T) => `The two smallest add up to the largest, so the largest is ` +
+        `half of the whole 180° — it is ${T}°, a right angle.`,
+      work: (T, d, a, b, c) => `The second largest is ${d}° less than the largest, ` +
+        `so it is ${T} − ${d} = ${b}°, and the smallest is whatever is left: ` +
+        `180 − ${T} − ${b} = ${c}°.` }
+  ];
+
   function algTriangleAngles(i) {
-    const kPool = [3, 4, 5];
-    /* k from a different part of the seed than d: with k = kPool[i % 3] and
-       d = 5 + 3 * (i % 30), the fact that 3 divides 30 meant i % 30 already
-       fixed i % 3, so each base only ever saw a third of the values of d. */
-    const k = kPool[Math.floor(i / 11) % kPool.length];
-    const C = 180 / (k + 1);
-    const kc = k * C;
-    /* d is chosen from the values that WORK rather than tested afterwards:
-       below C * (k - 2) so the third angle is the smallest, and matching the
-       parity of k * C so the angles come out whole. */
-    const lo = kc % 2 === 0 ? 6 : 5;
-    let hi = C * (k - 2) - 1;
-    if ((hi - lo) % 2) hi -= 1;
-    if (hi < lo) return null;
-    const count = (hi - lo) / 2 + 1;
-    const d = lo + 2 * (i % count);
-    const A = (kc + d) / 2, B = kc - A;
-    /* Belt and braces: if any of that reasoning is ever wrong, the question is
-       dropped rather than printed with a condition it does not satisfy. */
-    if (!(B > C)) return null;
-    if (!Number.isInteger(A) || !Number.isInteger(B) || !Number.isInteger(C)) return null;
+    const P = ANGLE_PAIRINGS[i % ANGLE_PAIRINGS.length];
+    const k = P.ks[Math.floor(i / 3) % P.ks.length];
+    const T = 180 / (k + 1);
+    if (!Number.isInteger(T)) return null;
+    /* The values of d that give a genuine triangle with a > b > c, found by
+       trying them rather than assumed. */
+    const good = [];
+    for (let d = 1; d <= 130; d += 1) {
+      const { a, b, c } = P.solve(k, T, d);
+      if (![a, b, c].every(Number.isInteger)) continue;
+      if (a + b + c !== 180) continue;
+      if (!(a > b && b > c && c >= 10)) continue;
+      good.push(d);
+    }
+    if (!good.length) return null;
+    const d = good[Math.floor(i / 11) % good.length];
+    const { a, b, c } = P.solve(k, T, d);
+    const asked = ["largest", "second largest", "smallest"][Math.floor(i / 5) % 3];
+    const want = asked === "largest" ? a : asked === "second largest" ? b : c;
+    const others = [a, b, c].filter(v => v !== want);
     const q = mk("Algebra",
-      `In a triangle, two angles sum to ${k} times the third. The largest is ${d}° more than the second largest. Find the largest angle.`,
-      `${A}°`,
-      [`${B}°`,                    // the second largest
-       `${C}°`,                    // the third angle
-       `${A - d}°`, `${A + d}°`, `${180 - A}°`],
-      diff(i, 3), i);
+      `In a triangle, ${P.pair.replace("K", k)}. ` +
+      `The largest angle is ${d}° more than the second largest.\n\n` +
+      `Find the ${asked} angle.`,
+      `${want}°`,
+      [`${others[0]}°`, `${others[1]}°`,       // the other two angles
+       `${want + d}°`, `${want - d}°`, `${180 - want}°`],
+      4, i);
+    /* The middle step belongs to the pairing: which angle is fixed first decides
+       whether the pair left over is the pair the difference is about. Sharing
+       one sentence across all three had it claiming a difference of ${d} between
+       two angles that differ by something else. */
     if (q) q.explain =
-      `Call the third angle C. The other two come to ${k}C, so the whole triangle ` +
-      `is C + ${k}C = ${k + 1}C = 180°, giving C = ${C}°. That leaves ` +
-      `${k} × ${C} = ${k * C}° to share between the largest and the second ` +
-      `largest, and they differ by ${d}°. So the largest is ` +
-      `(${k * C} + ${d}) ÷ 2 = ${A}° and the second largest is ${B}°. Check the ` +
-      `order before you finish: ${A}, ${B} and ${C} — the third angle really is ` +
-      `the smallest here, so "second largest" means ${B}° and not ${C}°.`;
+      `${P.why(k, T)} ${P.work(T, d, a, b, c)} So the three angles are ${a}°, ` +
+      `${b}° and ${c}°: they add to ${a} + ${b} + ${c} = 180, and ${a} − ${b} = ` +
+      `${d} as the question says. The ${asked} of them is ${want}°. Read which ` +
+      `two angles are being added before you start — "the two largest" and "the ` +
+      `largest and the smallest" lead to completely different triangles.`;
     return q;
   }
 
