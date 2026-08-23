@@ -1489,7 +1489,40 @@
       near: ["Metaphor", "Personification", "Alliteration"] },
     { text: "Buzzing and clattering, the workshop shouted at anyone who came near.",
       devices: ["Onomatopoeia", "Personification"],
-      near: ["Simile", "Metaphor", "Hyperbole"] }
+      near: ["Simile", "Metaphor", "Hyperbole"] },
+    { text: "The kettle complained, and complained, and finally screamed.",
+      devices: ["Personification", "Repetition"],
+      near: ["Simile", "Metaphor", "Hyperbole"] },
+    { text: "Her laugh was a bell, bright as broken glass.",
+      devices: ["Metaphor", "Simile"],
+      near: ["Alliteration", "Hyperbole", "Repetition"] },
+    { text: "Ten thousand leaves lay listless on the lawn.",
+      devices: ["Alliteration", "Hyperbole"],
+      near: ["Simile", "Personification", "Onomatopoeia"] },
+    { text: "Silence settled on the street, soft as a held breath.",
+      devices: ["Alliteration", "Simile"],
+      near: ["Metaphor", "Personification", "Repetition"] },
+    { text: "Must we wait for ever while the clock stares us down?",
+      devices: ["Personification", "Rhetorical question"],
+      near: ["Simile", "Metaphor", "Onomatopoeia"] },
+    { text: "The gate creaked, creaked again, and then gave up entirely.",
+      devices: ["Onomatopoeia", "Repetition"],
+      near: ["Simile", "Metaphor", "Alliteration"] },
+    { text: "His patience was a thin sheet of ice, thinner every hour.",
+      devices: ["Metaphor", "Repetition"],
+      near: ["Simile", "Hyperbole", "Alliteration"] },
+    { text: "A cheerful gloom hung over the hall, heavy as old curtains.",
+      devices: ["Oxymoron", "Simile"],
+      near: ["Metaphor", "Personification", "Alliteration"] },
+    { text: "Windows watched us. Walls waited. We went in anyway.",
+      devices: ["Alliteration", "Personification"],
+      near: ["Simile", "Hyperbole", "Onomatopoeia"] },
+    { text: "I have climbed a million stairs, and every one of them creaked.",
+      devices: ["Hyperbole", "Onomatopoeia"],
+      near: ["Simile", "Metaphor", "Personification"] },
+    { text: "Is it fair that the same few streets flood every single winter?",
+      devices: ["Repetition", "Rhetorical question"],
+      near: ["Simile", "Metaphor", "Alliteration"] }
   ];
 
   /* "Alliteration and personification" - the pair is printed in a fixed order
@@ -1573,7 +1606,35 @@
     { text: "The gate groaned, the hinges shrieked, and the latch clacked shut.",
       device: "Onomatopoeia", avoid: ["Personification", "Alliteration"] },
     { text: "He had told that story a hundred thousand times before breakfast.",
-      device: "Hyperbole", avoid: [] }
+      device: "Hyperbole", avoid: [] },
+    { text: "The shutters slammed as the news came through the door.",
+      device: "Pathetic fallacy", avoid: ["Personification", "Onomatopoeia"] },
+    { text: "Sunshine broke over the yard on the morning she came home.",
+      device: "Pathetic fallacy", avoid: ["Symbolism", "Personification"] },
+    { text: "So softly the snow came, settling on the sill and the step.",
+      device: "Sibilance", avoid: ["Alliteration", "Personification"] },
+    { text: "The deep green weed grew thickly where the stream slept.",
+      device: "Assonance", avoid: ["Alliteration", "Personification"] },
+    { text: "It was not the worst meal he had eaten that week.",
+      device: "Litotes", avoid: ["Hyperbole"] },
+    { text: "She was no stranger to hard work, and never had been.",
+      device: "Litotes", avoid: [] },
+    { text: "New paint on the front door; the back of the house still bare brick.",
+      device: "Juxtaposition", avoid: ["Symbolism"] },
+    { text: "One brother kept every letter; the other burned his the day it came.",
+      device: "Juxtaposition", avoid: [] },
+    { text: "She wore her mother's ring to every interview.",
+      device: "Symbolism", avoid: ["Metaphor"] },
+    { text: "The bare tree outside the window came into every photograph that year.",
+      device: "Symbolism", avoid: ["Personification"] },
+    { text: "Nobody spoke. Nobody moved. Nobody looked at the door.",
+      device: "Anaphora", avoid: ["Repetition"] },
+    { text: "Give me the maps. Give me the boots. Give me until Friday.",
+      device: "Anaphora", avoid: ["Repetition"] },
+    { text: "There was a terrible beauty in the wreck of the old pier.",
+      device: "Oxymoron", avoid: [] },
+    { text: "His memory was a drawer nobody had tidied for years.",
+      device: "Metaphor", avoid: ["Symbolism"] }
   ];
 
   function litHarderDevice(i) {
@@ -1673,7 +1734,42 @@
       yes: ["Cold coins clinked in his coat.",
             "Ten tired travellers trudged on.",
             "Wide white wings crossed the water."],
-      no: "The travellers were tired and cold." }
+      no: "The travellers were tired and cold." },
+    { device: "a metaphor",
+      yes: ["The playground was a battlefield by half past ten.",
+            "Her diary is a mirror.",
+            "That last week was a tunnel."],
+      no: "Her diary is like a mirror." },
+    { device: "personification",
+      yes: ["The engine coughed twice and died.",
+            "The last of the daylight slipped away without a word.",
+            "The letterbox swallowed the envelope."],
+      no: "The engine was as loud as a drum." },
+    { device: "onomatopoeia",
+      yes: ["The floorboard squeaked underfoot.",
+            "Rain drummed on the corrugated roof.",
+            "The lid clattered into the sink."],
+      no: "Rain fell steadily until dawn." },
+    { device: "hyperbole",
+      yes: ["I have been waiting since the beginning of time.",
+            "That coat cost a fortune.",
+            "He eats enough for a whole village."],
+      no: "He eats more than his brother does." },
+    { device: "a simile",
+      yes: ["His hands were as rough as bark.",
+            "The path wound like a ribbon down the hill.",
+            "She was as still as a photograph."],
+      no: "She stood absolutely still in the doorway." },
+    { device: "repetition",
+      yes: ["Slowly, slowly, the door began to move.",
+            "We tried, and tried, and tried again.",
+            "Far, far away the lights of the town."],
+      no: "The door began to move at last." },
+    { device: "alliteration",
+      yes: ["Grey gulls gathered on the groyne.",
+            "Peter poured the pale tea patiently.",
+            "Salt spray stung his skin."],
+      no: "The gulls gathered on the wooden posts." }
   ];
 
   function litNotAnExample(i) {
@@ -1764,6 +1860,59 @@
       wrong: ["It explains how the palace kitchens were run",
               "It suggests the boy was about to be invited in",
               "It shows the two places were far apart"] },
+    { text: "The playground was a battlefield by half past ten.", device: "metaphor",
+      effect: "It makes the noise and aggression of the scene felt without describing any of it",
+      wrong: ["It explains that the school was built on a battlefield",
+              "It suggests the children were frightened of one another",
+              "It shows that a real fight had broken out"] },
+    { text: "The engine coughed twice and died.", device: "personification",
+      effect: "It makes the engine's failure sound like an illness, which prepares the reader for being stranded",
+      wrong: ["It explains that somebody in the car was unwell",
+              "It shows that the engine was repaired",
+              "It tells the reader how old the car was"] },
+    { text: "Slowly, slowly, the door began to move.", device: "repetition",
+      effect: "Saying it twice slows the sentence down, so the reader waits as the characters do",
+      wrong: ["It shows the door moved twice",
+              "It suggests somebody pushed the door hard",
+              "It tells the reader who was behind the door"] },
+    { text: "Grey gulls gathered on the groyne.", device: "alliteration",
+      effect: "The hard repeated sound makes the line feel bleak and clipped",
+      wrong: ["It tells the reader how many gulls there were",
+              "It shows the gulls were making a noise",
+              "It suggests the weather was about to improve"] },
+    { text: "Her diary is a mirror.", device: "metaphor",
+      effect: "It suggests the diary shows her exactly as she is, without her having to say so",
+      wrong: ["It explains that she keeps her diary near a mirror",
+              "It shows the diary has a shiny cover",
+              "It suggests she writes only about her appearance"] },
+    { text: "New paint on the front door; the back of the house still bare brick.",
+      device: "juxtaposition",
+      effect: "The contrast suggests appearances are being kept up where they will be seen",
+      wrong: ["It explains that the painters had not finished",
+              "It shows the house was newly built",
+              "It suggests the back of the house was the older part"] },
+    { text: "It was not the worst meal he had eaten that week.", device: "litotes",
+      effect: "The understatement is funnier, and more damning, than calling the meal bad",
+      wrong: ["It shows he enjoyed the meal very much",
+              "It suggests he had eaten nothing else that week",
+              "It tells the reader the meal was the best of the week"] },
+    { text: "Nobody spoke. Nobody moved. Nobody looked at the door.", device: "anaphora",
+      effect: "The repeated opening builds the tension of a room where everyone is waiting",
+      wrong: ["It shows three different people did nothing",
+              "It suggests the room was empty",
+              "It tells the reader what was behind the door"] },
+    { text: "So softly the snow came, settling on the sill and the step.",
+      device: "sibilance",
+      effect: "The hush of the repeated s sounds imitates the quietness being described",
+      wrong: ["It tells the reader how deep the snow lay",
+              "It shows the snow was falling heavily",
+              "It suggests the window had been left open"] },
+    { text: "There was a terrible beauty in the wreck of the old pier.",
+      device: "oxymoron",
+      effect: "The contradiction holds both feelings at once, which is what the sight actually produced",
+      wrong: ["It shows the pier had been rebuilt",
+              "It suggests the writer disliked the pier",
+              "It tells the reader when the pier collapsed"] },
     { text: "Winning the prize was no small achievement for a boy of nine.",
       device: "litotes",
       effect: "Denying the opposite praises him more quietly, and so more convincingly, than “great” would",
@@ -1830,7 +1979,31 @@
       device: "alliteration", answer: 1 },
     { lines: ["Inside, the fire; outside, the frost.", "The table set for one, not two.",
               "A letter propped against the jug.", "A road that only led to you."],
-      device: "juxtaposition", answer: 1 }
+      device: "juxtaposition", answer: 1 },
+    { lines: ["The lamp burned low, the room grew cold,", "the cat had gone I know not where,",
+              "the night came down as thick as wool,", "and no one climbed the attic stair."],
+      device: "a simile", answer: 3 },
+    { lines: ["A gull hung still above the bay,", "the harbour was a plate of tin,",
+              "the boats came home at half past four,", "and one by one the lights went in."],
+      device: "a metaphor", answer: 2 },
+    { lines: ["The hedges leaned to hear us pass,", "the lane was narrow, dark and deep,",
+              "we counted gates to keep our nerve,", "and neither of us dared to sleep."],
+      device: "personification", answer: 1 },
+    { lines: ["The train pulled out at ten to nine,", "the platform emptied, cold and grey,",
+              "a whistle shrieked, a door banged shut,", "and that was all there was to say."],
+      device: "onomatopoeia", answer: 3 },
+    { lines: ["Nothing was said about the will,", "nothing was said about the land,",
+              "nothing was said at all that day,", "and no one offered me a hand."],
+      device: "anaphora", answer: 1 },
+    { lines: ["Sea-mist slid softly up the sand,", "the pier stood black against the sky,",
+              "a bell was tolling out at sea,", "and no one asked the reason why."],
+      device: "sibilance", answer: 1 },
+    { lines: ["I would have walked a thousand miles,", "and thought the journey hardly long,",
+              "to stand once more beside that gate,", "and hear you humming that same song."],
+      device: "hyperbole", answer: 1 },
+    { lines: ["The clock struck four. The house was still.", "And was there nobody awake?",
+              "The stairs were dark, the hall was cold,", "and every board began to ache."],
+      device: "a rhetorical question", answer: 2 }
   ];
 
   function litWhichLine(i) {
@@ -1903,7 +2076,31 @@
       why: "“without raising his voice” rules out every option that involves noise" },
     { sentence: "The children ______ round the storyteller and would not move.",
       right: "clustered", wrong: ["scattered", "dispersed", "drifted"],
-      why: "“would not move” means they gathered close, and the other three all mean coming apart" }
+      why: "“would not move” means they gathered close, and the other three all mean coming apart" },
+    { sentence: "Knowing he was beaten, the champion ______ his opponent's hand.",
+      right: "shook", wrong: ["snatched", "seized", "grabbed"],
+      why: "the moment is dignified, and the other three are sudden and forceful" },
+    { sentence: "The lawyer ______ the same question until the witness gave way.",
+      right: "pressed", wrong: ["wondered", "enquired", "mentioned"],
+      why: "the witness gives way, so the questioning must have been relentless" },
+    { sentence: "She ______ the letter twice before she trusted what it said.",
+      right: "reread", wrong: ["skimmed", "glanced at", "flicked through"],
+      why: "she needed to trust it, and the other three are all hurried" },
+    { sentence: "The old bridge ______ under the weight of the lorry but held.",
+      right: "shuddered", wrong: ["collapsed", "shattered", "crumbled"],
+      why: "“but held” rules out every option that means it gave way" },
+    { sentence: "He ______ the news to her as gently as he could.",
+      right: "broke", wrong: ["blurted", "shouted", "announced"],
+      why: "“as gently as he could” rules out anything sudden or loud" },
+    { sentence: "The queue ______ forward an inch every few minutes.",
+      right: "shuffled", wrong: ["surged", "raced", "charged"],
+      why: "an inch every few minutes is barely moving at all" },
+    { sentence: "Smoke ______ from the chimney all through the still afternoon.",
+      right: "curled", wrong: ["exploded", "blasted", "erupted"],
+      why: "“still afternoon” needs something slow, and the others are violent" },
+    { sentence: "The headmaster ______ the notice without a word of explanation.",
+      right: "posted", wrong: ["flung", "hurled", "tossed"],
+      why: "the other three throw the notice, which does not fit a headmaster's action" }
   ];
 
   function wordChoiceConnotation(i) {
@@ -1946,7 +2143,23 @@
     { context: "a message to a teammate", sentence: "______ at the ground for half two.",
       right: "See you", wrong: ["I shall await you", "Kindly attend", "Presenting myself"] },
     { context: "a formal invitation", sentence: "You are ______ to attend the opening of the new hall.",
-      right: "invited", wrong: ["welcome to pop along", "free to turn up", "asked along"] }
+      right: "invited", wrong: ["welcome to pop along", "free to turn up", "asked along"] },
+    { context: "a letter to a librarian", sentence: "I ______ the book was returned on Monday.",
+      right: "believe", wrong: ["reckon", "guess", "bet"] },
+    { context: "a note left for a neighbour", sentence: "______ take a parcel in for us tomorrow?",
+      right: "Could you", wrong: ["Might one request that you", "Would you be so good as to",
+                                  "I should be obliged if you would"] },
+    { context: "a formal notice", sentence: "The pool will be ______ for repairs until March.",
+      right: "closed", wrong: ["shut for good", "out of action", "off limits"] },
+    { context: "a letter to a headmaster", sentence: "I hope you will ______ my son's absence.",
+      right: "excuse", wrong: ["let off", "overlook a bit", "not mind about"] },
+    { context: "a school report", sentence: "Her written work has ______ steadily this year.",
+      right: "improved", wrong: ["got loads better", "picked up a bit", "come on nicely"] },
+    { context: "a message to a team-mate", sentence: "______ if you can make training.",
+      right: "Text me", wrong: ["Kindly confirm your attendance", "Please advise",
+                                "I await your response"] },
+    { context: "a letter of thanks", sentence: "I am most ______ for the trouble you took.",
+      right: "grateful", wrong: ["chuffed", "well pleased", "made up"] }
   ];
 
   function wordChoiceRegister(i) {
@@ -1989,7 +2202,19 @@
     { ask: "strongest", set: ["cool", "cold", "freezing", "chilly"], answer: "freezing",
       order: "cool, chilly, cold, freezing" },
     { ask: "mildest", set: ["ancient", "elderly", "old", "prehistoric"], answer: "elderly",
-      order: "elderly, old, ancient, prehistoric" }
+      order: "elderly, old, ancient, prehistoric" },
+    { ask: "strongest", set: ["clever", "able", "brilliant", "capable"], answer: "brilliant",
+      order: "able, capable, clever, brilliant" },
+    { ask: "mildest", set: ["appalled", "shocked", "surprised", "horrified"], answer: "surprised",
+      order: "surprised, shocked, appalled, horrified" },
+    { ask: "strongest", set: ["tidy", "spotless", "clean", "neat"], answer: "spotless",
+      order: "neat, tidy, clean, spotless" },
+    { ask: "mildest", set: ["desperate", "worried", "frantic", "anxious"], answer: "worried",
+      order: "worried, anxious, frantic, desperate" },
+    { ask: "strongest", set: ["damaged", "broken", "destroyed", "chipped"], answer: "destroyed",
+      order: "chipped, damaged, broken, destroyed" },
+    { ask: "mildest", set: ["furious", "livid", "displeased", "enraged"], answer: "displeased",
+      order: "displeased, furious, livid, enraged" }
   ];
 
   function wordChoiceDegree(i) {
@@ -2260,7 +2485,23 @@
     { sentence: "She bought envelopes and paper from the ______ cupboard.", right: "stationery",
       wrong: ["stationary", "stationing", "stationed"] },
     { sentence: "The scarf was the perfect ______ to her winter coat.", right: "complement",
-      wrong: ["compliment", "complementing", "complimenting"] }
+      wrong: ["compliment", "complementing", "complimenting"] },
+    { sentence: "She paid him a generous ______ on his handwriting.", right: "compliment",
+      wrong: ["complement", "complementing", "complimenting"] },
+    { sentence: "The council will ______ on the plans next Tuesday.", right: "advise",
+      wrong: ["advice", "advises", "advising"] },
+    { sentence: "His ______ was to wait until the morning.", right: "advice",
+      wrong: ["advise", "advising", "advises"] },
+    { sentence: "The two paths ______ just beyond the bridge.", right: "diverge",
+      wrong: ["converge", "diverges", "converging"] },
+    { sentence: "The runner had ______ the whole field by the last lap.", right: "passed",
+      wrong: ["past", "pasted", "passing"] },
+    { sentence: "You must ______ the effects of the change on younger pupils.", right: "assess",
+      wrong: ["access", "accesses", "assessing"] },
+    { sentence: "Only staff may ______ the store room after six.", right: "access",
+      wrong: ["assess", "assesses", "accessing"] },
+    { sentence: "The ceremony took place on hallowed ______.", right: "ground",
+      wrong: ["grounds", "grinded", "grounded"] }
   ];
 
   function wordChoiceHomophone(i) {
@@ -2423,7 +2664,27 @@
     { a: "shoal", b: "fish", c: "herd", right: "cattle", wrong: ["field", "grazing", "farmer"],
       rel: "a collective noun to the animal it counts" },
     { a: "whisper", b: "shout", c: "sip", right: "gulp", wrong: ["drink", "thirst", "cup"],
-      rel: "a small version of an action to a large one" }
+      rel: "a small version of an action to a large one" },
+    { a: "bee", b: "honey", c: "cow", right: "milk", wrong: ["field", "calf", "grass"],
+      rel: "an animal to what it produces" },
+    { a: "sculptor", b: "chisel", c: "painter", right: "brush", wrong: ["canvas", "gallery", "colour"],
+      rel: "a worker to the tool they use" },
+    { a: "second", b: "minute", c: "penny", right: "pound", wrong: ["coin", "money", "purse"],
+      rel: "a small unit to the larger one made of many" },
+    { a: "hungry", b: "eat", c: "tired", right: "sleep", wrong: ["yawn", "bed", "rest"],
+      rel: "a need to the thing that satisfies it" },
+    { a: "library", b: "book", c: "gallery", right: "painting", wrong: ["artist", "wall", "visitor"],
+      rel: "a building to what it holds" },
+    { a: "cub", b: "lion", c: "foal", right: "horse", wrong: ["stable", "saddle", "mane"],
+      rel: "the young to what it grows into" },
+    { a: "rain", b: "puddle", c: "snow", right: "drift", wrong: ["cold", "winter", "flake"],
+      rel: "what falls to what it collects into" },
+    { a: "obedient", b: "defiant", c: "generous", right: "stingy", wrong: ["kind", "rich", "helpful"],
+      rel: "a word to its opposite" },
+    { a: "flour", b: "bread", c: "clay", right: "pot", wrong: ["kiln", "wheel", "earth"],
+      rel: "a raw material to what is made from it" },
+    { a: "wick", b: "candle", c: "lace", right: "shoe", wrong: ["foot", "leather", "walking"],
+      rel: "a part to the whole it belongs to" }
   ];
 
   function vocAnalogy(i) {
@@ -2475,7 +2736,27 @@
     { set: ["biography", "atlas", "dictionary", "encyclopedia"], odd: "biography",
       why: "the other three are reference books; a biography tells one life story" },
     { set: ["drought", "flood", "harvest", "famine"], odd: "harvest",
-      why: "the other three are disasters; a harvest is not" }
+      why: "the other three are disasters; a harvest is not" },
+    { set: ["sparrow", "eagle", "bat", "robin"], odd: "bat",
+      why: "the other three are birds; a bat is a mammal" },
+    { set: ["cotton", "silk", "wool", "plastic"], odd: "plastic",
+      why: "the other three are natural fibres; plastic is man-made" },
+    { set: ["mountain", "valley", "hill", "peak"], odd: "valley",
+      why: "the other three are high ground; a valley is low" },
+    { set: ["carpenter", "plumber", "electrician", "apprentice"], odd: "apprentice",
+      why: "the other three name a trade; an apprentice is someone learning one" },
+    { set: ["gallop", "trot", "canter", "graze"], odd: "graze",
+      why: "the other three are ways a horse moves; grazing is eating" },
+    { set: ["kilogram", "litre", "gram", "tonne"], odd: "litre",
+      why: "the other three measure weight; a litre measures volume" },
+    { set: ["cellar", "attic", "basement", "vault"], odd: "attic",
+      why: "the other three are below ground; an attic is at the top of a house" },
+    { set: ["scowl", "frown", "beam", "glare"], odd: "beam",
+      why: "the other three are unfriendly expressions; beaming is a broad smile" },
+    { set: ["oboe", "clarinet", "trumpet", "flute"], odd: "trumpet",
+      why: "the other three are woodwind; a trumpet is brass" },
+    { set: ["dozen", "score", "gross", "digit"], odd: "digit",
+      why: "the other three name a fixed quantity; a digit is a single figure" }
   ];
 
   function vocOddOneOut(i) {
@@ -2541,7 +2822,39 @@
     { word: "trip", wrong: ["journey", "stumble", "outing"],
       lines: ["Mind the step, or you will ______ over it.",
               "The school ______ was cancelled twice.",
-              "That was a nasty ______ on the stairs."] }
+              "That was a nasty ______ on the stairs."] },
+    { word: "bear", wrong: ["carry", "stand", "endure"],
+      lines: ["I cannot ______ the noise of that drill.",
+              "The bridge will not ______ the weight of a lorry.",
+              "We saw a ______ on the far bank of the river."] },
+    { word: "draft", wrong: ["breeze", "plan", "copy"],
+      lines: ["Shut the door — there is a terrible ______ in here.",
+              "She wrote a first ______ of the letter and tore it up.",
+              "The ______ of the new rules was published on Monday."] },
+    { word: "settle", wrong: ["sit", "agree", "sink"],
+      lines: ["Let the dust ______ before you sweep.",
+              "They could not ______ the argument between them.",
+              "The birds ______ on the wires at dusk."] },
+    { word: "temper", wrong: ["mood", "anger", "soften"],
+      lines: ["He lost his ______ over something very small.",
+              "You must ______ the good news with a warning.",
+              "She has an even ______ and never shouts."] },
+    { word: "stand", wrong: ["bear", "stall", "rise"],
+      lines: ["I cannot ______ the smell of boiled cabbage.",
+              "They bought programmes at the ______ by the gate.",
+              "Please ______ when the judge comes in."] },
+    { word: "figure", wrong: ["number", "shape", "guess"],
+      lines: ["A ______ appeared at the end of the lane.",
+              "Write the ______ in the box on the right.",
+              "I cannot ______ out what he meant by it."] },
+    { word: "second", wrong: ["moment", "next", "support"],
+      lines: ["Wait a ______ while I find my keys.",
+              "She came ______ in the county final.",
+              "Would anybody like to ______ the proposal?"] },
+    { word: "plain", wrong: ["simple", "clear", "field"],
+      lines: ["The room was ______ but perfectly comfortable.",
+              "It was ______ that nobody had read the notice.",
+              "They rode for two days across the open ______."] }
   ];
 
   function vocFitsAllThree(i) {
@@ -2640,7 +2953,53 @@
       right: "They show that this is the exact word she wrote",
       wrong: ["They show that somebody is speaking aloud",
               "They show the word is spelled wrongly",
-              "They show the word is a title"] }
+              "They show the word is a title"] },
+    { sentence: "There were three of us left: Anya, Tom and me.", mark: "colon",
+      right: "It introduces the names the first part has promised",
+      wrong: ["It joins two sentences that could stand alone",
+              "It shows that somebody is speaking",
+              "It shows a word has been left out"] },
+    { sentence: "He had planned everything; he had forgotten the tickets.", mark: "semicolon",
+      right: "It sets two related statements against each other without a joining word",
+      wrong: ["It introduces a list of what he had planned",
+              "It shows that letters have been left out",
+              "It marks the end of the sentence"] },
+    { sentence: "The winner — nobody had expected this — was the youngest in the room.",
+      mark: "pair of dashes",
+      right: "They break into the sentence to add a comment, then hand it back",
+      wrong: ["They join two complete sentences",
+              "They show the speaker could not finish",
+              "They separate the items of a list"] },
+    { sentence: "We can't go on like this.", mark: "apostrophe",
+      right: "It shows that letters have been left out of “cannot”",
+      wrong: ["It shows that something belongs to somebody",
+              "It makes the word plural",
+              "It shows emphasis"] },
+    { sentence: "The women's changing room is along the corridor.", mark: "apostrophe",
+      right: "It shows the room belongs to the women, and “women” is already plural",
+      wrong: ["It shows there is only one woman",
+              "It shows letters have been left out",
+              "It makes “women” plural"] },
+    { sentence: "Ravi, my oldest friend, had said nothing about it.", mark: "pair of commas",
+      right: "They mark off a description of Ravi that could be lifted out",
+      wrong: ["They separate three items in a list",
+              "They show where the speaker paused",
+              "They join two complete sentences"] },
+    { sentence: "How on earth did she manage it!", mark: "exclamation mark",
+      right: "It shows the sentence is an exclamation and not really a question",
+      wrong: ["It shows the sentence is asking for information",
+              "It shows a word has been left out",
+              "It marks the end of a list"] },
+    { sentence: "Rule one: never lend what you cannot spare.", mark: "colon",
+      right: "It introduces the rule that the first two words announce",
+      wrong: ["It separates two equal statements",
+              "It shows somebody is speaking",
+              "It replaces the word “and”"] },
+    { sentence: "The label said FRAGILE in red capitals.", mark: "use of capital letters",
+      right: "They show how the word was printed on the label itself",
+      wrong: ["They show the word is a proper noun",
+              "They must be a printing error",
+              "They show the start of a new sentence"] }
   ];
 
   function punMarkPurpose(i) {
@@ -2712,7 +3071,35 @@
     { right: "“Once upon a time,” he began, “there were three sisters.”",
       wrong: ["“Once upon a time,” he began, “There were three sisters.”",
               "“Once upon a time”, he began, “there were three sisters.”",
-              "“Once upon a time,” he began “there were three sisters”."] }
+              "“Once upon a time,” he began “there were three sisters”."] },
+    { right: "“If it rains,” warned the coach, “we play indoors.”",
+      wrong: ["“If it rains” warned the coach, “we play indoors.”",
+              "“If it rains,” warned the coach, “We play indoors.”",
+              "“If it rains,” warned the coach, “we play indoors”."] },
+    { right: "“By then,” she said quietly, “it was already too late.”",
+      wrong: ["“By then,” she said quietly “it was already too late.”",
+              "“By then,” she said quietly, “It was already too late.”",
+              "“By then” she said quietly, “it was already too late.”"] },
+    { right: "“Some of us,” he added, “were never asked at all.”",
+      wrong: ["“Some of us,” he added, “Were never asked at all.”",
+              "“Some of us,” he added, “were never asked at all”.",
+              "“Some of us” he added, “were never asked at all.”"] },
+    { right: "“Not yet,” answered the nurse, “but very soon.”",
+      wrong: ["“Not yet” answered the nurse, “but very soon.”",
+              "“Not yet,” answered the nurse “but very soon.”",
+              "“Not yet,” answered the nurse, “But very soon.”"] },
+    { right: "“In the end,” wrote the reporter, “nobody was to blame.”",
+      wrong: ["“In the end,” wrote the reporter, “Nobody was to blame.”",
+              "“In the end”, wrote the reporter, “nobody was to blame.”",
+              "“In the end,” wrote the reporter “nobody was to blame.”"] },
+    { right: "“That night,” continued the old man, “the river rose again.”",
+      wrong: ["“That night,” continued the old man “the river rose again.”",
+              "“That night,” continued the old man, “The river rose again.”",
+              "“That night,” continued the old man, “the river rose again”."] },
+    { right: "“Whatever happens,” insisted Nell, “we finish together.”",
+      wrong: ["“Whatever happens” insisted Nell, “we finish together.”",
+              "“Whatever happens,” insisted Nell, “We finish together.”",
+              "“Whatever happens,” insisted Nell “we finish together.”"] }
   ];
 
   function punSplitSpeech(i) {
@@ -2759,7 +3146,21 @@
       mark: "a pair of commas around “a retired sailor”",
       wrong: ["a comma after “uncle” only", "a colon after “sailor”", "a dash after “window”"] },
     { sentence: "The childrens coats were left on the bus.", mark: "an apostrophe in “childrens”",
-      wrong: ["a comma after “coats”", "a hyphen in “childrens”", "a question mark at the end"] }
+      wrong: ["a comma after “coats”", "a hyphen in “childrens”", "a question mark at the end"] },
+    { sentence: "Before you leave lock the side gate.", mark: "a comma after “leave”",
+      wrong: ["a full stop after “leave”", "a colon after “leave”", "an apostrophe in “gate”"] },
+    { sentence: "How many were there in the end", mark: "a question mark at the end",
+      wrong: ["a full stop at the end", "an exclamation mark at the end", "a comma after “many”"] },
+    { sentence: "We needed three things rope, water and a map.", mark: "a colon after “things”",
+      wrong: ["a comma after “things”", "a semicolon after “rope”", "an apostrophe in “things”"] },
+    { sentence: "My grandmother who never wrote letters sent a postcard.",
+      mark: "a pair of commas around “who never wrote letters”",
+      wrong: ["a comma after “letters” only", "a colon after “grandmother”", "a dash after “postcard”"] },
+    { sentence: "Theres nothing left to decide.", mark: "an apostrophe in “Theres”",
+      wrong: ["a comma after “nothing”", "a question mark at the end", "a hyphen in “nothing”"] },
+    { sentence: "The lights went out we sat in the dark for an hour.",
+      mark: "a semicolon after “out”",
+      wrong: ["a comma after “out”", "a colon after “dark”", "an apostrophe in “lights”"] }
   ];
 
   function punMissingMark(i) {
@@ -2806,7 +3207,21 @@
     { sentence: "Neither Priya nor ______ had seen the notice.", right: "I",
       wrong: ["me", "myself", "mine"], test: "I had seen the notice" },
     { sentence: "They invited my parents and ______ to the opening.", right: "me",
-      wrong: ["I", "myself", "mine"], test: "they invited me" }
+      wrong: ["I", "myself", "mine"], test: "they invited me" },
+    { sentence: "My sister and ______ were the last to arrive.", right: "I",
+      wrong: ["me", "myself", "mine"], test: "I was the last to arrive" },
+    { sentence: "There has always been a rivalry between him and ______.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "between me" },
+    { sentence: "It was ______ they were waiting for all along.", right: "us",
+      wrong: ["we", "ourselves", "ours"], test: "they were waiting for us" },
+    { sentence: "The photograph shows my grandfather and ______ on the beach.", right: "me",
+      wrong: ["I", "myself", "mine"], test: "the photograph shows me" },
+    { sentence: "______ of us knew the way from there.", right: "Neither",
+      wrong: ["None", "Either", "Both"], test: "neither one knew the way" },
+    { sentence: "The boy ______ won the scholarship is in my form.", right: "who",
+      wrong: ["whom", "whose", "which"], test: "he won the scholarship", swap: "he" },
+    { sentence: "The friend with ______ I travelled has moved away.", right: "whom",
+      wrong: ["who", "whose", "which"], test: "I travelled with him", swap: "him" }
   ];
 
   function graPronounCase(i) {
@@ -2854,7 +3269,19 @@
     { sentence: "The pile of newspapers by the door ______ growing.", right: "is",
       wrong: ["are", "were", "have"], subj: "pile", near: "newspapers" },
     { sentence: "The captain, along with the other players, ______ waiting outside.", right: "is",
-      wrong: ["are", "were", "have"], subj: "captain", near: "players" }
+      wrong: ["are", "were", "have"], subj: "captain", near: "players" },
+    { sentence: "A row of houses ______ been demolished since we last came.", right: "has",
+      wrong: ["have", "are", "were"], subj: "row", near: "houses" },
+    { sentence: "The bundle of letters ______ tied with string.", right: "was",
+      wrong: ["were", "are", "have"], subj: "bundle", near: "letters" },
+    { sentence: "Every one of the windows ______ painted shut.", right: "was",
+      wrong: ["were", "are", "have"], subj: "every one", near: "windows" },
+    { sentence: "The stack of plates by the sink ______ far too high.", right: "is",
+      wrong: ["are", "were", "have"], subj: "stack", near: "plates" },
+    { sentence: "One of my cousins ______ moved to Leeds.", right: "has",
+      wrong: ["have", "are", "were"], subj: "one", near: "cousins" },
+    { sentence: "The teacher, together with all the pupils, ______ gone on ahead.", right: "has",
+      wrong: ["have", "are", "were"], subj: "teacher", near: "pupils" }
   ];
 
   function graDistantAgreement(i) {
@@ -2870,6 +3297,225 @@
     return q;
   }
   graDistantAgreement.poolSize = DISTANT_AGREEMENT_ITEMS.length;
+
+
+  /* The papers ask about the FORM of a poem as well as its figures of speech -
+     "why has the poet chosen to end the poem with a question". Naming the
+     feature is the part that can be set as a multiple choice. */
+  const VERSE_FORM_ITEMS = [
+    { lines: ["The road was long, the night was black,", "and neither of us looked back."],
+      answer: "A rhyming couplet",
+      wrong: ["A refrain", "Enjambment", "A half-rhyme"],
+      note: "two lines, one after the other, that rhyme with each other" },
+    { lines: ["I stood and watched the water climb", "the wall, the window and the sill,",
+              "and thought of nothing else at all."],
+      answer: "Enjambment",
+      wrong: ["A rhyming couplet", "A refrain", "Alliteration"],
+      note: "the sense runs straight over the end of a line without a pause, so the line break falls mid-phrase" },
+    { lines: ["Sing hey for the morning, sing hey for the day.", "…",
+              "Sing hey for the morning, sing hey for the day."],
+      answer: "A refrain",
+      wrong: ["A rhyming couplet", "Enjambment", "A simile"],
+      note: "a line that comes back unchanged later in the poem" },
+    { lines: ["The lane was steep, the hedges high,", "a blackbird sang, and so did I."],
+      answer: "A rhyming couplet",
+      wrong: ["A refrain", "Enjambment", "Assonance"],
+      note: "two lines, one after the other, that rhyme with each other" },
+    { lines: ["She never said a word about", "the letter, or the man who brought",
+              "it up the path that afternoon."],
+      answer: "Enjambment",
+      wrong: ["A rhyming couplet", "A refrain", "A rhetorical question"],
+      note: "the sense runs straight over the end of a line without a pause, so the line break falls mid-phrase" },
+    { lines: ["Down came the rain, and down came the night,", "Down came the dark on the harbour light."],
+      answer: "A repeated opening",
+      wrong: ["Enjambment", "A refrain", "A half-rhyme"],
+      note: "both lines begin with the same words, which drives the rhythm forward" },
+    { lines: ["The boat went out, the boat came home,", "the tide went out, the tide came home."],
+      answer: "A repeated structure",
+      wrong: ["A rhyming couplet", "Enjambment", "A simile"],
+      note: "the second line copies the shape of the first, swapping only what it is about" },
+    { lines: ["Was it for this we waited half the year?", "Was it for this we counted every day?"],
+      answer: "A pair of rhetorical questions",
+      wrong: ["A rhyming couplet", "A refrain", "Enjambment"],
+      note: "both lines ask something the poet does not expect answered" },
+    { lines: ["The kettle sang. The clock replied.", "The cat said nothing, and the fire died."],
+      answer: "A rhyming couplet",
+      wrong: ["A refrain", "Enjambment", "A repeated opening"],
+      note: "two lines, one after the other, that rhyme with each other" },
+    { lines: ["and still I cannot tell you why", "the gate was open, or who left", "the lantern burning on the wall."],
+      answer: "Enjambment",
+      wrong: ["A rhyming couplet", "A refrain", "A repeated opening"],
+      note: "the sense runs straight over the end of a line without a pause, so the line break falls mid-phrase" },
+    { lines: ["Never a light, never a sound,", "never a footprint on the ground."],
+      answer: "A repeated opening",
+      wrong: ["Enjambment", "A refrain", "A rhetorical question"],
+      note: "both lines begin with the same word, which drives the rhythm forward" },
+    { lines: ["O the wind and the rain, O the wind and the rain.", "…",
+              "O the wind and the rain, O the wind and the rain."],
+      answer: "A refrain",
+      wrong: ["Enjambment", "A rhyming couplet", "Assonance"],
+      note: "a line that comes back unchanged later in the poem" }
+  ];
+
+  function litVerseForm(i) {
+    const item = pick(VERSE_FORM_ITEMS, i);
+    const body = item.lines.join("\n");
+    const q = mkE("Literary Devices",
+      `Look at these lines of poetry.\n\n${body}\n\n` +
+      `Which feature of the verse do they show?`,
+      item.answer, item.wrong, 4, i);
+    if (q) q.explain =
+      `This is about the shape of the verse rather than any figure of speech. ` +
+      `${item.answer} means ${item.note} — check the line endings and the line ` +
+      `openings before deciding, because that is where form shows itself.`;
+    return q;
+  }
+  litVerseForm.poolSize = VERSE_FORM_ITEMS.length;
+
+  /* A device inside a few sentences of prose, which is how a comprehension
+     paper meets one - the surrounding text has to be read past first. */
+  const PROSE_DEVICE_ITEMS = [
+    { text: "Marcus reached the top of the hill and stopped. Below him the town lay under a lid of smoke, and the river drew a slow grey line through it. He had not been back for eleven years.",
+      device: "Metaphor", quote: "a lid of smoke",
+      wrong: ["Simile", "Onomatopoeia", "Hyperbole"] },
+    { text: "The kitchen was empty when she came down. The tap dripped. The clock on the shelf ticked and ticked and ticked, and there was nothing else to hear at all.",
+      device: "Repetition", quote: "ticked and ticked and ticked",
+      wrong: ["Simile", "Metaphor", "Oxymoron"] },
+    { text: "Nobody had opened the shed since the spring. The door swung back and the smell of oil came out to meet them, and a spade fell slowly against the wall as if it had been waiting.",
+      device: "Personification", quote: "came out to meet them",
+      wrong: ["Metaphor", "Alliteration", "Hyperbole"] },
+    { text: "The bus was late again. Rain ran down the shelter glass in long threads, and the queue shuffled and said nothing. Ravi counted the cars going past: forty-one, forty-two.",
+      device: "Simile", quote: "in long threads",
+      wrong: ["Metaphor", "Onomatopoeia", "Anaphora"] },
+    { text: "She had promised herself she would not look. But the box was open on the table, and the letters were there, and she had waited a hundred years for this.",
+      device: "Hyperbole", quote: "a hundred years",
+      wrong: ["Simile", "Personification", "Litotes"] },
+    { text: "The hall smelled of polish. Somewhere upstairs a door banged, then banged again, and a voice called out a name that was not his. Tom stood on the mat and did not move.",
+      device: "Onomatopoeia", quote: "banged",
+      wrong: ["Simile", "Metaphor", "Litotes"] },
+    { text: "It was not an easy winter. The pipes froze twice, the coal ran short in February, and by March the whole family had learned to sleep in coats. Nobody complained much.",
+      device: "Litotes", quote: "not an easy winter",
+      wrong: ["Hyperbole", "Simile", "Personification"] },
+    { text: "The lane narrowed. Low leaning laurels lined the last hundred yards, and the light failed sooner than they had expected. Neither of them said they were afraid.",
+      device: "Alliteration", quote: "Low leaning laurels lined the last",
+      wrong: ["Simile", "Metaphor", "Onomatopoeia"] },
+    { text: "Outside the window the sea moved without stopping. It had been there before the house, and would be there after it, and it took no notice of either.",
+      device: "Personification", quote: "took no notice",
+      wrong: ["Simile", "Hyperbole", "Alliteration"] },
+    { text: "Grandad's shed was a museum. Nothing in it worked and nothing in it was thrown away, and every jar had a label written in pencil forty years ago.",
+      device: "Metaphor", quote: "was a museum",
+      wrong: ["Simile", "Litotes", "Onomatopoeia"] },
+    { text: "They waited. They waited while the light went out of the sky, and they waited while the last bus went by, and still nobody came to the door.",
+      device: "Anaphora", quote: "They waited",
+      wrong: ["Simile", "Metaphor", "Alliteration"] },
+    { text: "The room was warm and the chair was deep and the fire was exactly right, which was how she knew something was wrong. It was a comfortable dread, and it would not shift.",
+      device: "Oxymoron", quote: "a comfortable dread",
+      wrong: ["Simile", "Hyperbole", "Onomatopoeia"] }
+  ];
+
+  /* "a simile" / "an oxymoron": the article depends on the device name. */
+  const withArticle = d => (/^[AEIOU]/.test(d) ? "an " : "a ") + d.toLowerCase();
+
+  function litDeviceInProse(i) {
+    const item = pick(PROSE_DEVICE_ITEMS, i);
+    const q = mkE("Literary Devices",
+      `Read this extract.\n\n${item.text}\n\n` +
+      `Which technique does the writer use in the words "${item.quote}"?`,
+      item.device, item.wrong, 4, i);
+    if (q) q.explain =
+      `The quotation tells you exactly where to look, so ignore the rest of the ` +
+      `extract once you have found it. "${item.quote}" is ` +
+      `${withArticle(item.device)}. ` + (DEVICE_NOTES[item.device] || "");
+    return q;
+  }
+  litDeviceInProse.poolSize = PROSE_DEVICE_ITEMS.length;
+
+
+  /* An unfamiliar word, and enough around it to work the meaning out. This is
+     the vocabulary skill the comprehension papers lean on hardest, because it
+     is the only one that transfers to a word nobody has taught. Each sentence
+     carries a real clue - a contrast, a consequence, a definition in apposition
+     - and the clue is named in the hint. */
+  const CONTEXT_CLUE_ITEMS = [
+    { sentence: "The path was so circuitous that a walk of two miles took them most of the afternoon.",
+      word: "circuitous", right: "roundabout, not direct",
+      wrong: ["steep and rocky", "narrow and overgrown", "poorly signposted"],
+      clue: "two miles taking a whole afternoon means the route wandered rather than going straight" },
+    { sentence: "Her tone was so brusque that the shopkeeper thought he had offended her.",
+      word: "brusque", right: "short and abrupt",
+      wrong: ["cheerful and chatty", "quiet and shy", "slow and thoughtful"],
+      clue: "the shopkeeper takes offence, so the manner must have been curt rather than friendly" },
+    { sentence: "The room was frugally furnished: a bed, a chair and nothing else at all.",
+      word: "frugally", right: "sparingly, with very little",
+      wrong: ["expensively", "carelessly", "brightly"],
+      clue: "the colon lists exactly what was there, and it is almost nothing" },
+    { sentence: "Unlike his garrulous brother, Sam could sit through a whole meal without speaking.",
+      word: "garrulous", right: "talkative",
+      wrong: ["bad-tempered", "generous", "forgetful"],
+      clue: "“unlike” sets up an opposite, and the opposite of sitting silently is talking a great deal" },
+    { sentence: "The evidence was incontrovertible, and even his own lawyer stopped arguing.",
+      word: "incontrovertible", right: "impossible to argue against",
+      wrong: ["difficult to understand", "recently discovered", "unfairly obtained"],
+      clue: "his own lawyer gives up, so the evidence must have been beyond dispute" },
+    { sentence: "She was assiduous in her practice, never missing a single morning for two years.",
+      word: "assiduous", right: "hard-working and careful",
+      wrong: ["talented", "reluctant", "impatient"],
+      clue: "never missing a morning for two years describes steady effort, not talent" },
+    { sentence: "The old dog's gait was ungainly, and he rolled from side to side as he walked.",
+      word: "gait", right: "way of walking",
+      wrong: ["temper", "appetite", "coat"],
+      clue: "“as he walked” tells you the word is about movement" },
+    { sentence: "His account was so prolix that the committee asked him twice to come to the point.",
+      word: "prolix", right: "long-winded",
+      wrong: ["untruthful", "confusing", "badly written"],
+      clue: "being asked to come to the point means there was too much of it, not that it was false" },
+    { sentence: "The two versions of the story were irreconcilable: if one was true the other could not be.",
+      word: "irreconcilable", right: "impossible to fit together",
+      wrong: ["difficult to remember", "written at different times", "told by strangers"],
+      clue: "the colon explains it: one being true rules the other out" },
+    { sentence: "He gave a laconic reply of three words and went back to his newspaper.",
+      word: "laconic", right: "using very few words",
+      wrong: ["rude and angry", "cheerful", "carefully argued"],
+      clue: "three words, and then he stops talking altogether" },
+    { sentence: "The path was flanked by hedges, so that they could see nothing on either side.",
+      word: "flanked", right: "bordered on both sides",
+      wrong: ["blocked completely", "recently planted", "kept neatly cut"],
+      clue: "“on either side” says where the hedges were" },
+    { sentence: "Her handwriting was almost illegible, and the clerk had to ask her to read it aloud.",
+      word: "illegible", right: "impossible to read",
+      wrong: ["very small", "written in pencil", "full of mistakes"],
+      clue: "the clerk has to have it read aloud, so he could not make the writing out" },
+    { sentence: "The scheme was untenable from the start: nobody could have paid for it.",
+      word: "untenable", right: "impossible to keep going",
+      wrong: ["kept secret", "unpopular", "invented recently"],
+      clue: "the colon gives the reason - it could not be paid for, so it could not last" },
+    { sentence: "He was taciturn at breakfast, though he had talked all evening the night before.",
+      word: "taciturn", right: "saying very little",
+      wrong: ["bad-tempered", "unwell", "in a hurry"],
+      clue: "“though” sets breakfast against an evening of talking, so the word must mean silent" },
+    { sentence: "The mixture began to coagulate, thickening until the spoon would hardly move.",
+      word: "coagulate", right: "thicken into a solid mass",
+      wrong: ["boil rapidly", "change colour", "give off steam"],
+      clue: "the second half of the sentence describes exactly what happened: it thickened" },
+    { sentence: "She was the most parsimonious person he knew, and grudged even the price of a stamp.",
+      word: "parsimonious", right: "extremely unwilling to spend money",
+      wrong: ["extremely generous", "very forgetful", "quick to complain"],
+      clue: "grudging the price of a stamp is the smallest possible expense to object to" }
+  ];
+
+  function vocContextClue(i) {
+    const item = pick(CONTEXT_CLUE_ITEMS, i);
+    const q = mkE("Vocabulary",
+      `Read this sentence.\n\n"${item.sentence}"\n\n` +
+      `What does "${item.word}" mean here?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `You are not expected to know this word — the sentence is built to tell ` +
+      `you. Cover the options and find the clue first: ${item.clue}. That gives ` +
+      `"${item.right}", and only then is it worth looking at what is offered.`;
+    return q;
+  }
+  vocContextClue.poolSize = CONTEXT_CLUE_ITEMS.length;
 
   const METHODS = {
     spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
@@ -2982,7 +3628,8 @@
       [vocMultipleMeaning, 4, 4],      // the same word in two senses
       [vocAnalogy, 4, 4],              // name the relationship, then apply it
       [vocOddOneOut, 3, 4],            // what do THREE of them share
-      [vocFitsAllThree, 4, 4]          // one word for three sentences
+      [vocFitsAllThree, 4, 4],         // one word for three sentences
+      [vocContextClue, 4, 4]           // work the word out from the sentence
     ],
     "Word Choice": [
       [wordChoice],
@@ -3003,7 +3650,9 @@
       [litHarderDevice, 3, 4],         // pathetic fallacy, sibilance, litotes
       [litNotAnExample, 3, 4],         // three of four use it; find the fourth
       [litDeviceEffect, 4, 4],         // what the device achieves, not its name
-      [litWhichLine, 3, 4]             // which line of the verse carries it
+      [litWhichLine, 3, 4],            // which line of the verse carries it
+      [litVerseForm, 4, 4],            // couplet, refrain, enjambment
+      [litDeviceInProse, 4, 4]         // a device inside a paragraph
     ]
   };
 
