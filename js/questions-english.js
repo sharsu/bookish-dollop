@@ -1522,6 +1522,703 @@
   }
   litTwoDevices.poolSize = TWO_DEVICE_ITEMS.length;
 
+
+  /* ══════════ LITERARY DEVICES, HARDER ══════════
+     The scanned papers offer "pathetic fallacy" alongside metaphor, simile,
+     personification and alliteration in the same option list, so the harder
+     names are fair game. `avoid` names the devices that genuinely also apply to
+     a sentence and so must never appear as one of its distractors. */
+  const HARD_DEVICE_NAMES = ["Simile", "Metaphor", "Personification", "Alliteration",
+    "Onomatopoeia", "Hyperbole", "Oxymoron", "Repetition", "Rhetorical question",
+    "Pathetic fallacy", "Sibilance", "Assonance", "Juxtaposition", "Litotes",
+    "Symbolism", "Anaphora"];
+
+  const HARD_DEVICE_ITEMS = [
+    { text: "The sky wept with her as she folded the last of his shirts.",
+      device: "Pathetic fallacy", avoid: ["Personification"] },
+    { text: "The storm broke over the house on the morning of the funeral.",
+      device: "Pathetic fallacy", avoid: ["Personification", "Symbolism"] },
+    { text: "The sea slid softly across the sand and whispered as it settled.",
+      device: "Sibilance", avoid: ["Alliteration", "Personification", "Onomatopoeia"] },
+    { text: "She sensed the silence spreading through the sleeping house.",
+      device: "Sibilance", avoid: ["Alliteration"] },
+    { text: "The pale grey waves came scraping up the beach again and again.",
+      device: "Assonance", avoid: ["Alliteration"] },
+    { text: "He was not unimpressed by the size of the crowd.",
+      device: "Litotes", avoid: [] },
+    { text: "Winning the prize was no small achievement for a boy of nine.",
+      device: "Litotes", avoid: ["Hyperbole"] },
+    { text: "Inside the palace, silver dishes; outside the gate, a boy with no shoes.",
+      device: "Juxtaposition", avoid: ["Symbolism"] },
+    { text: "The old man's garden was neat and clipped; his son's was a tangle of weeds.",
+      device: "Juxtaposition", avoid: [] },
+    { text: "The single candle in the window stood for everything she still hoped for.",
+      device: "Symbolism", avoid: ["Metaphor"] },
+    { text: "He kept the broken watch in his pocket, and would not have it mended.",
+      device: "Symbolism", avoid: [] },
+    { text: "We waited for the letter. We waited for the knock. We waited for the news.",
+      device: "Anaphora", avoid: ["Repetition"] },
+    { text: "Every window was dark. Every door was locked. Every path was empty.",
+      device: "Anaphora", avoid: ["Repetition"] },
+    { text: "It was a cruel kindness to tell her the truth so late.",
+      device: "Oxymoron", avoid: [] },
+    { text: "The room was full of a busy stillness that nobody dared break.",
+      device: "Oxymoron", avoid: ["Personification"] },
+    { text: "The wind shouldered the gate open and went through the yard.",
+      device: "Personification", avoid: ["Pathetic fallacy", "Metaphor"] },
+    { text: "Her patience was a thread worn down to its last fibre.",
+      device: "Metaphor", avoid: ["Symbolism"] },
+    { text: "Have we really nothing better to offer them than this?",
+      device: "Rhetorical question", avoid: [] },
+    { text: "The gate groaned, the hinges shrieked, and the latch clacked shut.",
+      device: "Onomatopoeia", avoid: ["Personification", "Alliteration"] },
+    { text: "He had told that story a hundred thousand times before breakfast.",
+      device: "Hyperbole", avoid: [] }
+  ];
+
+  function litHarderDevice(i) {
+    const item = pick(HARD_DEVICE_ITEMS, i);
+    /* A device that genuinely also applies cannot be a wrong answer. */
+    const banned = [item.device, ...item.avoid];
+    const wrong = HARD_DEVICE_NAMES.filter(n => !banned.includes(n));
+    const picked = firstDistinct(item.device,
+      [pick(wrong, i), pick(wrong, i + 5), pick(wrong, i + 9), pick(wrong, i + 2),
+       pick(wrong, i + 11), pick(wrong, i + 7)]);
+    if (!picked) return null;
+    const q = mkE("Literary Devices",
+      `Which technique is being used here?\n\n"${item.text}"`,
+      item.device, picked, 4, i);
+    if (q) q.explain = DEVICE_NOTES[item.device] ||
+      `This is ${item.device.toLowerCase()}.`;
+    return q;
+  }
+  litHarderDevice.poolSize = HARD_DEVICE_ITEMS.length;
+
+  /* One short definition per device, used as the hint wherever a device is
+     named, so a child who has never met "litotes" is told what it is. */
+  const DEVICE_NOTES = {
+    "Pathetic fallacy": "Pathetic fallacy is when the weather or the landscape carries the mood of the scene. It is a kind of personification, but the test is narrower: the thing given feelings has to be the natural world, and the feelings have to match the character's.",
+    Sibilance: "Sibilance is a run of s, sh and soft c sounds. It is alliteration narrowed to one family of sounds, so look for a hiss running through the line rather than any repeated letter.",
+    Assonance: "Assonance repeats a VOWEL sound inside nearby words, not the first letter. Say the line aloud and listen for the same vowel coming back.",
+    Litotes: "Litotes says something by denying the opposite — \"not bad\" for good, \"no small thing\" for important. It understates on purpose, which is the reverse of hyperbole.",
+    Juxtaposition: "Juxtaposition sets two contrasting things side by side and lets the gap between them do the work. Nothing is compared or renamed — they are simply placed together.",
+    Symbolism: "Symbolism lets an object stand for an idea bigger than itself. Unlike a metaphor, nothing is called something else: the object stays exactly what it is and carries the meaning as well.",
+    Anaphora: "Anaphora repeats the same words at the START of consecutive clauses or sentences. Plain repetition can happen anywhere; anaphora is repetition lined up at the beginning.",
+    Oxymoron: "An oxymoron puts two words that contradict each other side by side — \"cruel kindness\", \"busy stillness\" — so the contradiction itself is the point.",
+    Personification: "Personification gives human behaviour to something that is not human. Ask what the thing is doing: if only a person could do it, that is personification.",
+    Metaphor: "A metaphor says one thing IS another, with no \"like\" or \"as\". Check whether the sentence renames something or merely compares it.",
+    "Rhetorical question": "A rhetorical question is asked for effect and not for an answer — the writer already knows what the reader will think.",
+    Onomatopoeia: "Onomatopoeia is a word that imitates the sound it names. Say the word aloud: if it sounds like the thing itself, that is onomatopoeia.",
+    Hyperbole: "Hyperbole is deliberate exaggeration, not meant to be believed. The clue is a quantity nobody could mean literally."
+  };
+
+  /* "Which of these is NOT an example of ..." - four short sentences, three of
+     which use the device. Harder than naming a device once, because all four
+     have to be tested rather than the first convincing one chosen. */
+  const NOT_EXAMPLE_SETS = [
+    { device: "a simile",
+      yes: ["Her hands were as cold as the railings.",
+            "He slept like a stone all afternoon.",
+            "The kitchen smelled like autumn."],
+      no: "The kettle grumbled on the stove." },
+    { device: "a metaphor",
+      yes: ["The classroom was a beehive that morning.",
+            "His voice is sandpaper.",
+            "Her memory is a sieve."],
+      no: "Her memory is as poor as mine." },
+    { device: "personification",
+      yes: ["The floorboards complained under his weight.",
+            "The wind rattled the letterbox and would not stop asking.",
+            "The old clock coughed before it struck."],
+      no: "The clock was as loud as a hammer." },
+    { device: "alliteration",
+      yes: ["Six silver spoons sat on the sill.",
+            "Bright banners blew above the bridge.",
+            "The dog dozed by the dying fire."],
+      no: "The kettle boiled over again." },
+    { device: "onomatopoeia",
+      yes: ["The bacon spat in the pan.",
+            "Gravel crunched under the wheels.",
+            "The gate clanged behind them."],
+      no: "The evening was perfectly still." },
+    { device: "hyperbole",
+      yes: ["This bag weighs a tonne.",
+            "I have asked you a million times.",
+            "The queue went on for ever."],
+      no: "The queue was longer than usual." },
+    { device: "a rhetorical question",
+      yes: ["Who would not want that for their own children?",
+            "How much longer must we wait?",
+            "Is that really too much to ask?"],
+      no: "Which platform does the train leave from?" },
+    { device: "repetition",
+      yes: ["He walked and walked and walked.",
+            "It was cold, cold enough to crack stone.",
+            "No, no, no — not that one."],
+      no: "He walked a long way that day." },
+    { device: "an oxymoron",
+      yes: ["a deafening silence", "a bitter sweetness", "an honest thief"],
+      no: "a bitter wind" },
+    { device: "a simile",
+      yes: ["The lane was as narrow as a corridor.",
+            "She sang like a bird let out of a cage.",
+            "The paper was as thin as a moth's wing."],
+      no: "The lane narrowed into a corridor of trees." },
+    { device: "personification",
+      yes: ["Hunger gnawed at him all morning.",
+            "The town went to sleep early.",
+            "The chimney breathed smoke into the dark."],
+      no: "The town was quiet by nine o'clock." },
+    { device: "alliteration",
+      yes: ["Cold coins clinked in his coat.",
+            "Ten tired travellers trudged on.",
+            "Wide white wings crossed the water."],
+      no: "The travellers were tired and cold." }
+  ];
+
+  function litNotAnExample(i) {
+    const set = pick(NOT_EXAMPLE_SETS, i);
+    const q = mkE("Literary Devices",
+      `Which of these is NOT an example of ${set.device}?`,
+      set.no, set.yes, 4, i);
+    if (q) q.explain =
+      `Three of the four use the technique, so test every one rather than ` +
+      `stopping at the first that fits. "${set.no}" is the odd one out: the ` +
+      `other three are examples of ${set.device}, and this one is not.`;
+    return q;
+  }
+  litNotAnExample.poolSize = NOT_EXAMPLE_SETS.length;
+
+  /* Naming a device is the easy half. The papers also ask what it achieves,
+     which cannot be answered from the device's definition alone. */
+  const DEVICE_EFFECT_ITEMS = [
+    { text: "The fog crept in on quiet feet.", device: "personification",
+      effect: "It makes the fog seem deliberate, as though it is arriving on purpose",
+      wrong: ["It tells the reader exactly how thick the fog was",
+              "It suggests the fog is about to clear",
+              "It shows that somebody is walking through the fog"] },
+    { text: "The classroom was a zoo that afternoon.", device: "metaphor",
+      effect: "It puts the noise and disorder of the room in one word, without listing anything",
+      wrong: ["It tells the reader that animals had got into the school",
+              "It suggests the children were frightened",
+              "It shows the teacher was pleased with the class"] },
+    { text: "I have told you a million times.", device: "hyperbole",
+      effect: "It conveys the speaker's exasperation rather than a real number",
+      wrong: ["It tells the reader precisely how often it was said",
+              "It shows the speaker has a very good memory",
+              "It suggests the speaker is being patient"] },
+    { text: "He ran and ran and ran until his legs gave way.", device: "repetition",
+      effect: "It stretches the running out, so the reader feels how long it went on",
+      wrong: ["It shows he ran three separate times",
+              "It suggests he stopped to rest between each run",
+              "It tells the reader how fast he was going"] },
+    { text: "Silently the silver snow settled on the slate.", device: "alliteration",
+      effect: "The repeated soft sound makes the line itself feel hushed",
+      wrong: ["It tells the reader how deep the snow was",
+              "It shows the snow fell noisily",
+              "It suggests the roof was about to give way"] },
+    { text: "It was a deafening silence.", device: "an oxymoron",
+      effect: "The contradiction captures a quiet so complete that it presses on the ear",
+      wrong: ["It shows the room was extremely loud",
+              "It suggests somebody had gone deaf",
+              "It tells the reader that nobody was there"] },
+    { text: "The old house groaned as the storm arrived.", device: "personification",
+      effect: "It makes the house sound like something suffering, which prepares the reader for trouble",
+      wrong: ["It explains that the timbers needed repair",
+              "It shows somebody inside was in pain",
+              "It suggests the storm had already passed"] },
+    { text: "Her temper was a firework waiting for a match.", device: "metaphor",
+      effect: "It makes her calm feel temporary, and the outburst feel certain",
+      wrong: ["It shows she enjoys firework displays",
+              "It suggests her temper is easy to control",
+              "It tells the reader she was already angry"] },
+    { text: "Do we really want to be the generation that let it go?", device: "a rhetorical question",
+      effect: "It presses the reader to agree without ever stating the argument",
+      wrong: ["It asks the reader for information the writer does not have",
+              "It shows the writer is unsure what to think",
+              "It invites the reader to answer out loud"] },
+    { text: "The bacon sizzled and the kettle hissed.", device: "onomatopoeia",
+      effect: "The words carry the sounds themselves, so the kitchen is heard as well as seen",
+      wrong: ["It tells the reader what time breakfast was",
+              "It shows the cooker was faulty",
+              "It suggests the room was silent"] },
+    { text: "He was as stubborn as a rusted bolt.", device: "a simile",
+      effect: "It measures his stubbornness against something that will not move at all",
+      wrong: ["It suggests he was old and unwell",
+              "It shows he worked with machinery",
+              "It tells the reader he changed his mind easily"] },
+    { text: "The sky wept as she folded the last of his shirts.", device: "pathetic fallacy",
+      effect: "The weather carries her grief, so the sentence never has to name it",
+      wrong: ["It explains why the washing could not be hung out",
+              "It shows she was watching the forecast",
+              "It suggests she was glad of the rain"] },
+    { text: "We waited for the letter. We waited for the knock. We waited for the news.",
+      device: "anaphora",
+      effect: "The repeated opening makes the waiting feel endless and out of their hands",
+      wrong: ["It shows they waited on three separate days",
+              "It suggests they had given up waiting",
+              "It tells the reader what the news turned out to be"] },
+    { text: "Inside the palace, silver dishes; outside the gate, a boy with no shoes.",
+      device: "juxtaposition",
+      effect: "Setting the two side by side makes the unfairness obvious without a word of comment",
+      wrong: ["It explains how the palace kitchens were run",
+              "It suggests the boy was about to be invited in",
+              "It shows the two places were far apart"] },
+    { text: "Winning the prize was no small achievement for a boy of nine.",
+      device: "litotes",
+      effect: "Denying the opposite praises him more quietly, and so more convincingly, than “great” would",
+      wrong: ["It suggests the prize was not worth very much",
+              "It shows the boy was disappointed",
+              "It tells the reader the competition was easy"] }
+  ];
+
+  function litDeviceEffect(i) {
+    const item = pick(DEVICE_EFFECT_ITEMS, i);
+    const q = mkE("Literary Devices",
+      `Read this sentence.\n\n"${item.text}"\n\n` +
+      `What does the ${item.device} achieve here?`,
+      item.effect, item.wrong, 4, i);
+    if (q) q.explain =
+      `Naming the technique is only half the question — this asks what it does ` +
+      `for the reader. Rule out any option that only restates the literal facts, ` +
+      `or that the sentence does not support at all. Here the ${item.device} ` +
+      `works because ${item.effect.charAt(0).toLowerCase() + item.effect.slice(1)}.`;
+    return q;
+  }
+  litDeviceEffect.poolSize = DEVICE_EFFECT_ITEMS.length;
+
+  /* Four numbered lines, one of which carries the device. The papers set this
+     against a stanza, and it is harder than a single sentence because three
+     plausible-sounding lines have to be ruled out. */
+  const STANZA_ITEMS = [
+    { lines: ["The morning came in grey and slow,", "the lane was quiet as a church,",
+              "a blackbird turned the fallen leaves,", "and shook the rain from off its perch."],
+      device: "a simile", answer: 2 },
+    { lines: ["The river is a long brown road", "that carries barges to the sea,",
+              "past reed and rush and rotting post,", "past all the fields I used to see."],
+      device: "a metaphor", answer: 1 },
+    { lines: ["The wind came knocking at the door,", "the shutters answered with a bang,",
+              "the lamp went out, the cat sat still,", "and somewhere far away, bells rang."],
+      device: "personification", answer: 1 },
+    { lines: ["Softly the sea slid up the shore,", "gulls turned above the harbour wall,",
+              "a bell was ringing out to sea,", "and no one heard the fishermen call."],
+      device: "sibilance", answer: 1 },
+    { lines: ["I waited by the garden gate,", "I waited while the light went thin,",
+              "I waited till the stars came out,", "and still nobody let me in."],
+      device: "anaphora", answer: 1 },
+    { lines: ["The kettle shrieked, the fire spat,", "the dog was dreaming on the mat,",
+              "the clock was slow, the room was warm,", "outside there gathered up a storm."],
+      device: "onomatopoeia", answer: 1 },
+    /* Line 2 read "sharper than a knife": a comparative, with no "like" and no
+       "as ... as", so it was not the simile the question claimed. */
+    { lines: ["Her coat was thin, her boots were old,", "the wind was like a carving knife,",
+              "she counted pennies in her hand,", "and thought about another life."],
+      device: "a simile", answer: 2 },
+    { lines: ["The house had stood a hundred years,", "its windows were a row of eyes,",
+              "the ivy climbed towards the roof,", "the chimneys leaned against the skies."],
+      device: "a metaphor", answer: 2 },
+    { lines: ["Ten thousand miles I would have walked,", "and never once complained of it,",
+              "to hear you say my name again,", "or see you by the fire, lit."],
+      device: "hyperbole", answer: 1 },
+    { lines: ["The lane was empty, dusk was near,", "and was there anybody there?",
+              "The gate hung open on its hinge,", "a coat was folded on the chair."],
+      device: "a rhetorical question", answer: 2 },
+    /* Line 2 used to read "the fence was flat, the field was churned", which
+       alliterates on f as plainly as line 1 does on b - two right answers. */
+    { lines: ["Big brown bears had broken through,", "the gate hung open, wide and bare,",
+              "the farmer stood and shook his head,", "and wondered how they'd got in there."],
+      device: "alliteration", answer: 1 },
+    { lines: ["Inside, the fire; outside, the frost.", "The table set for one, not two.",
+              "A letter propped against the jug.", "A road that only led to you."],
+      device: "juxtaposition", answer: 1 }
+  ];
+
+  function litWhichLine(i) {
+    const item = pick(STANZA_ITEMS, i);
+    const body = item.lines.map((l, k) => `${k + 1}  ${l}`).join("\n");
+    const label = n => `Line ${n}`;
+    const wrong = [1, 2, 3, 4].filter(n => n !== item.answer).map(label);
+    const q = mkE("Literary Devices",
+      `Read this verse.\n\n${body}\n\nWhich line contains ${item.device}?`,
+      label(item.answer), wrong, 4, i);
+    if (q) q.explain =
+      `Take one line at a time and test it against the definition rather than ` +
+      `reading for the general feeling of the verse. ${label(item.answer)} — ` +
+      `"${item.lines[item.answer - 1]}" — is the one that uses ${item.device}.`;
+    return q;
+  }
+  litWhichLine.poolSize = STANZA_ITEMS.length;
+
+
+  /* ══════════ WORD CHOICE, HARDER ══════════ */
+
+  /* Two words can mean the same thing and carry opposite feelings. Every option
+     here fits the sentence grammatically and denotes roughly the same action, so
+     the answer turns entirely on which feeling the rest of the sentence needs. */
+  const CONNOTATION_ITEMS = [
+    { sentence: "Exhausted and soaked through, he ______ the last mile home.",
+      right: "trudged", wrong: ["strolled", "skipped", "wandered"],
+      why: "all four mean walked, but only “trudged” carries the effort and misery the first half of the sentence sets up" },
+    { sentence: "Delighted with her news, she ______ into the kitchen to tell them.",
+      right: "burst", wrong: ["crept", "shuffled", "edged"],
+      why: "the other three are cautious or reluctant, which contradicts “delighted”" },
+    { sentence: "Not wanting to be noticed, the boy ______ along the corridor.",
+      right: "slipped", wrong: ["marched", "stamped", "strode"],
+      why: "the other three are loud and confident, and he is trying not to be seen" },
+    { sentence: "The old dog ______ to the fire and lay down with a sigh.",
+      right: "padded", wrong: ["bounded", "raced", "charged"],
+      why: "“with a sigh” tells you the dog is slow and tired, not energetic" },
+    { sentence: "The chairman ______ that the figures had been wrong all along.",
+      right: "conceded", wrong: ["boasted", "announced", "insisted"],
+      why: "admitting a mistake is reluctant, and only “conceded” carries that reluctance" },
+    { sentence: "Her aunt ______ every visitor with the same three questions.",
+      right: "interrogated", wrong: ["greeted", "welcomed", "thanked"],
+      why: "“the same three questions” every time is relentless, which the friendly verbs do not convey" },
+    { sentence: "Rain ______ against the window all night and nobody slept.",
+      right: "hammered", wrong: ["drifted", "settled", "brushed"],
+      why: "nobody slept, so the rain must be violent rather than gentle" },
+    { sentence: "He ______ the letter into his pocket before anyone could read it.",
+      right: "stuffed", wrong: ["placed", "arranged", "laid"],
+      why: "the hurry and secrecy need a careless verb; the others are careful and unhurried" },
+    { sentence: "The crowd ______ when the announcement was finally made.",
+      right: "erupted", wrong: ["murmured", "muttered", "whispered"],
+      why: "“finally” suggests long-awaited news, and only “erupted” matches the release" },
+    { sentence: "She ______ at the suggestion that she might need help.",
+      right: "bristled", wrong: ["smiled", "nodded", "agreed"],
+      why: "“the suggestion that she might need help” is faintly insulting, and only one verb takes offence" },
+    { sentence: "The two children ______ over the last slice for a full ten minutes.",
+      right: "squabbled", wrong: ["chatted", "conferred", "debated"],
+      why: "ten minutes over a slice of cake is petty, and “conferred” and “debated” are far too dignified" },
+    { sentence: "Water ______ from the cracked pipe for weeks before anyone noticed.",
+      right: "seeped", wrong: ["gushed", "burst", "surged"],
+      why: "nobody noticed for weeks, so the leak must be slow rather than dramatic" },
+    { sentence: "The old man ______ his story, leaving nothing out.",
+      right: "recounted", wrong: ["mentioned", "hinted", "implied"],
+      why: "“leaving nothing out” needs a full telling; the others are all partial" },
+    { sentence: "Frost ______ the windows overnight and hid the garden.",
+      right: "sealed", wrong: ["dusted", "touched", "brushed"],
+      why: "the garden is hidden completely, so the frost must have covered rather than lightly marked" },
+    { sentence: "He ______ the accusation without raising his voice once.",
+      right: "refuted", wrong: ["shouted", "screamed", "protested"],
+      why: "“without raising his voice” rules out every option that involves noise" },
+    { sentence: "The children ______ round the storyteller and would not move.",
+      right: "clustered", wrong: ["scattered", "dispersed", "drifted"],
+      why: "“would not move” means they gathered close, and the other three all mean coming apart" }
+  ];
+
+  function wordChoiceConnotation(i) {
+    const item = pick(CONNOTATION_ITEMS, i);
+    const q = mkE("Word Choice",
+      `All four words below have a similar meaning. Which one completes the ` +
+      `sentence best?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `When every option means roughly the same thing, the answer is decided by ` +
+      `feeling rather than by meaning. Read the rest of the sentence first and ` +
+      `ask what mood it needs: ${item.why}. So the answer is "${item.right}".`;
+    return q;
+  }
+  wordChoiceConnotation.poolSize = CONNOTATION_ITEMS.length;
+
+  /* Formal and informal are not right and wrong - they depend on who is being
+     written to, which the question always states. */
+  const REGISTER_ITEMS = [
+    { context: "a letter to a head teacher", sentence: "I am writing to ______ about the change to the timetable.",
+      right: "enquire", wrong: ["ask around", "have a word", "find out"] },
+    { context: "a letter of complaint to a shop", sentence: "The kettle ______ within a week of purchase.",
+      right: "developed a fault", wrong: ["packed up", "went kaput", "gave up the ghost"] },
+    { context: "a note to a friend", sentence: "______ if you fancy coming to the match on Saturday.",
+      right: "Let me know", wrong: ["Kindly inform me", "Please be advised", "I should be grateful to hear"] },
+    { context: "a formal report", sentence: "The results ______ that the method needs revising.",
+      right: "indicate", wrong: ["reckon", "sort of show", "go to show"] },
+    { context: "a letter to a newspaper", sentence: "I ______ with the writer's conclusion for three reasons.",
+      right: "disagree", wrong: ["can't be doing", "am not having it", "think it's rubbish"] },
+    { context: "a school newsletter", sentence: "Parents are ______ to arrive by half past six.",
+      right: "requested", wrong: ["told to", "made to", "meant to" ] },
+    { context: "a text to a cousin", sentence: "______ we're running about ten minutes late.",
+      right: "Just to say", wrong: ["I regret to inform you that", "Be advised that", "It is with regret that"] },
+    { context: "a job application", sentence: "I ______ considerable experience of working in a team.",
+      right: "have gained", wrong: ["have got loads of", "have picked up a bit of", "know all about"] },
+    { context: "a formal apology", sentence: "I ______ for the inconvenience this has caused.",
+      right: "apologise", wrong: ["am dead sorry", "feel bad", "was gutted"] },
+    { context: "a letter to a local council", sentence: "The pavement outside the library ______ urgent repair.",
+      right: "requires", wrong: ["is crying out for", "wants doing", "needs sorting"] },
+    { context: "a message to a teammate", sentence: "______ at the ground for half two.",
+      right: "See you", wrong: ["I shall await you", "Kindly attend", "Presenting myself"] },
+    { context: "a formal invitation", sentence: "You are ______ to attend the opening of the new hall.",
+      right: "invited", wrong: ["welcome to pop along", "free to turn up", "asked along"] }
+  ];
+
+  function wordChoiceRegister(i) {
+    const item = pick(REGISTER_ITEMS, i);
+    const q = mkE("Word Choice",
+      `Which words are most suitable for ${item.context}?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Nothing here is bad English — the question is which register fits ` +
+      `${item.context}. Ask whether you would say it to a stranger in writing. ` +
+      `"${item.right}" matches; the others are pitched at the wrong level of ` +
+      `formality for this reader.`;
+    return q;
+  }
+  wordChoiceRegister.poolSize = REGISTER_ITEMS.length;
+
+  /* Words of the same kind, ranked. The papers ask for the strongest or the
+     mildest, which needs the whole set held in order at once. */
+  const DEGREE_ITEMS = [
+    { ask: "strongest", set: ["annoyed", "cross", "furious", "irritated"], answer: "furious",
+      order: "irritated, annoyed, cross, furious" },
+    { ask: "mildest", set: ["terrified", "frightened", "uneasy", "petrified"], answer: "uneasy",
+      order: "uneasy, frightened, terrified, petrified" },
+    { ask: "strongest", set: ["damp", "wet", "soaked", "moist"], answer: "soaked",
+      order: "moist, damp, wet, soaked" },
+    { ask: "mildest", set: ["starving", "peckish", "ravenous", "hungry"], answer: "peckish",
+      order: "peckish, hungry, starving, ravenous" },
+    { ask: "strongest", set: ["warm", "hot", "scorching", "mild"], answer: "scorching",
+      order: "mild, warm, hot, scorching" },
+    { ask: "mildest", set: ["exhausted", "weary", "tired", "shattered"], answer: "tired",
+      order: "tired, weary, exhausted, shattered" },
+    { ask: "strongest", set: ["large", "big", "enormous", "sizeable"], answer: "enormous",
+      order: "big, sizeable, large, enormous" },
+    { ask: "mildest", set: ["disliked", "loathed", "hated", "detested"], answer: "disliked",
+      order: "disliked, hated, detested, loathed" },
+    { ask: "strongest", set: ["surprised", "startled", "astounded", "puzzled"], answer: "astounded",
+      order: "puzzled, surprised, startled, astounded" },
+    { ask: "mildest", set: ["delighted", "pleased", "overjoyed", "thrilled"], answer: "pleased",
+      order: "pleased, delighted, thrilled, overjoyed" },
+    { ask: "strongest", set: ["cool", "cold", "freezing", "chilly"], answer: "freezing",
+      order: "cool, chilly, cold, freezing" },
+    { ask: "mildest", set: ["ancient", "elderly", "old", "prehistoric"], answer: "elderly",
+      order: "elderly, old, ancient, prehistoric" }
+  ];
+
+  function wordChoiceDegree(i) {
+    const item = pick(DEGREE_ITEMS, i);
+    const wrong = item.set.filter(w => w !== item.answer);
+    const q = mkE("Word Choice",
+      `Which of these words is the ${item.ask}?`,
+      item.answer, wrong, 4, i);
+    if (q) q.explain =
+      `Put the whole set in order before choosing, rather than comparing them ` +
+      `two at a time: ${item.order} — weakest to strongest. The ${item.ask} of ` +
+      `them is "${item.answer}".`;
+    return q;
+  }
+  wordChoiceDegree.poolSize = DEGREE_ITEMS.length;
+
+  /* Some pairings are simply what English says. All four options mean much the
+     same; only one is the phrase a native speaker would use. */
+  const COLLOCATION_ITEMS = [
+    { sentence: "She ______ a decision only after hearing both sides.", right: "reached",
+      wrong: ["did", "gave", "put"] },
+    { sentence: "He ______ a mistake on the very first line.", right: "made",
+      wrong: ["did", "took", "gave"] },
+    { sentence: "They ______ great care of the borrowed instruments.", right: "took",
+      wrong: ["made", "did", "held"] },
+    { sentence: "The team ______ a narrow victory in the final minute.", right: "snatched",
+      wrong: ["caught", "grabbed", "fetched"] },
+    { sentence: "Please ______ attention to the second paragraph.", right: "pay",
+      wrong: ["give", "make", "put"] },
+    { sentence: "The witness ______ a statement to the police.", right: "gave",
+      wrong: ["made up", "took", "did"] },
+    { sentence: "She ______ her breath and dived.", right: "held",
+      wrong: ["kept", "took", "carried"] },
+    { sentence: "The scheme ______ into effect at the end of the month.", right: "comes",
+      wrong: ["goes", "arrives", "turns"] },
+    { sentence: "He ______ an interest in fossils at about the age of six.", right: "took",
+      wrong: ["made", "did", "held"] },
+    { sentence: "The story ______ light on what had really happened.", right: "shed",
+      wrong: ["threw off", "dropped", "poured"] },
+    { sentence: "They ______ a risk that nobody else was willing to.", right: "took",
+      wrong: ["made", "did", "gave"] },
+    { sentence: "The committee ______ a note of every objection.", right: "made",
+      wrong: ["took up", "did", "held"] }
+  ];
+
+  function wordChoiceCollocation(i) {
+    const item = pick(COLLOCATION_ITEMS, i);
+    const q = mkE("Word Choice",
+      `Which word completes this sentence in natural English?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Some words simply belong together in English, and no rule explains it — ` +
+      `you make a mistake but you take care, and you pay attention rather than ` +
+      `giving it. Read each option aloud in the sentence; "${item.right}" is the ` +
+      `one that sounds like English.`;
+    return q;
+  }
+  wordChoiceCollocation.poolSize = COLLOCATION_ITEMS.length;
+
+  /* ══════════ VOCABULARY, HARDER ══════════ */
+
+  /* A root learned once unlocks a family of words, which is why the papers set
+     unfamiliar words built from familiar parts. */
+  const ROOT_ITEMS = [
+    { root: "aqua", means: "water", words: "aquarium, aquatic, aquamarine",
+      wrong: ["air", "earth", "fire"] },
+    { root: "bio", means: "life", words: "biology, biography, antibiotic",
+      wrong: ["book", "body", "two"] },
+    { root: "chron", means: "time", words: "chronological, chronicle, synchronise",
+      wrong: ["colour", "writing", "distance"] },
+    { root: "geo", means: "earth", words: "geography, geology, geometry",
+      wrong: ["shape", "map", "study"] },
+    { root: "phon", means: "sound", words: "telephone, symphony, microphone",
+      wrong: ["light", "far", "small"] },
+    /* "inscription" and "manuscript" are from the same family but spell the
+       root "script", so they belong to a different question. */
+    { root: "scrib", means: "write", words: "describe, scribble, inscribe",
+      wrong: ["read", "speak", "hand"] },
+    { root: "port", means: "carry", words: "transport, portable, export",
+      wrong: ["door", "harbour", "heavy"] },
+    { root: "spect", means: "look", words: "spectator, inspect, spectacles",
+      wrong: ["show", "eye", "glass"] },
+    { root: "dict", means: "say", words: "dictate, contradict, verdict",
+      wrong: ["rule", "book", "word"] },
+    { root: "therm", means: "heat", words: "thermometer, thermal, thermostat",
+      wrong: ["measure", "cold", "metal"] },
+    { root: "aud", means: "hear", words: "audible, audience, auditorium",
+      wrong: ["speak", "room", "large"] },
+    { root: "mit", means: "send", words: "transmit, emit, submit",
+      wrong: ["allow", "middle", "small"] },
+    { root: "graph", means: "write or draw", words: "autograph, photograph, graphite",
+      wrong: ["light", "self", "picture frame"] },
+    { root: "terr", means: "land", words: "territory, terrain, subterranean",
+      wrong: ["fear", "three", "tower"] },
+    { root: "vis", means: "see", words: "visible, television, vision",
+      wrong: ["far", "screen", "clear"] },
+    { root: "cred", means: "believe", words: "incredible, credit, credentials",
+      wrong: ["money", "create", "careful"] }
+  ];
+
+  function vocRootMeaning(i) {
+    const item = pick(ROOT_ITEMS, i);
+    const q = mkE("Vocabulary",
+      `The words ${item.words} all contain the root "${item.root}".\n\n` +
+      `What does this root mean?`,
+      item.means, item.wrong, 4, i);
+    if (q) q.explain =
+      `Find the meaning the three words share rather than working from any one ` +
+      `of them. ${item.words} all carry the idea of "${item.means}", so ` +
+      `"${item.root}" means ${item.means}. A root you learn once will unlock ` +
+      `every other word built from it.`;
+    return q;
+  }
+  vocRootMeaning.poolSize = ROOT_ITEMS.length;
+
+  /* A suffix usually changes what a word DOES in a sentence, not what it means,
+     which is the part children miss. */
+  const SUFFIX_ITEMS = [
+    { base: "care", made: "careless", cls: "an adjective", note: "-less makes an adjective meaning “without”" },
+    { base: "happy", made: "happiness", cls: "a noun", note: "-ness turns a describing word into the thing itself" },
+    { base: "quick", made: "quickly", cls: "an adverb", note: "-ly usually turns an adjective into an adverb" },
+    { base: "beauty", made: "beautify", cls: "a verb", note: "-ify means “to make”, so it builds a verb" },
+    { base: "child", made: "childish", cls: "an adjective", note: "-ish makes an adjective, often a disapproving one" },
+    { base: "govern", made: "government", cls: "a noun", note: "-ment turns an action into the thing or system that results" },
+    { base: "hope", made: "hopeful", cls: "an adjective", note: "-ful makes an adjective meaning “full of”" },
+    { base: "act", made: "activate", cls: "a verb", note: "-ate builds a verb meaning to bring something about" },
+    { base: "friend", made: "friendship", cls: "a noun", note: "-ship names a state or relationship" },
+    { base: "read", made: "readable", cls: "an adjective", note: "-able makes an adjective meaning “can be”" },
+    { base: "music", made: "musician", cls: "a noun", note: "-ian names the person who does it" },
+    { base: "short", made: "shorten", cls: "a verb", note: "-en builds a verb meaning to make more so" }
+  ];
+
+  function vocSuffixClass(i) {
+    const item = pick(SUFFIX_ITEMS, i);
+    const classes = ["a noun", "a verb", "an adjective", "an adverb"];
+    const wrong = classes.filter(c => c !== item.cls);
+    const q = mkE("Vocabulary",
+      `The word "${item.base}" becomes "${item.made}".\n\n` +
+      `What kind of word is "${item.made}"?`,
+      item.cls, wrong, 4, i);
+    if (q) q.explain =
+      `A suffix usually changes what a word DOES in a sentence rather than what ` +
+      `it means: ${item.note}. Try the new word in a sentence and see what job ` +
+      `it does — "${item.made}" works as ${item.cls}.`;
+    return q;
+  }
+  vocSuffixClass.poolSize = SUFFIX_ITEMS.length;
+
+  /* One word, two sentences, two senses - and the question asks which sentence
+     uses it the same way as the first. The papers ask this about words from the
+     passage, and the skill transfers exactly. */
+  const MULTI_MEANING_ITEMS = [
+    { word: "bank", lead: "They sat on the bank and watched the boats go by.",
+      right: "The river had worn the bank away on the outside of the bend.",
+      wrong: ["She paid the cheque into the bank on Friday.",
+              "He could bank on his brother to be late.",
+              "The plane began to bank steeply to the left."] },
+    { word: "light", lead: "She carried a light bag and nothing else.",
+      right: "The coat was light enough to fold into a pocket.",
+      wrong: ["The light in the hall had been left on.",
+              "He struck a match to light the fire.",
+              "Light travels faster than sound."] },
+    { word: "record", lead: "Please record the temperature every hour.",
+      right: "The nurse had to record his answers on a chart.",
+      wrong: ["She broke the school record for the long jump.",
+              "He bought an old record in the market.",
+              "The record shows that the letter arrived late."] },
+    { word: "spring", lead: "A spring of clear water rose behind the cottage.",
+      right: "They filled their bottles at the spring on the hillside.",
+      wrong: ["The spring in the chair had snapped.",
+              "Daffodils appear early in spring.",
+              "He would spring out from behind the door."] },
+    { word: "fair", lead: "The umpire's decision seemed perfectly fair.",
+      right: "It is only fair that everyone gets the same time.",
+      wrong: ["We went to the fair on the last day of term.",
+              "She has fair hair and freckles.",
+              "The weather should be fair by Thursday."] },
+    { word: "draw", lead: "The match ended in a draw.",
+      right: "A draw would still be enough to win the league.",
+      wrong: ["He likes to draw horses.",
+              "Draw the curtains before you switch on the lamp.",
+              "The story failed to draw a crowd."] },
+    { word: "board", lead: "The board met on the first Monday of the month.",
+      right: "The board voted to close the factory.",
+      wrong: ["Nail a board across the broken window.",
+              "Passengers may board at the rear door.",
+              "She wrote the date on the board."] },
+    { word: "state", lead: "Please state your name clearly.",
+      right: "The witness was asked to state what he had seen.",
+      wrong: ["The house was in a terrible state.",
+              "Texas is the second largest state.",
+              "Water can exist in a solid state."] },
+    { word: "grave", lead: "He wore a grave expression all evening.",
+      right: "The situation was more grave than anyone had admitted.",
+      wrong: ["Flowers had been left on the grave.",
+              "They dug the grave before the frost came.",
+              "The grave was marked by a plain stone."] },
+    { word: "current", lead: "The current carried the boat downstream.",
+      right: "A strong current runs along that stretch of coast.",
+      wrong: ["The current price is higher than last year's.",
+              "Keep up with current affairs.",
+              "An electric current passes through the wire."] },
+    { word: "match", lead: "Her gloves match her scarf exactly.",
+      right: "Those two shades of blue do not quite match.",
+      wrong: ["The match kicks off at three.",
+              "He struck a match against the wall.",
+              "She met her match at last."] },
+    { word: "check", lead: "Check your answers before you hand the paper in.",
+      right: "He stopped to check the figures a second time.",
+      wrong: ["The tablecloth had a red check pattern.",
+              "A sudden noise brought him up short in check.",
+              "She kept her temper in check all afternoon."] }
+  ];
+
+  function vocMultipleMeaning(i) {
+    const item = pick(MULTI_MEANING_ITEMS, i);
+    const q = mkE("Vocabulary",
+      `Read this sentence.\n\n"${item.lead}"\n\n` +
+      `In which sentence below does "${item.word}" mean the same as it does above?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Work out the meaning in the first sentence and put it in your own words ` +
+      `before reading on — "${item.word}" has several unrelated senses, and the ` +
+      `wrong options each use a real one. Only "${item.right}" uses it in the ` +
+      `same sense as the sentence at the top.`;
+    return q;
+  }
+  vocMultipleMeaning.poolSize = MULTI_MEANING_ITEMS.length;
+
   const METHODS = {
     spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
     spellChooseCorrect: "Cover the options and write the word yourself first, then look for the one that matches.",
@@ -1622,17 +2319,28 @@
     ],
     Vocabulary: [
       [vocSynonym], [vocAntonym], [vocDefinition], [vocIdiom],
-      [vocCollective], [vocPrefix], [vocWordGroup]
+      [vocCollective], [vocPrefix], [vocWordGroup],
+      [vocRootMeaning, 3, 4],          // a root shared by three words
+      [vocSuffixClass, 3, 4],          // what the suffix does to the word class
+      [vocMultipleMeaning, 4, 4]       // the same word in two senses
     ],
     "Word Choice": [
       [wordChoice],
       [wordChoicePrecision, 3, 4],     // the best word, not merely a correct one
-      [wordChoiceConnective]
+      [wordChoiceConnective],
+      [wordChoiceConnotation, 4, 4],   // same meaning, different feeling
+      [wordChoiceRegister, 3, 4],      // formal or informal, for a stated reader
+      [wordChoiceDegree, 3, 4],        // rank the set, then pick an end
+      [wordChoiceCollocation, 3, 4]    // the pairing English actually uses
     ],
     "Literary Devices": [
       [litIdentify], [litFindExample], [litDefinition],
       [litWordEffect, 3, 4],           // explain the effect of a word choice
-      [litTwoDevices, 4, 4]            // two devices at once, as the papers ask
+      [litTwoDevices, 4, 4],           // two devices at once, as the papers ask
+      [litHarderDevice, 3, 4],         // pathetic fallacy, sibilance, litotes
+      [litNotAnExample, 3, 4],         // three of four use it; find the fourth
+      [litDeviceEffect, 4, 4],         // what the device achieves, not its name
+      [litWhichLine, 3, 4]             // which line of the verse carries it
     ]
   };
 
