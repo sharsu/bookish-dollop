@@ -367,55 +367,63 @@
       </div>
 
       <div id="parent-progress-content" hidden>
-        <div class="parent-summary-grid">
-          <div class="summary-card">
-            <span class="summary-value" id="progress-tests-count">0</span>
-            <span class="summary-label">Tests Saved</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-value" id="progress-average-score">0%</span>
-            <span class="summary-label">Average Score</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-value" id="progress-best-score">0%</span>
-            <span class="summary-label">Best Score</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-value" id="progress-latest-score">0%</span>
-            <span class="summary-label">Latest Score</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-value" id="progress-average-time">0:00</span>
-            <span class="summary-label">Average Time</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-value" id="progress-trend">—</span>
-            <span class="summary-label">Recent Trend</span>
-          </div>
-        </div>
+        <!-- One tab per subject: an average across maths, NVRT and English is
+             not a figure that means anything. Filled in by renderProgressTabs. -->
+        <div id="parent-progress-tabs" class="progress-tabs" role="tablist"></div>
+        <p id="parent-progress-subject-empty" class="parent-subject-empty" hidden></p>
 
-        <div class="topic-breakdown">
-          <h2>Parent Overview</h2>
-          <div class="parent-overview-grid">
-            <div class="overview-pill">
-              <strong>Strongest topic:</strong>
-              <span id="progress-strongest-topic">—</span>
+        <div id="parent-progress-figures">
+          <h2 id="progress-subject-heading" class="progress-subject-heading"></h2>
+          <div class="parent-summary-grid">
+            <div class="summary-card">
+              <span class="summary-value" id="progress-tests-count">0</span>
+              <span class="summary-label">Tests Saved</span>
             </div>
-            <div class="overview-pill">
-              <strong>Needs practice:</strong>
-              <span id="progress-focus-topic">—</span>
+            <div class="summary-card">
+              <span class="summary-value" id="progress-average-score">0%</span>
+              <span class="summary-label">Average Score</span>
+            </div>
+            <div class="summary-card">
+              <span class="summary-value" id="progress-best-score">0%</span>
+              <span class="summary-label">Best Score</span>
+            </div>
+            <div class="summary-card">
+              <span class="summary-value" id="progress-latest-score">0%</span>
+              <span class="summary-label">Latest Score</span>
+            </div>
+            <div class="summary-card">
+              <span class="summary-value" id="progress-average-time">0:00</span>
+              <span class="summary-label">Average Time</span>
+            </div>
+            <div class="summary-card">
+              <span class="summary-value" id="progress-trend">—</span>
+              <span class="summary-label">Recent Trend</span>
             </div>
           </div>
-        </div>
 
-        <div class="topic-breakdown">
-          <h2>Topic Performance</h2>
-          <div id="parent-topic-breakdown"></div>
-        </div>
+          <div class="topic-breakdown">
+            <h2>Parent Overview</h2>
+            <div class="parent-overview-grid">
+              <div class="overview-pill">
+                <strong>Strongest topic:</strong>
+                <span id="progress-strongest-topic">—</span>
+              </div>
+              <div class="overview-pill">
+                <strong>Needs practice:</strong>
+                <span id="progress-focus-topic">—</span>
+              </div>
+            </div>
+          </div>
 
-        <div class="review-section">
-          <h2>Recent Tests</h2>
-          <div id="parent-history-list" class="history-list"></div>
+          <div class="topic-breakdown">
+            <h2>Topic Performance</h2>
+            <div id="parent-topic-breakdown"></div>
+          </div>
+
+          <div class="review-section">
+            <h2>Recent Tests</h2>
+            <div id="parent-history-list" class="history-list"></div>
+          </div>
         </div>
       </div>
 
