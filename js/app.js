@@ -311,6 +311,8 @@ const TEST_TYPE_CONFIG = Object.freeze({
   maths: {
     key: "maths",
     label: "Maths Test",
+    /* For the History tabs, where "Test" on every tab is noise. */
+    shortLabel: "Maths",
     setupTitle: "Ready for a Maths Test?",
     setupSubtitle: "Good luck! Do your best! 🌟",
     startLabel: "🚀 Start Maths Test",
@@ -321,6 +323,8 @@ const TEST_TYPE_CONFIG = Object.freeze({
   nvrt: {
     key: "nvrt",
     label: "NVRT Test",
+    /* For the History tabs, where "Test" on every tab is noise. */
+    shortLabel: "NVRT",
     setupTitle: "Ready for an NVRT Test?",
     setupSubtitle: "Look for patterns, read carefully and trust your thinking. 🧩",
     startLabel: "🧩 Start NVRT Test",
@@ -331,6 +335,8 @@ const TEST_TYPE_CONFIG = Object.freeze({
   english: {
     key: "english",
     label: "English Test",
+    /* For the History tabs, where "Test" on every tab is noise. */
+    shortLabel: "English",
     setupTitle: "Ready for an English Test?",
     setupSubtitle: "Read every question twice — the clue is always in the words. 📖",
     startLabel: "📖 Start English Test",
@@ -1690,21 +1696,49 @@ class ExamApp {
   renderParentDashboard() {
     const emptyState = document.getElementById("parent-progress-empty");
     const content = document.getElementById("parent-progress-content");
-    const summary = buildProgressSummary(loadStoredResults());
+    const subjectEmpty = document.getElementById("parent-progress-subject-empty");
+    const all = loadStoredResults();
 
     const backBtn = document.getElementById("progress-back-btn");
     if (backBtn) {
       backBtn.textContent = this.parentDashboardReturnScreen === "results" ? "← Back to Results" : "← Back";
     }
 
-    if (!summary.testsTaken) {
+    /* Nothing saved at all is a different message from nothing saved for one
+       subject: the first has no tabs worth showing, the second needs them so
+       the reader can move to a subject that does have papers. */
+    if (!all.length) {
       emptyState?.removeAttribute("hidden");
       content?.setAttribute("hidden", "");
       return;
     }
-
     emptyState?.setAttribute("hidden", "");
     content?.removeAttribute("hidden");
+
+    const countFor = key => all.filter(r => normalizeTestType(r.testType) === key).length;
+    /* Open on a subject that has papers - but only when no tab has been chosen.
+       Re-deciding on every render overwrote a deliberate click on an empty tab,
+       so "English (0)" silently showed Maths instead of saying English was
+       empty. A chosen tab is honoured whether it has papers or not. */
+    if (!TEST_TYPE_KEYS.includes(this.progressSubject)) {
+      this.progressSubject = TEST_TYPE_KEYS.find(countFor) || "maths";
+    }
+    this.renderProgressTabs(countFor);
+
+    const results = all.filter(r => normalizeTestType(r.testType) === this.progressSubject);
+    const summary = buildProgressSummary(results);
+    const figures = document.getElementById("parent-progress-figures");
+    if (!summary.testsTaken) {
+      if (subjectEmpty) {
+        subjectEmpty.textContent =
+          `No ${getTestTypeConfig(this.progressSubject).shortLabel} papers saved yet.`;
+        subjectEmpty.removeAttribute("hidden");
+      }
+      figures?.setAttribute("hidden", "");
+      return;
+    }
+    subjectEmpty?.setAttribute("hidden", "");
+    figures?.removeAttribute("hidden");
 
     document.getElementById("progress-tests-count").textContent = summary.testsTaken;
     document.getElementById("progress-average-score").textContent = `${summary.averageScore}%`;
@@ -1733,6 +1767,13 @@ class ExamApp {
       `;
     });
 
+    const heading = document.getElementById("progress-subject-heading");
+    if (heading) {
+      heading.textContent =
+        `${getTestTypeConfig(this.progressSubject).shortLabel} — ${summary.testsTaken} ` +
+        `paper${summary.testsTaken === 1 ? "" : "s"}`;
+    }
+
     const historyList = document.getElementById("parent-history-list");
     historyList.innerHTML = "";
     summary.recentResults.forEach(result => {
@@ -1747,6 +1788,30 @@ class ExamApp {
           <div class="history-meta">${result.skipped} skipped</div>
         </div>
       `;
+    });
+  }
+
+  /* Built from TEST_TYPE_KEYS so a new subject needs no change here or in the
+     markup. The count is on the tab because "English (0)" tells the reader why
+     that tab is empty before they click it. */
+  renderProgressTabs(countFor) {
+    const bar = document.getElementById("parent-progress-tabs");
+    if (!bar) return;
+    bar.innerHTML = "";
+    TEST_TYPE_KEYS.forEach(key => {
+      const config = getTestTypeConfig(key);
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "progress-tab" + (key === this.progressSubject ? " is-active" : "");
+      tab.textContent = `${config.shortLabel} (${countFor(key)})`;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", key === this.progressSubject ? "true" : "false");
+      tab.addEventListener("click", () => {
+        if (this.progressSubject === key) return;
+        this.progressSubject = key;
+        this.renderParentDashboard();
+      });
+      bar.appendChild(tab);
     });
   }
 

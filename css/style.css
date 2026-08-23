@@ -820,3 +820,48 @@ input:focus { outline: none; border-color: var(--primary); background: #fff; }
   .revise-skill-grid { grid-template-columns: 1fr; }
   .revise-practice-head { flex-direction: column; }
 }
+
+/* ── History: one tab per subject ─────────────────────────────────────────
+   Pooling the three subjects into one average was meaningless, so the screen
+   shows one at a time and the tabs carry their paper counts. */
+.progress-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+}
+
+.progress-tab {
+  font: inherit;
+  font-weight: 700;
+  font-size: .92rem;
+  padding: 9px 18px;
+  border: 2px solid #c7d2fe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4338ca;
+  cursor: pointer;
+}
+
+.progress-tab:hover { background: #eef2ff; }
+
+.progress-tab.is-active {
+  background: #4338ca;
+  border-color: #4338ca;
+  color: #ffffff;
+}
+
+.progress-subject-heading {
+  font-size: 1.05rem;
+  color: #4338ca;
+  margin: 0 0 12px;
+}
+
+.parent-subject-empty {
+  margin: 0;
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #475569;
+}
