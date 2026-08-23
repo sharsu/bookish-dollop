@@ -3599,6 +3599,161 @@
   }
   vocContextClue.poolSize = CONTEXT_CLUE_ITEMS.length;
 
+
+  /* The inverse of graPartOfSpeech: the class is given and the word has to be
+     found, so every word in the sentence has to be weighed rather than one.
+     `wrong` are the three words most likely to be picked instead - and each is a
+     real word from the same sentence, so none can be ruled out by looking odd. */
+  const FIND_CLASS_ITEMS = [
+    { sentence: "Philip laughingly picked up a soft, gleaming jellyfish.",
+      cls: "adverb", right: "laughingly", wrong: ["picked", "soft", "gleaming"] },
+    { sentence: "The old gate swung open surprisingly easily that morning.",
+      cls: "adjective", right: "old", wrong: ["swung", "surprisingly", "easily"] },
+    { sentence: "She waited quietly beneath the broken awning.",
+      cls: "preposition", right: "beneath", wrong: ["waited", "quietly", "broken"] },
+    { sentence: "Although the tide had turned, the boats stayed out.",
+      cls: "conjunction", right: "Although", wrong: ["tide", "turned", "stayed"] },
+    { sentence: "Nobody had told him about the change of plan.",
+      cls: "pronoun", right: "Nobody", wrong: ["told", "change", "plan"] },
+    { sentence: "The kettle whistled fiercely on the iron stove.",
+      cls: "adverb", right: "fiercely", wrong: ["whistled", "iron", "stove"] },
+    { sentence: "He carried the heavy crate towards the waiting lorry.",
+      cls: "preposition", right: "towards", wrong: ["carried", "heavy", "waiting"] },
+    { sentence: "Her answer arrived remarkably quickly, considering the distance.",
+      cls: "verb", right: "arrived", wrong: ["remarkably", "quickly", "distance"] },
+    { sentence: "The narrow lane climbed steeply between two stone walls.",
+      cls: "adjective", right: "narrow", wrong: ["climbed", "steeply", "between"] },
+    { sentence: "They will meet us outside the library at noon.",
+      cls: "pronoun", right: "us", wrong: ["meet", "outside", "noon"] },
+    { sentence: "The lantern flickered twice and then went out.",
+      cls: "adverb", right: "twice", wrong: ["lantern", "flickered", "went"] },
+    { sentence: "Rain fell steadily throughout the long afternoon.",
+      cls: "preposition", right: "throughout", wrong: ["fell", "steadily", "long"] },
+    { sentence: "The dog barked because a stranger approached the gate.",
+      cls: "conjunction", right: "because", wrong: ["barked", "stranger", "approached"] },
+    { sentence: "A sudden gust tore the poster from the noticeboard.",
+      cls: "verb", right: "tore", wrong: ["sudden", "gust", "poster"] },
+    { sentence: "She spoke to him rather sharply about the delay.",
+      cls: "adverb", right: "sharply", wrong: ["spoke", "rather", "delay"] },
+    { sentence: "The children waited patiently while the engine cooled.",
+      cls: "conjunction", right: "while", wrong: ["waited", "patiently", "cooled"] }
+  ];
+
+  function graFindWordClass(i) {
+    const item = pick(FIND_CLASS_ITEMS, i);
+    /* Every option has to be a word from the sentence, or the odd one out shows
+       without any grammar being done. */
+    const words = item.sentence.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/);
+    if (![item.right, ...item.wrong].every(w => words.includes(w.toLowerCase()))) return null;
+    const q = mkE("Grammar",
+      `Which word in this sentence is the ${item.cls}?\n\n"${item.sentence}"`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `This is the other way round from the usual question: you are given the ` +
+      `kind of word and have to find it, so go along the sentence asking what ` +
+      `each word DOES. An adverb tells you how, when or how often something is ` +
+      `done; an adjective describes a noun; a preposition tells you where or ` +
+      `when in relation to something else; a conjunction joins two parts of the ` +
+      `sentence. Here the ${item.cls} is "${item.right}".`;
+    return q;
+  }
+  graFindWordClass.poolSize = FIND_CLASS_ITEMS.length;
+
+  /* "How is the passage narrated?" The papers ask this of every extract and
+     nothing in the bank asked it at all. The four voices are told apart by the
+     pronouns and by how much the teller knows, so each extract is written to
+     settle both. */
+  const NARRATIVE_VOICE_ITEMS = [
+    { text: "I had not meant to go back to the house at all. But the gate was open, and I found myself walking up the path before I had decided anything.",
+      right: "First person — the narrator is part of the story and calls themselves “I”",
+      wrong: ["Third person, following one character",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "the teller is inside the story and refers to themselves as “I”" },
+    { text: "Marcus climbed the last few steps and stopped. He could not tell whether the light in the window meant somebody was waiting, or whether it had simply been left on.",
+      right: "Third person, following one character",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "we are told what Marcus thinks and nobody else, and he is called “he” rather than “I”" },
+    { text: "Nell believed the letter had been lost. Her brother, three streets away, knew exactly where it was and had no intention of saying so.",
+      right: "Third person, knowing what everybody thinks",
+      wrong: ["Third person, following one character",
+              "First person, told by somebody in the story",
+              "Second person, addressing the reader as “you”"],
+      why: "we are told what two different people think, which no single character could know" },
+    { text: "You reach the top of the lane and turn left, past the postbox, and you do not look back at the house even once.",
+      right: "Second person, addressing the reader as “you”",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, following one character",
+              "Third person, knowing what everybody thinks"],
+      why: "the reader is made the one doing it, and is called “you”" },
+    { text: "We waited on the platform for an hour before anybody told us the train was cancelled. I remember my mother saying nothing at all.",
+      right: "First person — the narrator is part of the story and calls themselves “I”",
+      wrong: ["Third person, following one character",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "“we” and “I” put the teller inside the story" },
+    { text: "The gardener straightened up and looked at the sky. Rain again, he thought, and he wondered how much of the seed would be washed out by morning.",
+      right: "Third person, following one character",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "the gardener's thoughts are given and no one else's, and he is “he”" },
+    { text: "The captain was certain the fog would lift. In the galley below, the cook was equally certain it would not, and was already putting the lamps out.",
+      right: "Third person, knowing what everybody thinks",
+      wrong: ["Third person, following one character",
+              "First person, told by somebody in the story",
+              "Second person, addressing the reader as “you”"],
+      why: "two people's certainties are reported, in two different places at once" },
+    { text: "You will need the small key, not the brass one. You put it in slowly, because the lock has always stuck, and you count to three before turning it.",
+      right: "Second person, addressing the reader as “you”",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, following one character",
+              "Third person, knowing what everybody thinks"],
+      why: "every sentence tells the reader what they themselves are doing" },
+    { text: "Nobody in our family ever mentioned the summer of the flood. I only learnt what had happened years afterwards, and not from my father.",
+      right: "First person — the narrator is part of the story and calls themselves “I”",
+      wrong: ["Third person, following one character",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "“our family” and “I” belong to somebody inside the story" },
+    { text: "Aisha read the notice twice. She could not work out whether it applied to her, and there was nobody in the corridor to ask.",
+      right: "Third person, following one character",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, knowing what everybody thinks",
+              "Second person, addressing the reader as “you”"],
+      why: "we stay with Aisha and are told only what she works out" },
+    { text: "In the front room the clock was slow, and nobody had noticed. Upstairs, the boy who had moved the hands was pretending to be asleep.",
+      right: "Third person, knowing what everybody thinks",
+      wrong: ["Third person, following one character",
+              "First person, told by somebody in the story",
+              "Second person, addressing the reader as “you”"],
+      why: "the teller knows what has happened in two rooms and what the boy is pretending" },
+    { text: "You do not knock. You wait on the step until the light goes on in the hall, and then you wait a little longer.",
+      right: "Second person, addressing the reader as “you”",
+      wrong: ["First person, told by somebody in the story",
+              "Third person, following one character",
+              "Third person, knowing what everybody thinks"],
+      why: "the reader is instructed throughout and named as “you”" }
+  ];
+
+  function litNarrativeVoice(i) {
+    const item = pick(NARRATIVE_VOICE_ITEMS, i);
+    const q = mkE("Literary Devices",
+      `Read this extract.\n\n${item.text}\n\nHow is it narrated?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Two things settle this: the pronouns, and how much the teller knows. ` +
+      `“I” or “we” means first person; “you” means ` +
+      `second. If it is “he” or “she”, ask whether you are ` +
+      `told what more than ONE person is thinking — one person means the teller ` +
+      `is following that character, several means the teller knows everything. ` +
+      `Here ${item.why}.`;
+    return q;
+  }
+  litNarrativeVoice.poolSize = NARRATIVE_VOICE_ITEMS.length;
+
   const METHODS = {
     spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
     spellChooseCorrect: "Cover the options and write the word yourself first, then look for the one that matches.",
@@ -3701,7 +3856,8 @@
       [graCountWordClass, 3, 4],       // how many adjectives in the sentence
       [graClauseMeaning, 4, 4],        // unpick an inverted clause
       [graPronounCase, 4, 4],          // take the other person out of the sentence
-      [graDistantAgreement, 4, 4]      // the verb agrees with the subject, not the nearest noun
+      [graDistantAgreement, 4, 4],     // the verb agrees with the subject, not the nearest noun
+      [graFindWordClass, 4, 4]         // the class is given; find the word
     ],
     Vocabulary: [
       [vocSynonym], [vocAntonym], [vocDefinition], [vocIdiom],
@@ -3735,7 +3891,8 @@
       [litDeviceEffect, 4, 4],         // what the device achieves, not its name
       [litWhichLine, 3, 4],            // which line of the verse carries it
       [litVerseForm, 4, 4],            // couplet, refrain, enjambment
-      [litDeviceInProse, 4, 4]         // a device inside a paragraph
+      [litDeviceInProse, 4, 4],        // a device inside a paragraph
+      [litNarrativeVoice, 4, 4]        // pronouns, and how much the teller knows
     ]
   };
 
