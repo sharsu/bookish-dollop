@@ -683,6 +683,13 @@ function chooseQuestionGroups(pool, count, shuffleArray) {
   const isLong = group => linesOf.get(group) > lineLimit;
 
   const shuffled = shuffleArray([...categoryOf.keys()]);
+
+  /* A long text is a paper on its own whatever its category, so give whichever
+     text the shuffle happened to put first that chance before the lead is
+     handed to a classic. Without this, `rest` below filters every long
+     non-classic text out and those texts are never set at all. */
+  if (shuffled.length && isLong(shuffled[0])) return new Set([shuffled[0]]);
+
   const classics = shuffled.filter(group => categoryOf.get(group) === "Classic");
   const modern = shuffled.filter(group => categoryOf.get(group) !== "Classic");
 

@@ -112,7 +112,7 @@
      are consistent enough across the papers for this to be reliable. */
   function comprehensionTip(stem) {
     const q = stem.toLowerCase();
-    if (/closest in meaning|synonym|what does .*mean|which word is closest/.test(q))
+    if (/closest in meaning|synonym|what does .*mean|which word is closest|\bmeans that\b|tells us that|tells us about/.test(q))
       return "Cover the options and read the sentence the word appears in. Work out the meaning from the surrounding lines first, then find the option that matches.";
     if (/which technique|example of|this is an example/.test(q))
       return "Check the wording, not the feeling. 'Like' or 'as' means a simile; saying one thing IS another is a metaphor; giving something human behaviour is personification.";
@@ -122,12 +122,22 @@
       return "The answer is implied, not stated. Find the line it rests on, then choose the option that line genuinely supports — not the one that merely sounds likely.";
     if (/part of speech|what type of word|what type of words/.test(q))
       return "Ask what the word is doing in that sentence. Naming is a noun, doing is a verb, describing a noun is an adjective, describing a verb is an adverb.";
-    if (/describes the tone|describes the mood|the writer's attitude|writer's tone/.test(q))
+    if (/\[aside\]|stage direction|which character|who speaks|marked \u201c/.test(q))
+      return "In a play nobody narrates, so everything you need is in what the characters say. The name in capitals above a speech tells you whose words follow, and anything in square brackets is an instruction to the actor, not something said aloud.";
+    if (/describes[^.?]*\b(tone|mood|atmosphere)\b|the writer's attitude|writer's tone/.test(q))
       return "Tone is the writer's attitude to the subject. Look at the adjectives and verbs they chose, and rule out options that are too strong for the passage.";
     if (/how is the passage organised|structure of|main purpose|writer's purpose|aim of the/.test(q))
       return "Look at what each paragraph does rather than what it says — introduce, explain, give evidence, then challenge or conclude.";
     if (/which two|which of the following statements is true|which sentence from the passage/.test(q))
       return "Test each statement against the passage separately and find the exact line that proves it. Reject anything the passage only implies loosely.";
+    if (/what (is|are) .*(describing|proposing|claiming|warning|admitting)|what had made|what do these words|what is .* warning/.test(q))
+      return "The quoted words are the whole answer. First say plainly what they describe, then ask what the speaker is doing by choosing to say it that way \u2014 the options are there to separate those two things.";
+    if (/what is (strange|odd|surprising|unusual)|what is the contradiction/.test(q))
+      return "Something in the wording works against itself. Say what the words claim, then say what they actually do \u2014 the gap between the two is the answer.";
+    if (/how does .*(build on|compare|differ)|compared with|difference between .* and/.test(q))
+      return "Two things are being set against each other, so hold both in mind. Find what they share first, then the one place they part company.";
+    if (/^(who|where|when|how many|what has|what had|what does .*decide)/.test(q))
+      return "This one is stated outright in the passage rather than implied. Scan for the name or the thing the question mentions and read the line it sits in \u2014 do not reason it out from memory.";
     return "Go back to the passage and find the line the question points at. Read the sentence before and after it too — the answer usually sits just outside the quoted words.";
   }
 
@@ -876,7 +886,17 @@
     { sentence: "Although it rained, the fete continued.", word: "Although", pos: "Conjunction", level: 3 },
     { sentence: "He hid the letter beneath a loose floorboard.", word: "beneath", pos: "Preposition", level: 3 },
     { sentence: "She was too frightened to move.", word: "too", pos: "Adverb", level: 4 },
-    { sentence: "Nobody knew the answer.", word: "Nobody", pos: "Pronoun", level: 3 }
+    { sentence: "Nobody knew the answer.", word: "Nobody", pos: "Pronoun", level: 3 },
+    /* The papers ask about words that change class with the sentence they are
+       in, which is the part of the skill a fixed list of easy examples misses. */
+    { sentence: "The dog will snake through the gap in the hedge.", word: "snake", pos: "Verb", level: 4 },
+    { sentence: "He will present the prizes at noon.", word: "present", pos: "Verb", level: 4 },
+    { sentence: "Her worst fears were confirmed that evening.", word: "fears", pos: "Noun", level: 4 },
+    { sentence: "They water the seedlings every evening.", word: "water", pos: "Verb", level: 4 },
+    { sentence: "She had a light lunch and went back out.", word: "light", pos: "Adjective", level: 4 },
+    { sentence: "We must weather the storm together.", word: "weather", pos: "Verb", level: 4 },
+    { sentence: "He walked round the corner without looking back.", word: "round", pos: "Preposition", level: 4 },
+    { sentence: "The road was rough, but the path was rougher still.", word: "still", pos: "Adverb", level: 4 }
   ];
 
   const POS_NAMES = ["Noun", "Verb", "Adjective", "Adverb", "Pronoun", "Preposition", "Conjunction"];
@@ -888,6 +908,7 @@
       `What part of speech is the word "${item.word}" in this sentence?\n\n"${item.sentence}"`,
       item.pos, [pick(wrong, i), pick(wrong, i + 2), pick(wrong, i + 4)], item.level, i);
   }
+  graPartOfSpeech.poolSize = POS_ITEMS.length;
 
   const SENTENCE_TYPES = [
     ["Close the door behind you.", "Command"],
@@ -1303,6 +1324,204 @@
      wrong. Keyed by generator name. Spelling and homophone templates set their
      own q.explain from the word itself, which is more useful than a general
      rule, and that takes precedence. */
+
+  /* ── Counting a word class in a sentence ──────────────────────────────
+     The papers ask "how many adjectives are there in the sentence starting
+     ...". `words` is the list the count is of, so the hint can name them and
+     the count is checked against the list rather than asserted. Determiners
+     (a, the, this, my) are not adjectives, which is the national curriculum
+     line and the line the papers mark to; the sentences avoid anything where
+     that decision would change the answer. */
+  const COUNT_ITEMS = [
+    { sentence: "A cold wind rattled the loose shutters of the empty cottage.",
+      cls: "adjectives", words: ["cold", "loose", "empty"], level: 3 },
+    { sentence: "The old man carried a heavy bucket up the steep hill.",
+      cls: "adjectives", words: ["old", "heavy", "steep"], level: 3 },
+    { sentence: "Bright lanterns swung above the narrow street, and the warm air smelled of dust.",
+      cls: "adjectives", words: ["Bright", "narrow", "warm"], level: 4 },
+    { sentence: "She opened the gate, crossed the yard and knocked twice.",
+      cls: "verbs", words: ["opened", "crossed", "knocked"], level: 3 },
+    { sentence: "He read until the bell rang, then stood up and left.",
+      cls: "verbs", words: ["read", "rang", "stood", "left"], level: 4 },
+    { sentence: "The kettle boiled, the toast burned, and nobody noticed.",
+      cls: "verbs", words: ["boiled", "burned", "noticed"], level: 3 },
+    { sentence: "She told him that they would meet us at the station.",
+      cls: "pronouns", words: ["She", "him", "they", "us"], level: 4 },
+    { sentence: "I gave it to her because she asked me twice.",
+      cls: "pronouns", words: ["I", "it", "her", "she", "me"], level: 4 },
+    { sentence: "He spoke quietly, then suddenly stopped altogether.",
+      cls: "adverbs", words: ["quietly", "suddenly", "altogether"], level: 4 },
+    { sentence: "The farmer loaded hay onto the cart while the dog watched.",
+      cls: "nouns", words: ["farmer", "hay", "cart", "dog"], level: 3 },
+    { sentence: "Rain fell on the roof, the path and the garden all afternoon.",
+      cls: "nouns", words: ["Rain", "roof", "path", "garden", "afternoon"], level: 4 },
+    { sentence: "She waited beside the door until after the storm.",
+      cls: "prepositions", words: ["beside", "until", "after"], level: 4 }
+  ];
+
+  function graCountWordClass(i) {
+    const item = pick(COUNT_ITEMS, i);
+    const n = item.words.length;
+    /* Offer the neighbouring counts: the mistakes worth catching are counting
+       one too many or one too few, not a wild guess. */
+    const wrong = firstDistinct(`${n}`, [`${n - 1}`, `${n + 1}`, `${n + 2}`, `${n - 2}`]);
+    if (!wrong) return null;
+    const q = mkE("Grammar",
+      `How many ${item.cls} are there in this sentence?\n\n"${item.sentence}"`,
+      `${n}`, wrong, item.level, i);
+    if (q) q.explain = `Go through the sentence one word at a time. The ${item.cls} are: ` +
+      `${item.words.join(", ")} — that is ${n}. Remember that a, the, this and my are ` +
+      `determiners, not adjectives.`;
+    return q;
+  }
+  graCountWordClass.poolSize = COUNT_ITEMS.length;
+
+  /* ── The meaning of an inverted or archaic clause ─────────────────────
+     "What is the meaning of this clause?" in the papers. These constructions
+     ("Had I known", "No sooner had") carry their meaning in their word order
+     rather than in any one word, which is what makes them hard. */
+  const CLAUSE_MEANING_ITEMS = [
+    { sentence: "Had I known the road was flooded, I should have taken the train.",
+      clause: "Had I known the road was flooded",
+      meaning: "If I had known the road was flooded",
+      wrong: ["When I found out the road was flooded",
+              "I did not know the road was flooded",
+              "I asked whether the road was flooded"] },
+    { sentence: "Little did she suspect what was waiting in the hall.",
+      clause: "Little did she suspect",
+      meaning: "She had no idea",
+      wrong: ["She suspected a small thing", "She slightly suspected something",
+              "She was suspected by somebody"] },
+    { sentence: "Much as I admire his courage, I cannot agree with him.",
+      clause: "Much as I admire his courage",
+      meaning: "Although I admire his courage very much",
+      wrong: ["Because I admire his courage so much",
+              "As soon as I began to admire his courage",
+              "I admire his courage more than he does"] },
+    { sentence: "Were it not for the fog, we should see the whole valley.",
+      clause: "Were it not for the fog",
+      meaning: "If the fog were not there",
+      wrong: ["The fog was not there", "Whenever the fog clears",
+              "Because of the fog"] },
+    { sentence: "No sooner had the bell rung than the corridor filled with children.",
+      clause: "No sooner had the bell rung",
+      meaning: "Immediately after the bell rang",
+      wrong: ["Before the bell rang", "The bell had not rung yet",
+              "Long after the bell rang"] },
+    { sentence: "Come what may, the ship sails at dawn.",
+      clause: "Come what may",
+      meaning: "Whatever happens",
+      wrong: ["When May arrives", "If anybody comes", "As the weather allows"] },
+    { sentence: "Try as he might, he could not lift the lid.",
+      clause: "Try as he might",
+      meaning: "However hard he tried",
+      wrong: ["He might try later", "He did not try at all",
+              "He tried in the same way as before"] },
+    { sentence: "Not that it matters now, but the letter arrived a week late.",
+      clause: "Not that it matters now",
+      meaning: "Although it is no longer important",
+      wrong: ["It does not matter what happens next",
+              "Nothing about it matters at all",
+              "It matters now more than it did"] },
+    { sentence: "Should the weather turn, the match will be moved indoors.",
+      clause: "Should the weather turn",
+      meaning: "If the weather changes",
+      wrong: ["The weather ought to change", "The weather has already changed",
+              "Whenever the weather is good"] },
+    { sentence: "Seldom had the town seen such a crowd.",
+      clause: "Seldom had the town seen such a crowd",
+      meaning: "The town had rarely seen a crowd like this",
+      wrong: ["The town saw crowds like this often",
+              "The town had never seen a crowd before",
+              "The crowd had not seen the town"] }
+  ];
+
+  function graClauseMeaning(i) {
+    const item = pick(CLAUSE_MEANING_ITEMS, i);
+    const q = mkE("Grammar",
+      `Read this sentence.\n\n"${item.sentence}"\n\nWhat is the meaning of the clause "${item.clause}"?`,
+      item.meaning, item.wrong, 4, i);
+    if (q) q.explain = `Rewrite the clause in ordinary word order and the meaning appears: ` +
+      `"${item.clause}" says the same as "${item.meaning}". The unusual order is there for ` +
+      `effect, and does not change what is being said.`;
+    return q;
+  }
+  graClauseMeaning.poolSize = CLAUSE_MEANING_ITEMS.length;
+
+  /* ── Two devices at once ──────────────────────────────────────────────
+     "Which two literary devices are used in lines 21-22?" is asked in four of
+     the scanned papers, and is harder than naming one: a child who spots the
+     obvious device still has to rule out three pairings that each contain it.
+     Every distractor pair therefore shares one device with the answer. */
+  const TWO_DEVICE_ITEMS = [
+    { text: "The wind whispered its worries to the waiting willows.",
+      devices: ["Alliteration", "Personification"],
+      near: ["Simile", "Metaphor", "Onomatopoeia"] },
+    { text: "Her voice was a silver bell, ringing and ringing across the yard.",
+      devices: ["Metaphor", "Repetition"],
+      near: ["Simile", "Hyperbole", "Alliteration"] },
+    { text: "The thunder grumbled like a giant turning over in his sleep.",
+      devices: ["Personification", "Simile"],
+      near: ["Metaphor", "Onomatopoeia", "Oxymoron"] },
+    { text: "Crash! Bang! The morning was a battlefield of noise.",
+      devices: ["Metaphor", "Onomatopoeia"],
+      near: ["Simile", "Repetition", "Personification"] },
+    { text: "Sad, silent and still, the seashore said nothing at all.",
+      devices: ["Alliteration", "Personification"],
+      near: ["Hyperbole", "Simile", "Repetition"] },
+    { text: "I have waited a thousand years for this bus, and still the road stares back at me.",
+      devices: ["Hyperbole", "Personification"],
+      near: ["Simile", "Metaphor", "Alliteration"] },
+    { text: "The clock ticked, and ticked, and ticked, as loud as a hammer.",
+      devices: ["Repetition", "Simile"],
+      near: ["Metaphor", "Onomatopoeia", "Hyperbole"] },
+    { text: "Do we really want to be the city whose cold heart turns them away?",
+      devices: ["Personification", "Rhetorical question"],
+      near: ["Metaphor", "Alliteration", "Simile"] },
+    { text: "The frost fingered the fence, and the fence flinched.",
+      devices: ["Alliteration", "Personification"],
+      near: ["Onomatopoeia", "Simile", "Oxymoron"] },
+    { text: "His temper was a firework, fizzing and flashing and finally exploding.",
+      devices: ["Alliteration", "Metaphor"],
+      near: ["Simile", "Hyperbole", "Repetition"] },
+    { text: "It was a deafening silence, heavy as a held breath.",
+      devices: ["Oxymoron", "Simile"],
+      near: ["Metaphor", "Personification", "Alliteration"] },
+    { text: "Buzzing and clattering, the workshop shouted at anyone who came near.",
+      devices: ["Onomatopoeia", "Personification"],
+      near: ["Simile", "Metaphor", "Hyperbole"] }
+  ];
+
+  /* "Alliteration and personification" - the pair is printed in a fixed order
+     so that the same two devices never appear as two differently worded
+     options, which would be two correct answers. */
+  const pairLabel = (a, b) => {
+    const [x, y] = [a, b].sort();
+    return `${x} and ${y.toLowerCase()}`;
+  };
+
+  function litTwoDevices(i) {
+    const item = pick(TWO_DEVICE_ITEMS, i);
+    const [a, b] = item.devices;
+    /* Each distractor keeps one of the two real devices and swaps the other,
+       so no option can be dismissed without reading the sentence properly. */
+    const candidates = [
+      pairLabel(a, item.near[0]), pairLabel(b, item.near[1]),
+      pairLabel(a, item.near[2]), pairLabel(b, item.near[0]),
+      pairLabel(item.near[0], item.near[1])
+    ];
+    const wrong = firstDistinct(pairLabel(a, b), candidates);
+    if (!wrong) return null;
+    const q = mkE("Literary Devices",
+      `Which TWO literary devices are used here?\n\n"${item.text}"`,
+      pairLabel(a, b), wrong, 4, i);
+    if (q) q.explain = `Two devices are at work at once, so check each option's ` +
+      `halves separately — three of them name one device that is really there and ` +
+      `one that is not. Here it is ${pairLabel(a, b).toLowerCase()}.`;
+    return q;
+  }
+  litTwoDevices.poolSize = TWO_DEVICE_ITEMS.length;
+
   const METHODS = {
     spellFindMisspelt: "Read each word slowly, syllable by syllable, and check the tricky letter pattern rather than the overall shape.",
     spellChooseCorrect: "Cover the options and write the word yourself first, then look for the one that matches.",
@@ -1397,7 +1616,9 @@
       [graSentenceType, 1, 2], [graTense],
       [graSubjunctive, 4, 4],          // the unreal conditional
       [graPassiveVoice, 4, 4],         // recognise the passive
-      [graSubordinateClause, 4, 4]     // name the clause type
+      [graSubordinateClause, 4, 4],    // name the clause type
+      [graCountWordClass, 3, 4],       // how many adjectives in the sentence
+      [graClauseMeaning, 4, 4]         // unpick an inverted clause
     ],
     Vocabulary: [
       [vocSynonym], [vocAntonym], [vocDefinition], [vocIdiom],
@@ -1410,7 +1631,8 @@
     ],
     "Literary Devices": [
       [litIdentify], [litFindExample], [litDefinition],
-      [litWordEffect, 3, 4]            // explain the effect of a word choice
+      [litWordEffect, 3, 4],           // explain the effect of a word choice
+      [litTwoDevices, 4, 4]            // two devices at once, as the papers ask
     ]
   };
 
