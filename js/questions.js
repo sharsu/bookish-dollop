@@ -5091,6 +5091,288 @@ const QUESTIONS = [];
     logDigitSumOfSum: "Do the addition first, then add the digits of the answer together."
   };
 
+
+  /* ═══════════ from the second question-bank/NewText scan ═══════════ */
+
+  /* Examberry QE 14 Q59: "Tap A can fill 1/3 of a tank in 4 minutes. Tap B can
+     fill 1/2 of the same tank in 3 minutes. How many minutes will it take to
+     fill the empty tank if both taps are turned on?"
+
+     The pool stores the two whole-tank times, chosen so that the combined time
+     T1*T2/(T1+T2) is a whole number - a child who has done the work correctly
+     should not then have to round. */
+  const TAP_POOL = [
+    [12, 3, 6, 2], [12, 3, 4, 2], [20, 4, 5, 5], [30, 5, 20, 4], [15, 3, 10, 2],
+    [18, 3, 9, 3], [24, 4, 8, 2], [40, 5, 10, 2], [21, 3, 28, 4], [36, 4, 12, 3],
+    [10, 2, 15, 5], [6, 2, 12, 4], [8, 2, 24, 3], [45, 5, 9, 3], [16, 4, 48, 6],
+    [20, 5, 30, 5], [9, 3, 18, 6], [30, 6, 15, 3], [10, 5, 40, 8],
+    [35, 5, 14, 7], [60, 6, 12, 4], [12, 6, 24, 8]
+  ];
+
+  function spdCombinedTaps(i) {
+    const [t1, a, t2, b] = TAP_POOL[i % TAP_POOL.length];
+    const ans = (t1 * t2) / (t1 + t2);
+    if (!Number.isInteger(ans)) return null;
+    const p = t1 / a, q = t2 / b;
+    if (!Number.isInteger(p) || !Number.isInteger(q)) return null;
+    const q1 = mk("Speed",
+      `Tap A can fill 1/${a} of a tank in ${p} minutes. ` +
+      `Tap B can fill 1/${b} of the same tank in ${q} minutes.\n\n` +
+      `How many minutes will it take to fill the empty tank if both taps are ` +
+      `turned on at the same time?`,
+      `${ans} minutes`,
+      [`${p + q} minutes`,                  // added the two times given
+       /* "it takes as long as the quicker tap" - a plausible option BELOW the
+          true answer, without which every distractor is larger and the answer
+          can be picked out by "two taps must beat one" alone. */
+       `${Math.min(p, q)} minutes`,
+       `${t1 + t2} minutes`,                // added the two whole-tank times
+       `${fmt((t1 + t2) / 2)} minutes`,     // averaged them
+       `${Math.min(t1, t2)} minutes`,
+       `${fmt(Math.abs(t1 - t2))} minutes`],
+      4, i);
+    if (q1) q1.explain =
+      `Work out how long each tap needs for the WHOLE tank first: tap A fills ` +
+      `1/${a} in ${p} minutes, so a full tank takes ${a} × ${p} = ${t1} minutes, ` +
+      `and tap B takes ${b} × ${q} = ${t2} minutes. In one minute tap A fills ` +
+      `1/${t1} of the tank and tap B fills 1/${t2}, so together they fill ` +
+      `1/${t1} + 1/${t2} = 1/${ans} of it. Filling 1/${ans} each minute means the ` +
+      `tank is full after ${ans} minutes. Adding the two times given (${p} + ${q}) ` +
+      `is the trap: two taps together are always faster than either one alone.`;
+    return q1;
+  }
+
+  /* Examberry 16 Q53: "The ages of a family of five add up to 84. The two
+     youngest are 6 and 14. What was the sum of the ages of the family eight
+     years ago?"
+
+     The whole question turns on the youngest child not having been born yet,
+     so the pool keeps youngest < gap <= second youngest, and that member is
+     dropped from the total rather than counted as a negative age. */
+  const AGE_POOL = [
+    [5, 84, 6, 14, 8], [4, 96, 3, 12, 5], [5, 90, 4, 11, 7], [6, 120, 2, 15, 6],
+    [4, 78, 5, 13, 9], [5, 105, 7, 16, 10], [6, 132, 3, 14, 8], [4, 88, 6, 12, 7],
+    [5, 96, 2, 13, 6], [6, 108, 4, 17, 9], [4, 72, 3, 10, 5], [5, 110, 5, 15, 8],
+    [5, 100, 4, 12, 9], [6, 126, 5, 16, 11], [4, 84, 2, 11, 6], [5, 88, 6, 15, 9],
+    [6, 114, 3, 13, 7], [4, 92, 7, 14, 10], [5, 120, 5, 18, 12], [6, 140, 4, 15, 8]
+  ];
+
+  function logSumOfAgesAgo(i) {
+    const [n, total, young, second, gap] = AGE_POOL[i % AGE_POOL.length];
+    /* Exactly one member must be unborn, or the arithmetic below is wrong. */
+    if (!(young < gap && gap <= second)) return null;
+    const ans = (total - young) - (n - 1) * gap;
+    if (ans <= 0) return null;
+    const words = ["", "one", "two", "three", "four", "five", "six", "seven"];
+    const q1 = mk("Logic",
+      `The ages of a family of ${words[n]} add up to ${total}. ` +
+      `The two youngest members of the family are ${young} and ${second}.\n\n` +
+      `What was the sum of the ages of the family ${gap} years ago?`,
+      `${ans}`,
+      [`${total - n * gap}`,                    // counted all n, so the youngest went negative
+       `${total - young - n * gap}`,            // dropped the youngest AND aged them down too
+       `${total - (n - 1) * gap}`,              // aged n-1 down but left the youngest in
+       `${total - young}`,
+       `${ans + gap}`],
+      4, i);
+    if (q1) q1.explain =
+      `${gap} years ago the youngest member, now ${young}, had not been born, so ` +
+      `that family had only ${n - 1} people in it. Take the youngest out of the ` +
+      `total first: ${total} − ${young} = ${total - young}. Each of the remaining ` +
+      `${n - 1} people was ${gap} years younger, which is ${n - 1} × ${gap} = ` +
+      `${(n - 1) * gap} years in all, so the sum was ${total - young} − ` +
+      `${(n - 1) * gap} = ${ans}. Taking ${n} × ${gap} = ${n * gap} off the ` +
+      `${total} gives ${total - n * gap}, which counts the youngest as having a ` +
+      `negative age.`;
+    return q1;
+  }
+
+  /* Examberry QE 13 Q50: a symbol is given a made-up meaning and then applied
+     twice, the second time to its own result. The rule is printed in words
+     because the paper prints it as a small worked example. */
+  /* Every rule here has to stay sensible when it is applied to its OWN result,
+     because the question always nests. A rule that squares - "a × a − b", or
+     "(a − b) × (a + b)" - reaches five figures on the second step, which is out
+     of register for the paper and, worse, leaves the answer as the only large
+     option on the page. */
+  const OP_POOL = [
+    { sym: "⊕", rule: "a ⊕ b = (a × b) − (a + b)",
+      f: (a, b) => a * b - (a + b) },
+    { sym: "⊗", rule: "a ⊗ b = (a + b) × 2 − b",
+      f: (a, b) => (a + b) * 2 - b },
+    { sym: "⊙", rule: "a ⊙ b = (a − b) × 4 + b",
+      f: (a, b) => (a - b) * 4 + b },
+    { sym: "∆", rule: "a ∆ b = a × 3 − b × 2",
+      f: (a, b) => a * 3 - b * 2 },
+    { sym: "□", rule: "a □ b = a × 2 + b × 3",
+      f: (a, b) => a * 2 + b * 3 }
+  ];
+
+  function logDefinedOperator(i) {
+    const op = OP_POOL[i % OP_POOL.length];
+    const a = 4 + axis(i, 0, 6), b = 2 + axis(i, 1, 5), c = 2 + axis(i, 2, 4);
+    const inner = op.f(a, b);
+    const ans = op.f(inner, c);
+    if (!Number.isInteger(ans) || !Number.isInteger(inner)) return null;
+    /* Both steps have to land somewhere a child could reach on paper, and the
+       answer must not be the only option of a different magnitude. */
+    if (inner < 2 || inner > 60 || ans < 2 || ans > 400) return null;
+    /* The mistake worth catching is working left to right without the bracket,
+       or applying the rule to the two original numbers and forgetting c. */
+    const q1 = mk("Logic",
+      `The symbol ${op.sym} has a special meaning:\n\n${op.rule}\n\n` +
+      `What is the value of (${a} ${op.sym} ${b}) ${op.sym} ${c}?`,
+      `${ans}`,
+      [`${inner}`,                       // stopped after the bracket
+       `${op.f(a, op.f(b, c))}`,         // bracketed the other pair
+       `${op.f(a, b + c)}`,              // added c to b first
+       `${ans + c}`, `${ans - c}`, `${inner + c}`],
+      4, i);
+    if (q1) q1.explain =
+      `Do the bracket first, exactly as the rule is written: ${a} ${op.sym} ${b} ` +
+      `= ${inner}. That answer now becomes the left-hand number, so the second ` +
+      `step is ${inner} ${op.sym} ${c} = ${ans}. The symbol means nothing on its ` +
+      `own — read the rule again for each step rather than guessing at it.`;
+    return q1;
+  }
+
+  /* QE 14 EPP Q56: "the largest number of cubes of volume 8 cm3 that can fit
+     into the 19 cm x 19 cm x 20 cm box. You cannot cut the cubes up."
+
+     Dividing the volumes gives 902 and is offered as an option in the paper;
+     the answer is 810, because 19 does not divide by 2 and the leftover
+     1 cm slice is wasted. The pool therefore only holds boxes where at least
+     one side leaves a remainder, or the trap would not be a trap. */
+  const CUBE_BOX_POOL = [
+    [2, 19, 19, 20], [2, 15, 11, 20], [3, 20, 20, 20], [3, 11, 14, 21],
+    [2, 13, 17, 18], [4, 15, 18, 20], [3, 25, 16, 22], [2, 9, 21, 15],
+    [5, 22, 18, 26], [4, 19, 22, 25], [3, 17, 19, 23], [2, 27, 13, 11],
+    [2, 11, 13, 25], [3, 22, 17, 19], [4, 21, 23, 18], [2, 17, 15, 23],
+    [5, 27, 24, 33], [3, 14, 16, 26], [2, 25, 19, 21], [4, 26, 30, 23]
+  ];
+
+  function meaCubePacking(i) {
+    const [side, w, d, h] = CUBE_BOX_POOL[i % CUBE_BOX_POOL.length];
+    const fit = Math.floor(w / side) * Math.floor(d / side) * Math.floor(h / side);
+    const naive = Math.floor((w * d * h) / (side ** 3));
+    if (naive === fit) return null;          // no trap, so not this question
+    const q1 = mk("Measurement",
+      `What is the largest number of cubes of volume ${side ** 3} cm³ that can ` +
+      `fit into a ${w} cm × ${d} cm × ${h} cm box?\n\nYou cannot cut the cubes up.`,
+      `${comma(fit)}`,
+      [`${comma(naive)}`,                    // divided the volumes
+       `${comma(naive + 1)}`,
+       `${comma(Math.floor(w / side) * Math.floor(d / side) * Math.ceil(h / side))}`,
+       `${comma(fit + Math.floor(w / side))}`, `${comma(fit - Math.floor(w / side))}`],
+      4, i);
+    if (q1) q1.explain =
+      `A cube of volume ${side ** 3} cm³ has sides of ${side} cm. Work along each ` +
+      `edge of the box separately and take the whole number of cubes that fits: ` +
+      `${w} ÷ ${side} gives ${Math.floor(w / side)}, ${d} ÷ ${side} gives ` +
+      `${Math.floor(d / side)}, ${h} ÷ ${side} gives ${Math.floor(h / side)}. ` +
+      `That is ${Math.floor(w / side)} × ${Math.floor(d / side)} × ` +
+      `${Math.floor(h / side)} = ${comma(fit)} cubes. Dividing the box's volume by ` +
+      `the cube's volume gives ${comma(naive)}, but that answer quietly assumes the ` +
+      `leftover slices can be melted together, and they cannot.`;
+    return q1;
+  }
+
+  /* QE 16 EPP Q46: "how many factors of 400 are odd". Every odd factor of n is
+     a factor of n with all its 2s stripped out, which is the whole method. */
+  function numOddFactorCount(i) {
+    const pool = [400, 360, 500, 144, 600, 200, 288, 900, 480, 252,
+                  1000, 96, 540, 224, 756, 320, 588, 176, 648, 792];
+    const n = pool[i % pool.length];
+    let odd = n;
+    while (odd % 2 === 0) odd /= 2;
+    const ans = factorsOf(odd).length;
+    const all = factorsOf(n).length;
+    if (ans === all) return null;            // n is odd, so the question is empty
+    const q1 = mk("Numbers",
+      `How many factors of ${n} are odd?`,
+      `${ans}`,
+      [`${all}`,                             // every factor, not just the odd ones
+       `${all - ans}`,                        // counted the even ones instead
+       `${ans + 1}`, `${ans - 1}`, `${ans + 2}`],
+      4, i);
+    if (q1) q1.explain =
+      `An odd factor cannot contain a 2, so divide ${n} by 2 until it is odd: ` +
+      `that leaves ${odd}. Every odd factor of ${n} is a factor of ${odd}, and ` +
+      `${odd} has ${ans} factor${ans === 1 ? "" : "s"} ` +
+      `(${factorsOf(odd).join(", ")}), so the answer is ${ans}. ` +
+      `${n} has ${all} factors altogether, but ${all - ans} of them are even.`;
+    return q1;
+  }
+
+  /* QE 14 EPP Q11: "the sum of the factors of 18 that are not factors of 9".
+     The pool keeps b dividing a, so every factor of b really is a factor of a
+     and the answer is the difference of the two factor sums. */
+  const FACTOR_PAIR_POOL = [
+    [18, 9], [20, 10], [24, 12], [30, 15], [36, 18], [28, 14], [40, 20],
+    [45, 15], [50, 25], [54, 27], [48, 24], [42, 21], [60, 30], [32, 16],
+    [63, 21], [56, 28], [72, 36], [44, 22], [66, 33], [75, 25]
+  ];
+
+  function numFactorsNotFactors(i) {
+    const [a, b] = FACTOR_PAIR_POOL[i % FACTOR_PAIR_POOL.length];
+    if (a % b !== 0) return null;
+    const fa = factorsOf(a), fb = factorsOf(b);
+    const kept = fa.filter(f => b % f !== 0);
+    if (!kept.length) return null;
+    const ans = kept.reduce((t, v) => t + v, 0);
+    const sumA = fa.reduce((t, v) => t + v, 0);
+    const sumB = fb.reduce((t, v) => t + v, 0);
+    const q1 = mk("Numbers",
+      `What is the sum of the factors of ${a} that are not factors of ${b}?`,
+      `${ans}`,
+      [`${sumA}`,                            // added every factor of a
+       `${sumB}`,                            // added the factors of b instead
+       `${kept.length}`,                     // counted them instead of adding
+       `${sumA + sumB}`, `${ans - 1}`, `${ans + b}`],
+      4, i);
+    if (q1) q1.explain =
+      `List both sets. The factors of ${a} are ${fa.join(", ")}; the factors of ` +
+      `${b} are ${fb.join(", ")}. Cross out of the first list anything that ` +
+      `appears in the second, which leaves ${kept.join(", ")}. Adding those gives ` +
+      `${kept.join(" + ")} = ${ans}. The question asks for the total, not how many ` +
+      `there are — that would be ${kept.length}.`;
+    return q1;
+  }
+
+  /* QE 16 EPP Q10: "how many DIFFERENT prime factors does 60 have". Separate
+     from numPrimeFactorCount, which asks for the count including repeats -
+     for 60 those are 3 and 4, so the distinction is the question. */
+  function numDistinctPrimeFactors(i) {
+    const pool = [60, 72, 90, 84, 96, 210, 120, 126, 150, 198, 234, 100,
+                  180, 66, 154, 105, 168, 220, 273, 350];
+    const n = pool[i % pool.length];
+    const primes = [];
+    let m = n;
+    for (let k = 2; k * k <= m; k++) while (m % k === 0) { if (!primes.includes(k)) primes.push(k); m /= k; }
+    if (m > 1 && !primes.includes(m)) primes.push(m);
+    const ans = primes.length;
+    /* The count with repeats - the answer to the other question - is the
+       distractor the papers rely on. */
+    let repeats = 0, r = n;
+    for (let k = 2; k * k <= r; k++) while (r % k === 0) { repeats++; r /= k; }
+    if (r > 1) repeats++;
+    const q1 = mk("Numbers",
+      `How many different prime factors does ${n} have?`,
+      `${ans}`,
+      [`${repeats}`,                         // counted the repeats too
+       `${factorsOf(n).length}`,             // counted all the factors
+       `${ans + 1}`, `${ans - 1}`, `${ans + 2}`],
+      4, i);
+    if (q1) q1.explain =
+      `Break ${n} into primes: ${n} = ${primes.map(p => {
+        let e = 0, t = n; while (t % p === 0) { e++; t /= p; }
+        return e > 1 ? `${p}^${e}` : `${p}`;
+      }).join(" × ")}. The word "different" means count each prime once ` +
+      `however often it appears, so the primes are ${primes.join(", ")} — ` +
+      `that is ${ans}. Counting the repeats as well would give ${repeats}.`;
+    return q1;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -5129,7 +5411,11 @@ const QUESTIONS = [];
       [numSquaresMinusCubes, 4, 4],       // count squares and cubes in one list
       [numFactorStatements, 4, 4],        // which claim about factors is false
       [numDivisibilityRule, 3, 4],        // divides exactly, without dividing
-      [numSmallestWithFactors, 4, 4]      // fewest number with that many factors
+      [numSmallestWithFactors, 4, 4],     // fewest number with that many factors
+      /* question-bank/NewText, second scan */
+      [numOddFactorCount, 4, 4],          // strip the 2s out first
+      [numFactorsNotFactors, 4, 4],       // two factor lists, then subtract
+      [numDistinctPrimeFactors, 4, 4],    // different primes, not counting repeats
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -5237,6 +5523,7 @@ const QUESTIONS = [];
       [ratEqualise, 4, 4]                 // move enough to even them up
     ],
     Speed: [
+      [spdCombinedTaps, 4, 4],            // two taps filling one tank
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
       [spdMphHoursMin, 2, 3],             // mixed hours and minutes
       [spdGapBetweenTwo, 3, 3],
@@ -5263,7 +5550,8 @@ const QUESTIONS = [];
       /* question-bank/20260822 */
       [meaPourFromContainer, 3, 3],       // litres in, millilitres out
       [meaEstimateWeight, 3, 3],          // is a banana 20 g or 200 g
-      [numMultiItemTotal, 3, 3]           // one of one thing, several of another
+      [numMultiItemTotal, 3, 3],          // one of one thing, several of another
+      [meaCubePacking, 4, 4]              // whole cubes only, so the leftover is wasted
     ],
     Geometry: [
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
@@ -5347,7 +5635,9 @@ const QUESTIONS = [];
       [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
       [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2],
       [logTimeZone, 4, 4],                // hours ahead or behind, across midnight
-      [logClockReflexAngle, 3, 4]         // the reflex angle between the hands
+      [logClockReflexAngle, 3, 4],        // the reflex angle between the hands
+      [logSumOfAgesAgo, 4, 4],            // one member not yet born
+      [logDefinedOperator, 4, 4]          // an invented symbol, applied twice
     ]
   };
 
