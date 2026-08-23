@@ -474,7 +474,100 @@
                   counts.map((c, k) => `Pattern ${k + 1} has ${c} dot${c === 1 ? "" : "s"}`).join(", ") + "." };
   }
 
-  root.DIAGRAMS = { shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+
+  /* ── a maze with four numbered exits ──────────────────────────────────
+     Cells are addressed (x, y) with x left to right and y top to bottom, the
+     way the SVG is drawn. Walls sit on cell edges:
+       vWalls: [x, y] is a wall on the RIGHT edge of cell (x, y)
+       hWalls: [x, y] is a wall on the BOTTOM edge of cell (x, y)
+     Exits sit on the boundary, given as { side, at, label } where `at` is the
+     row for a left or right exit and the column for a top or bottom one.
+     `start` is the cell the toy is released in, and `facing` the direction it
+     sets off in. */
+  function maze({ cols, rows, vWalls = [], hWalls = [], exits = [], start, facing = "up" }) {
+    /* The side labels need more room than the top and bottom ones: "Exit 1"
+       set beside the left wall is about 42px wide plus its 10px gap, and a
+       single padding of 46 ran it off the canvas at x = -6. */
+    const s = 34, padX = 60, padY = 34;
+    const w = padX * 2 + cols * s, h = padY * 2 + rows * s;
+    const X = k => padX + k * s, Y = k => padY + k * s;
+    const has = (list, x, y) => list.some(p => p[0] === x && p[1] === y);
+    const exitAt = (side, at) => exits.find(e => e.side === side && e.at === at);
+
+    let body = "";
+
+    /* The boundary, drawn a segment at a time so an exit can be left open. */
+    for (let c = 0; c < cols; c++) {
+      if (!exitAt("top", c))
+        body += `<line x1="${X(c)}" y1="${Y(0)}" x2="${X(c + 1)}" y2="${Y(0)}" stroke="${INK}" stroke-width="3"/>`;
+      if (!exitAt("bottom", c))
+        body += `<line x1="${X(c)}" y1="${Y(rows)}" x2="${X(c + 1)}" y2="${Y(rows)}" stroke="${INK}" stroke-width="3"/>`;
+    }
+    for (let r = 0; r < rows; r++) {
+      if (!exitAt("left", r))
+        body += `<line x1="${X(0)}" y1="${Y(r)}" x2="${X(0)}" y2="${Y(r + 1)}" stroke="${INK}" stroke-width="3"/>`;
+      if (!exitAt("right", r))
+        body += `<line x1="${X(cols)}" y1="${Y(r)}" x2="${X(cols)}" y2="${Y(r + 1)}" stroke="${INK}" stroke-width="3"/>`;
+    }
+
+    /* Internal walls. */
+    vWalls.forEach(([x, y]) => {
+      body += `<line x1="${X(x + 1)}" y1="${Y(y)}" x2="${X(x + 1)}" y2="${Y(y + 1)}" stroke="${INK}" stroke-width="3"/>`;
+    });
+    hWalls.forEach(([x, y]) => {
+      body += `<line x1="${X(x)}" y1="${Y(y + 1)}" x2="${X(x + 1)}" y2="${Y(y + 1)}" stroke="${INK}" stroke-width="3"/>`;
+    });
+
+    /* Each exit: the gap in the wall is marked, and labelled outside it, so
+       there is no doubt which opening the number refers to. */
+    exits.forEach(e => {
+      const mid = e.at + 0.5;
+      if (e.side === "top") {
+        body += `<line x1="${X(e.at) + 4}" y1="${Y(0)}" x2="${X(e.at + 1) - 4}" y2="${Y(0)}" stroke="${FILL}" stroke-width="5"/>` +
+                text(X(mid), Y(0) - 12, `Exit ${e.label}`, { size: 12, weight: 700 });
+      } else if (e.side === "bottom") {
+        body += `<line x1="${X(e.at) + 4}" y1="${Y(rows)}" x2="${X(e.at + 1) - 4}" y2="${Y(rows)}" stroke="${FILL}" stroke-width="5"/>` +
+                text(X(mid), Y(rows) + 22, `Exit ${e.label}`, { size: 12, weight: 700 });
+      } else if (e.side === "left") {
+        body += `<line x1="${X(0)}" y1="${Y(e.at) + 4}" x2="${X(0)}" y2="${Y(e.at + 1) - 4}" stroke="${FILL}" stroke-width="5"/>` +
+                text(X(0) - 10, Y(mid) + 4, `Exit ${e.label}`, { anchor: "end", size: 12, weight: 700 });
+      } else {
+        body += `<line x1="${X(cols)}" y1="${Y(e.at) + 4}" x2="${X(cols)}" y2="${Y(e.at + 1) - 4}" stroke="${FILL}" stroke-width="5"/>` +
+                text(X(cols) + 10, Y(mid) + 4, `Exit ${e.label}`, { anchor: "start", size: 12, weight: 700 });
+      }
+    });
+
+    /* The toy, and an arrow showing which way it sets off. */
+    const cx = X(start.x + 0.5), cy = Y(start.y + 0.5);
+    const d = { up: [0, -1], right: [1, 0], down: [0, 1], left: [-1, 0] }[facing];
+    const tipX = cx + d[0] * 15, tipY = cy + d[1] * 15;
+    const tailX = cx - d[0] * 9, tailY = cy - d[1] * 9;
+    body += `<circle cx="${cx}" cy="${cy}" r="5.5" fill="${FILL}"/>` +
+            `<line x1="${tailX}" y1="${tailY}" x2="${tipX}" y2="${tipY}" stroke="${FILL}" stroke-width="2.5"/>` +
+            `<polygon points="${tipX},${tipY} ${tipX - d[0] * 7 - d[1] * 5},${tipY - d[1] * 7 - d[0] * 5} ` +
+            `${tipX - d[0] * 7 + d[1] * 5},${tipY - d[1] * 7 + d[0] * 5}" fill="${FILL}"/>`;
+
+    /* The alt text carries the whole layout. A maze described only as "a maze"
+       is not a harder question without sight, it is an impossible one. */
+    const side = k => ["left", "right", "top", "bottom"][k];
+    const wallWords = [];
+    vWalls.forEach(([x, y]) => wallWords.push(
+      `between column ${x + 1} and column ${x + 2} in row ${y + 1}`));
+    hWalls.forEach(([x, y]) => wallWords.push(
+      `between row ${y + 1} and row ${y + 2} in column ${x + 1}`));
+    const exitWords = exits.map(e => e.side === "left" || e.side === "right"
+      ? `Exit ${e.label} is an opening in the ${e.side} wall at row ${e.at + 1}`
+      : `Exit ${e.label} is an opening in the ${e.side} wall at column ${e.at + 1}`);
+    return {
+      image: wrap(w, h, body),
+      alt: `A maze ${cols} columns wide and ${rows} rows deep, numbered from the ` +
+           `top left. Internal walls: ${wallWords.length ? wallWords.join("; ") : "none"}. ` +
+           `${exitWords.join("; ")}. The toy starts in column ${start.x + 1}, ` +
+           `row ${start.y + 1}, facing ${facing}.`
+    };
+  }
+
+  root.DIAGRAMS = { maze, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };

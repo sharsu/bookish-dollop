@@ -6306,6 +6306,183 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* ── the clockwork toy in the maze ────────────────────────────────────
+     Cells are (x, y), x left to right and y top to bottom. A wall in vWalls at
+     [x, y] closes the right edge of that cell; one in hWalls closes its bottom
+     edge. Directions are indexed up, right, down, left, so turning clockwise is
+     simply +1. */
+  const MAZE_DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  const MAZE_DIR_NAMES = ["up", "right", "down", "left"];
+
+  function runMaze(m) {
+    const wall = (list, x, y) => list.some(p => p[0] === x && p[1] === y);
+    let x = m.start.x, y = m.start.y;
+    let d = MAZE_DIR_NAMES.indexOf(m.facing || "up");
+    const seen = new Set();
+    const legs = [];
+    let leg = { dir: d, steps: 0 };
+    for (let n = 0; n < 5000; n++) {
+      const key = `${x},${y},${d}`;
+      /* The toy is deterministic, so being in a cell facing a direction it has
+         already faced there means the whole path from here repeats: it is in a
+         loop and will never get out. */
+      if (seen.has(key)) {
+        legs.push(leg);
+        return { escaped: null, legs, loop: true };
+      }
+      seen.add(key);
+      const [dx, dy] = MAZE_DIRS[d];
+      const nx = x + dx, ny = y + dy;
+      let blocked;
+      if (nx < 0 || ny < 0 || nx >= m.cols || ny >= m.rows) {
+        const out = nx < 0 ? m.exits.find(e => e.side === "left" && e.at === y)
+          : nx >= m.cols ? m.exits.find(e => e.side === "right" && e.at === y)
+            : ny < 0 ? m.exits.find(e => e.side === "top" && e.at === x)
+              : m.exits.find(e => e.side === "bottom" && e.at === x);
+        if (out) {
+          leg.steps += 1;
+          legs.push(leg);
+          return { escaped: out.label, legs, loop: false };
+        }
+        blocked = true;
+      } else if (dx === 1) blocked = wall(m.vWalls, x, y);
+      else if (dx === -1) blocked = wall(m.vWalls, nx, y);
+      else if (dy === 1) blocked = wall(m.hWalls, x, y);
+      else blocked = wall(m.hWalls, x, ny);
+
+      if (blocked) {
+        /* Pushed even when it moved nowhere: a turn into a wall is part of the
+           path, and without it the hint reads "down, then up", which is not a
+           clockwise turn. What to say about them is the hint's business. */
+        legs.push(leg);
+        d = (d + 1) % 4;
+        leg = { dir: d, steps: 0 };
+      } else { x = nx; y = ny; leg.steps += 1; }
+    }
+    return { escaped: null, legs, loop: true };
+  }
+
+  /* Laid out by hand rather than generated, so every picture is a maze a person
+     would draw. The answer to each comes from the simulation, not from the
+     layout being designed backwards from an answer.
+
+     The release points, though, WERE chosen: every cell and every starting
+     direction was searched, paths of fewer than three turns thrown out, and the
+     rest picked to spread the answers across all five options. Left to a
+     plausible-looking guess the pool had one maze the toy walked straight out
+     of without turning once, three more that escaped after a single turn, no
+     maze at all whose answer was Exit 1, and a third answering "never escapes"
+     - which is a third of the marks for choosing the same option every time. */
+  const MAZE_POOL = [
+    { cols: 6, rows: 5, vWalls: [[1, 1], [3, 2], [3, 3]], hWalls: [[2, 1], [4, 2]],
+      exits: [{ side: "left", at: 1, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 2, label: 4 }],
+      start: { x: 1, y: 4 }, facing: "up" },
+    { cols: 6, rows: 5, vWalls: [[2, 0], [2, 1], [4, 3]], hWalls: [[1, 2], [3, 1]],
+      exits: [{ side: "left", at: 3, label: 1 }, { side: "top", at: 1, label: 2 },
+              { side: "right", at: 0, label: 3 }, { side: "bottom", at: 4, label: 4 }],
+      start: { x: 3, y: 0 }, facing: "down" },
+    { cols: 5, rows: 5, vWalls: [[1, 2], [3, 0], [1, 3]], hWalls: [[2, 2], [0, 1]],
+      exits: [{ side: "left", at: 4, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 3, label: 3 }, { side: "bottom", at: 1, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 4, vWalls: [[1, 0], [3, 2], [4, 1]], hWalls: [[2, 0], [4, 2]],
+      exits: [{ side: "left", at: 2, label: 1 }, { side: "top", at: 3, label: 2 },
+              { side: "right", at: 1, label: 3 }, { side: "bottom", at: 1, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 5, rows: 6, vWalls: [[2, 1], [1, 4], [3, 3]], hWalls: [[1, 1], [3, 4]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 1, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 6, rows: 5, vWalls: [[0, 2], [2, 3], [4, 0], [4, 4]], hWalls: [[3, 2]],
+      exits: [{ side: "left", at: 4, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 3, label: 3 }, { side: "bottom", at: 0, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "up" },
+    { cols: 5, rows: 5, vWalls: [[1, 1], [2, 3], [3, 2]], hWalls: [[0, 3], [2, 0], [4, 2]],
+      exits: [{ side: "left", at: 2, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 6, vWalls: [[1, 2], [3, 1], [4, 4], [2, 5]], hWalls: [[0, 0], [3, 3]],
+      exits: [{ side: "left", at: 5, label: 1 }, { side: "top", at: 0, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 4, label: 4 }],
+      start: { x: 1, y: 0 }, facing: "up" },
+    { cols: 5, rows: 4, vWalls: [[2, 0], [1, 2], [3, 3]], hWalls: [[1, 0], [3, 1]],
+      exits: [{ side: "left", at: 1, label: 1 }, { side: "top", at: 4, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 2, label: 4 }],
+      start: { x: 1, y: 1 }, facing: "up" },
+    { cols: 6, rows: 5, vWalls: [[1, 3], [3, 0], [4, 2]], hWalls: [[2, 3], [0, 1], [5, 1]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 5, label: 2 },
+              { side: "right", at: 4, label: 3 }, { side: "bottom", at: 3, label: 4 }],
+      start: { x: 0, y: 1 }, facing: "right" },
+    { cols: 5, rows: 6, vWalls: [[1, 0], [2, 2], [3, 4]], hWalls: [[0, 2], [2, 4], [4, 1]],
+      exits: [{ side: "left", at: 3, label: 1 }, { side: "top", at: 3, label: 2 },
+              { side: "right", at: 5, label: 3 }, { side: "bottom", at: 0, label: 4 }],
+      start: { x: 0, y: 0 }, facing: "down" },
+    { cols: 6, rows: 4, vWalls: [[0, 1], [2, 2], [4, 0], [3, 3]], hWalls: [[1, 1], [4, 1]],
+      exits: [{ side: "left", at: 0, label: 1 }, { side: "top", at: 2, label: 2 },
+              { side: "right", at: 2, label: 3 }, { side: "bottom", at: 5, label: 4 }],
+      start: { x: 4, y: 2 }, facing: "down" }
+  ];
+
+  function logMazeBounce(i) {
+    if (!D) return null;
+    const m = MAZE_POOL[i % MAZE_POOL.length];
+    const run = runMaze(m);
+    const NEVER = "It never escapes from the maze";
+    const answer = run.escaped ? `Exit ${run.escaped}` : NEVER;
+    /* The other four possibilities, in the paper's own order, minus whichever
+       one is right. The "never escapes" option always stays on the page: it is
+       the answer a child reaches by giving up on the tracing, and leaving it
+       out would make the question easier than the paper's. */
+    const all = ["Exit 1", "Exit 2", "Exit 3", "Exit 4", NEVER];
+    const wrong = all.filter(o => o !== answer);
+    const q = mkFig("Logic",
+      `A clockwork toy is released into the maze shown, at the dot, travelling ` +
+      `in the direction of the arrow.\n\n` +
+      `Every time it meets a wall it turns 90° clockwise and carries on ` +
+      `forwards. It escapes only by travelling out through an exit — passing ` +
+      `alongside one does not count.\n\n` +
+      `Through which exit does the toy escape?`,
+      answer,
+      [wrong[wrong.length - 1], wrong[0], wrong[1], wrong[2]],
+      4, i, D.maze(m));
+    if (q) {
+      /* A leg on which the toy moved nowhere - blocked the moment it turned -
+         still has to be reported, or consecutive legs look like an
+         anticlockwise turn. Dropping them described "down, then up", which is
+         two clockwise turns and reads as one anticlockwise one. */
+      const parts = [];
+      let extraTurns = 0;
+      run.legs.forEach(l => {
+        if (!l.steps) { extraTurns += 1; return; }
+        if (!parts.length && extraTurns) {
+          parts.push(`cannot move at first, so turns clockwise ` +
+            `${extraTurns === 1 ? "once" : extraTurns === 2 ? "twice" : `${extraTurns} times`}`);
+          extraTurns = 0;
+        } else if (parts.length) {
+          const t = extraTurns + 1;
+          parts.push(`turns clockwise ${t === 1 ? "once" : t === 2 ? "twice" : `${t} times`}`);
+        }
+        parts.push(`goes ${l.steps} ${l.steps === 1 ? "square" : "squares"} ${MAZE_DIR_NAMES[l.dir]}`);
+        extraTurns = 0;
+      });
+      const path = parts.join(", ");
+      q.explain =
+        `Trace it one leg at a time, and remember that clockwise from up is ` +
+        `right, then down, then left. Do not try to see the answer — the path ` +
+        `is the only way to it. This toy ${path}` +
+        (run.escaped
+          ? `, and that last leg takes it out through Exit ${run.escaped}.`
+          : `, and then arrives back in a square it has already been in, facing ` +
+            `the same way as before. From there the whole path repeats, so it ` +
+            `circles for ever and never escapes.`) +
+        ` A toy running alongside an opening does not leave through it: it has ` +
+        `to be travelling at the wall the opening is in.`;
+    }
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -6589,7 +6766,8 @@ const QUESTIONS = [];
       [logBandedSeatCount, 4, 4],         // rows closed, rows short, rest full
       [logTimeZoneChain, 4, 4],           // two offsets, one of them implied
       [logClocksCoincide, 4, 4],          // one gains, one loses
-      [logClockDigits, 4, 4]              // the next time with the same digits
+      [logClockDigits, 4, 4],             // the next time with the same digits
+      [logMazeBounce, 4, 4]               // turn clockwise at every wall
     ]
   };
 
