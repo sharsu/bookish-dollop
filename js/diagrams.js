@@ -567,7 +567,117 @@
     };
   }
 
-  root.DIAGRAMS = { maze, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+
+  /* ── three circles, one letter per region ─────────────────────────────
+     `letters` supplies the seven inner regions in this fixed order:
+       onlyA, onlyB, onlyC, AB, AC, BC, ABC
+     Each label position is chosen so it sits inside exactly the circles that
+     region belongs to; the assertion below is what keeps that true if the
+     geometry is ever adjusted. */
+  function vennThree({ labelA, labelB, labelC, letters, outside }) {
+    const w = 320, h = 268;
+    const R = 64;
+    const A = [108, 100], B = [192, 100], C = [150, 168];
+    const SPOTS = {
+      onlyA: [70, 84], onlyB: [230, 84], onlyC: [150, 216],
+      AB: [150, 80], AC: [100, 152], BC: [200, 152], ABC: [150, 123]
+    };
+    const inside = (p, c) => (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 < R * R;
+    const WANT = {
+      onlyA: [1, 0, 0], onlyB: [0, 1, 0], onlyC: [0, 0, 1],
+      AB: [1, 1, 0], AC: [1, 0, 1], BC: [0, 1, 1], ABC: [1, 1, 1]
+    };
+    Object.entries(SPOTS).forEach(([key, p]) => {
+      const got = [inside(p, A), inside(p, B), inside(p, C)].map(Number);
+      if (got.join() !== WANT[key].join())
+        throw new Error(`vennThree: the ${key} label is in the wrong region`);
+    });
+
+    let body = `<rect x="6" y="6" width="${w - 12}" height="${h - 30}" fill="none" stroke="${INK}" stroke-width="1.5"/>`;
+    [[A, FILL_SOFT], [B, "#fde68a"], [C, "#bbf7d0"]].forEach(([c, fill]) => {
+      body += `<circle cx="${c[0]}" cy="${c[1]}" r="${R}" fill="${fill}" ` +
+              `fill-opacity="0.5" stroke="${INK}" stroke-width="1.5"/>`;
+    });
+    const order = ["onlyA", "onlyB", "onlyC", "AB", "AC", "BC", "ABC"];
+    order.forEach((key, k) => {
+      body += text(SPOTS[key][0], SPOTS[key][1] + 5, letters[k], { size: 14, weight: 700 });
+    });
+    body += text(A[0] - 34, 26, labelA, { size: 12, weight: 700 }) +
+            text(B[0] + 34, 26, labelB, { size: 12, weight: 700 }) +
+            text(C[0], h - 12, labelC, { size: 12, weight: 700 });
+    if (outside) body += text(w - 22, h - 40, outside, { size: 14, weight: 700, anchor: "end" });
+
+    /* The alt text has to name which circles each letter is in, or the question
+       cannot be answered without seeing the picture. */
+    const words = [
+      `${letters[0]} is in ${labelA} only`,
+      `${letters[1]} is in ${labelB} only`,
+      `${letters[2]} is in ${labelC} only`,
+      `${letters[3]} is in ${labelA} and ${labelB} but not ${labelC}`,
+      `${letters[4]} is in ${labelA} and ${labelC} but not ${labelB}`,
+      `${letters[5]} is in ${labelB} and ${labelC} but not ${labelA}`,
+      `${letters[6]} is in all three`
+    ];
+    return {
+      image: wrap(w, h, body),
+      alt: `A Venn diagram with three overlapping circles labelled ${labelA}, ` +
+           `${labelB} and ${labelC}, and a letter in each region. ` +
+           words.join("; ") +
+           (outside ? `; ${outside} is outside all three circles` : "") + `.`
+    };
+  }
+
+
+  /* ── four small speed-time graphs, labelled, for a "which graph" question ──
+     Each graph is a list of [minutes, speed] legs walked left to right. Steady
+     speed is a HORIZONTAL line on a speed-time graph, which is the whole point
+     of the question - on a distance-time graph it would slope. */
+  function speedTimeChoices(graphs, { maxTime, maxSpeed }) {
+    const gw = 150, gh = 104, padL = 30, padB = 22, gap = 22;
+    const cols = 2, rows = Math.ceil(graphs.length / cols);
+    const w = cols * (gw + gap) + gap, h = rows * (gh + gap + 16) + gap;
+    let body = "";
+    graphs.forEach((legs, k) => {
+      const ox = gap + (k % cols) * (gw + gap);
+      const oy = gap + Math.floor(k / cols) * (gh + gap + 16) + 12;
+      const X = t => ox + padL + (t / maxTime) * (gw - padL - 6);
+      const Y = v => oy + (gh - padB) - (v / maxSpeed) * (gh - padB - 8);
+      /* Axes, with the speed scale marked so the graphs can be told apart. */
+      body += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(maxTime)}" y2="${Y(0)}" stroke="${INK}" stroke-width="1.4"/>` +
+              `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(maxSpeed)}" stroke="${INK}" stroke-width="1.4"/>`;
+      for (let v = 0; v <= maxSpeed; v += maxSpeed / 2) {
+        body += `<line x1="${X(0) - 3}" y1="${Y(v)}" x2="${X(0)}" y2="${Y(v)}" stroke="${INK}" stroke-width="1"/>` +
+                text(X(0) - 6, Y(v) + 4, v, { anchor: "end", size: 9 });
+      }
+      /* The trace: a horizontal run at each speed, joined vertically. */
+      let t = 0, prev = null, path = "";
+      legs.forEach(([mins, speed]) => {
+        if (prev !== null) path += ` L ${X(t).toFixed(1)} ${Y(speed).toFixed(1)}`;
+        else path += `M ${X(t).toFixed(1)} ${Y(speed).toFixed(1)}`;
+        t += mins;
+        path += ` L ${X(t).toFixed(1)} ${Y(speed).toFixed(1)}`;
+        prev = speed;
+      });
+      body += `<path d="${path}" fill="none" stroke="${FILL}" stroke-width="2.4"/>` +
+              text(ox + padL, oy - 4, `Graph ${"ABCD"[k]}`, { size: 12, weight: 700, anchor: "start" }) +
+              text(ox + padL + (gw - padL) / 2, oy + gh - 4, "time (min)", { size: 9 });
+    });
+    return {
+      image: wrap(w, h, body),
+      /* Each graph is described leg by leg, because "four speed-time graphs" is
+         not something a question can be answered from. */
+      alt: `Four speed-time graphs, with speed in metres per second up the side ` +
+           `and time in minutes along the bottom. ` +
+           graphs.map((legs, k) => {
+             const parts = legs.map(([mins, speed]) => speed === 0
+               ? `stopped for ${mins} minutes`
+               : `${speed} m/s for ${mins} minutes`);
+             return `Graph ${"ABCD"[k]} shows ` + parts.join(", then ");
+           }).join(". ") + `.`
+    };
+  }
+
+  root.DIAGRAMS = { maze, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };
