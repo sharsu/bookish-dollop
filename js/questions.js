@@ -3348,11 +3348,32 @@ const QUESTIONS = [];
     const bad = [Math.floor(low) - 2 - (i % 3), rest + 2 + (i % 4), largest + 5];
     if (bad.some(b => b > low && b < rest)) return null;   // a distractor must be wrong
     if (new Set(bad).size < 3 || bad.some(b => b <= 0)) return null;
-    return mk("Statistics",
+    const q = mk("Statistics",
       `One angle of a scalene triangle is ${largest}°. Which of these could be the median ` +
       `of the three angles of the triangle?`,
       `${ans}°`, bad.map(b => `${b}°`),
       4, i);
+    /* bad[0] is below the range and bad[1] and bad[2] are above it, which is
+       what the guards above have just established - so each can be ruled out by
+       name instead of in general. */
+    if (q) q.explain =
+      `Step 1. ${largest}° is more than half of 180°, so it must be the largest ` +
+      `of the three: the other two have only 180 − ${largest} = ${rest}° to ` +
+      `share between them.\n\n` +
+      `Step 2. The triangle is scalene, so those two differ, and the median is ` +
+      `the larger of them. Being the larger it must be more than half of ` +
+      `${rest}, which is ${fmt(low)}°; and it must be less than ${rest}° ` +
+      `itself, because the smallest angle still needs something. So the median ` +
+      `lies between ${fmt(low)}° and ${rest}°.\n\n` +
+      `Step 3. ${ans}° fits: the third angle is ${rest} − ${ans} = ` +
+      `${rest - ans}°, and ${largest}, ${ans} and ${rest - ans} are all ` +
+      `different and add to 180.\n\n` +
+      `Why ${bad[0]}° cannot be it, even though it is small enough to be an ` +
+      `angle: the third angle would be ${rest} − ${bad[0]} = ${rest - bad[0]}°, ` +
+      `and ${rest - bad[0]} is bigger than ${bad[0]} — so ${rest - bad[0]}° ` +
+      `would be the median instead. ${bad[1]}° and ${bad[2]}° are both larger ` +
+      `than ${rest}°, which would leave the third angle at zero or below.`;
+    return q;
   }
 
   /* ═══════════════════ COUNTING PRINCIPLE ═══════════════════
