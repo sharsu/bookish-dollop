@@ -6717,6 +6717,211 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* MKT Maths 9 Q24: the options are sums of region labels, not numbers - the
+     question is which parts of the diagram make up one circle. */
+  const VENN3_SETS = [
+    ["Apples", "Grapes", "Peaches", "students"],
+    ["Football", "Chess", "Swimming", "pupils"],
+    ["French", "German", "Spanish", "students"],
+    ["Cats", "Dogs", "Rabbits", "households"],
+    ["Cycling", "Running", "Rowing", "members"],
+    ["Piano", "Violin", "Guitar", "children"]
+  ];
+
+  function statVennThreeRegions(i) {
+    if (!D) return null;
+    const [nameA, nameB, nameC, who] = VENN3_SETS[i % VENN3_SETS.length];
+    /* The letters rotate so the answer is not always the same set of them. */
+    const alphabet = "ABCDEFGH".split("");
+    const shift = Math.floor(i / VENN3_SETS.length) % 7;
+    const letters = alphabet.slice(0, 7).map((_, k) => alphabet[(k + shift) % 7]);
+    const outside = alphabet[7];
+    /* Region order is onlyA, onlyB, onlyC, AB, AC, BC, ABC. */
+    const ofA = [0, 3, 4, 6], ofB = [1, 3, 5, 6], ofC = [2, 4, 5, 6];
+    const which = i % 3;
+    const wanted = [ofA, ofB, ofC][which];
+    const other = [ofB, ofC, ofA][which];
+    const name = [nameA, nameB, nameC][which];
+    const sum = idx => idx.map(k => letters[k]).sort().join(" + ");
+    const q = mkFig("Statistics",
+      `The Venn diagram shows how many ${who} like each kind of fruit or ` +
+      `activity, with a letter standing for the number in each region.\n\n` +
+      `Which expression gives the total number of ${who} who like ${name}?`,
+      sum(wanted),
+      [sum(wanted.slice(0, 3)),                 // forgot the middle region
+       sum(other),                              // the wrong circle
+       letters[wanted[0]],                      // only the region that is in nothing else
+       sum([wanted[0], wanted[3]]),
+       sum(wanted.slice(1))],
+      4, i,
+      D.vennThree({ labelA: nameA, labelB: nameB, labelC: nameC, letters, outside }));
+    if (q) q.explain =
+      `Everybody inside the ${name} circle likes ${name}, however many other ` +
+      `circles they are also inside — so add up EVERY region within it, not just ` +
+      `the part that belongs to ${name} alone. There are four such regions: ` +
+      `${sum(wanted)}. The commonest slip is leaving out the middle region, ` +
+      `where all three circles overlap, which gives ${sum(wanted.slice(0, 3))}.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q2: a pie chart labelled in percentages, and the DIFFERENCE
+     between two of the sectors once the total is known. */
+  const PIE_PCT_SETS = [
+    { what: "drinks chosen at a party", who: "people", total: 200,
+      parts: [["Cola", 50], ["Squash", 20], ["Pepsi", 15], ["Milkshake", 10], ["Sprite", 5]] },
+    { what: "colours of T-shirt in a shop", who: "shirts", total: 400,
+      parts: [["Grey", 35], ["Red", 25], ["Blue", 20], ["Green", 15], ["Black", 5]] },
+    { what: "ways pupils travel to school", who: "pupils", total: 300,
+      parts: [["Walk", 40], ["Bus", 30], ["Car", 20], ["Cycle", 10]] },
+    { what: "books borrowed from a library", who: "books", total: 500,
+      parts: [["Fiction", 45], ["History", 25], ["Science", 20], ["Poetry", 10]] },
+    { what: "pets owned by a class", who: "pets", total: 240,
+      parts: [["Dog", 40], ["Cat", 25], ["Fish", 20], ["Rabbit", 15]] },
+    { what: "fruit sold by a market stall", who: "items", total: 600,
+      parts: [["Apples", 35], ["Bananas", 30], ["Pears", 20], ["Plums", 15]] },
+    { what: "sandwiches sold by a cafe", who: "sandwiches", total: 800,
+      parts: [["Cheese", 30], ["Ham", 25], ["Tuna", 25], ["Egg", 20]] },
+    { what: "instruments played in an orchestra", who: "players", total: 120,
+      parts: [["Strings", 50], ["Brass", 20], ["Woodwind", 20], ["Percussion", 10]] },
+    { what: "sports chosen for games afternoon", who: "pupils", total: 360,
+      parts: [["Rugby", 35], ["Hockey", 30], ["Netball", 25], ["Tennis", 10]] },
+    { what: "types of tree in a wood", who: "trees", total: 1000,
+      parts: [["Oak", 40], ["Ash", 25], ["Birch", 20], ["Beech", 15]] },
+    { what: "flavours of ice cream sold in a week", who: "tubs", total: 240,
+      parts: [["Vanilla", 40], ["Chocolate", 25], ["Strawberry", 20], ["Mint", 15]] },
+    { what: "coats handed in to lost property", who: "coats", total: 80,
+      parts: [["Black", 45], ["Navy", 25], ["Grey", 20], ["Brown", 10]] }
+  ];
+
+  const piePercentSectors = set =>
+    set.parts.map(([label, pct]) => [`${label} — ${pct}%`, pct * 3.6]);
+
+  function statPieDifference(i) {
+    if (!D) return null;
+    const set = PIE_PCT_SETS[i % PIE_PCT_SETS.length];
+    if (set.parts.reduce((t, p) => t + p[1], 0) !== 100) return null;
+    /* Both sectors from a part of the seed that does not move with the set
+       index, or each set only ever produces the same pairing. */
+    const n = set.parts.length;
+    const bi = Math.floor(i / PIE_PCT_SETS.length) % n;
+    const si = (bi + 1 + Math.floor(i / (PIE_PCT_SETS.length * n)) % (n - 1)) % n;
+    /* Order them rather than rejecting the seed: "how many more" just needs to
+       name the larger one first, and rejecting threw away two seeds in three. */
+    const pair = [set.parts[bi], set.parts[si]].sort((x, y) => y[1] - x[1]);
+    const big = pair[0], small = pair[1];
+    if (big[1] === small[1]) return null;         // no difference to ask about
+    const gap = big[1] - small[1];
+    const ans = (gap / 100) * set.total;
+    if (!Number.isInteger(ans) || ans <= 0) return null;
+    const at = pct => (pct / 100) * set.total;
+    const q = mkFig("Statistics",
+      `The pie chart shows the ${set.what}.\n\n` +
+      `There were ${comma(set.total)} ${set.who} altogether. How many more were ` +
+      `${big[0]} than ${small[0]}?`,
+      `${comma(ans)} ${set.who}`,
+      [`${comma(at(big[1]))} ${set.who}`,        // just the larger sector
+       `${comma(at(small[1]))} ${set.who}`,      // just the smaller one
+       `${comma(at(big[1] + small[1]))} ${set.who}`,   // added them instead
+       `${comma(gap)} ${set.who}`,               // gave the percentage difference
+       `${comma(ans / 2)} ${set.who}`],
+      4, i, D.pieChart(piePercentSectors(set)));
+    if (q) q.explain =
+      `Find the difference in PERCENTAGE first, then turn it into ` +
+      `${set.who}: ${big[0]} is ${big[1]}% and ${small[0]} is ${small[1]}%, a gap ` +
+      `of ${gap}%. Now ${gap}% of ${comma(set.total)} = ${comma(ans)}. Working out ` +
+      `each sector separately and subtracting gives the same answer — ` +
+      `${comma(at(big[1]))} − ${comma(at(small[1]))} = ${comma(ans)} — but the ` +
+      `${gap}% itself is not the answer, because the question asks for ${set.who}.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q15: two sectors are worth N between them; how many altogether?
+     The whole from a part, which is the reverse of the usual pie question. */
+  function statPieTotalFromPart(i) {
+    if (!D) return null;
+    const set = PIE_PCT_SETS[(i + 3) % PIE_PCT_SETS.length];
+    if (set.parts.reduce((t, p) => t + p[1], 0) !== 100) return null;
+    const n = set.parts.length;
+    const ai = Math.floor(i / PIE_PCT_SETS.length) % n;
+    const bi = (ai + 1) % n;
+    const a = set.parts[ai], b = set.parts[bi];
+    const share = a[1] + b[1];
+    if (share >= 100) return null;
+    const known = (share / 100) * set.total;
+    if (!Number.isInteger(known)) return null;
+    const q = mkFig("Statistics",
+      `The pie chart shows the ${set.what}.\n\n` +
+      `The ${a[0].toLowerCase()} and the ${b[0].toLowerCase()} come to ` +
+      `${comma(known)} ${set.who} between them. How many ${set.who} are there in total?`,
+      `${comma(set.total)} ${set.who}`,
+      [`${comma(known * 2)} ${set.who}`,                       // doubled it
+       `${comma(Math.round(known * 100 / a[1]))} ${set.who}`,  // used one sector only
+       `${comma(known + share)} ${set.who}`,
+       `${comma(Math.round(set.total / 2))} ${set.who}`,
+       `${comma(set.total + known)} ${set.who}`],
+      4, i, D.pieChart(piePercentSectors(set)));
+    if (q) q.explain =
+      `The two sectors named come to ${a[1]}% + ${b[1]}% = ${share}% of ` +
+      `everything, and that ${share}% is ${comma(known)} ${set.who}. So 1% is ` +
+      `${comma(known)} ÷ ${share} = ${comma(known / share)}, and 100% is ` +
+      `${comma(known / share)} × 100 = ${comma(set.total)}. Going from a part to ` +
+      `the whole means dividing by the part's percentage and multiplying by 100 — ` +
+      `not doubling, which is only right when the part happens to be half.`;
+    return q;
+  }
+
+
+  /* MKT Maths 9 Q5: a journey in words, and four speed-time graphs to choose
+     between. The distractors are the mistakes the question is built around -
+     the two speeds the wrong way round, the stop left out, and the stop put in
+     the wrong place - so every graph is a plausible reading of the words. */
+  const JOURNEY_POOL = [
+    { legs: [[20, 20], [30, 0], [60, 30]], maxSpeed: 40 },
+    { legs: [[15, 10], [15, 0], [30, 20]], maxSpeed: 30 },
+    { legs: [[30, 30], [20, 0], [40, 10]], maxSpeed: 40 },
+    { legs: [[10, 20], [20, 0], [30, 40]], maxSpeed: 50 },
+    { legs: [[25, 15], [25, 0], [50, 25]], maxSpeed: 30 },
+    { legs: [[40, 25], [10, 0], [20, 15]], maxSpeed: 30 },
+    { legs: [[20, 30], [40, 0], [30, 20]], maxSpeed: 40 },
+    { legs: [[30, 10], [15, 0], [45, 30]], maxSpeed: 40 }
+  ];
+
+  function spdSpeedTimeMatch(i) {
+    if (!D) return null;
+    const j = JOURNEY_POOL[i % JOURNEY_POOL.length];
+    const [[t1, v1], [t2], [t3, v3]] = j.legs;
+    const right = j.legs;
+    /* Three wrong graphs, each a specific misreading. */
+    const swapped = [[t1, v3], [t2, 0], [t3, v1]];
+    const noStop = [[t1, v1], [t3, v3]];
+    const stopFirst = [[t2, 0], [t1, v1], [t3, v3]];
+    const candidates = [right, swapped, noStop, stopFirst];
+    /* Rotate which lettered graph is correct, or the answer is always A. */
+    const shift = Math.floor(i / JOURNEY_POOL.length) % 4;
+    const graphs = candidates.map((_, k) => candidates[(k - shift + 4) % 4]);
+    const answerIndex = shift;
+    const maxTime = t1 + t2 + t3;
+    const spell = m => (m % 60 === 0 && m >= 60
+      ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`);
+    const q = mkFig("Speed",
+      `A car travelled at ${v1} m/s for ${spell(t1)}. It then stopped at a ` +
+      `service station for ${spell(t2)}. Finally it travelled at ${v3} m/s for ` +
+      `${spell(t3)}.\n\nWhich graph shows the car's journey?`,
+      `Graph ${"ABCD"[answerIndex]}`,
+      ["ABCD".split("").filter((_, k) => k !== answerIndex).map(L => `Graph ${L}`)].flat(),
+      4, i,
+      D.speedTimeChoices(graphs, { maxTime, maxSpeed: j.maxSpeed }));
+    if (q) q.explain =
+      `On a SPEED-time graph a steady speed is a flat line, not a sloping one — ` +
+      `a sloping line would mean the speed itself was changing. So the journey ` +
+      `is three flat runs: one at ${v1} m/s lasting ${spell(t1)}, one at 0 for ` +
+      `${spell(t2)} while it is stopped, and one at ${v3} m/s lasting ` +
+      `${spell(t3)}. Check the heights and the widths in that order, and watch ` +
+      `for the graph that has the two speeds the wrong way round.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -6875,6 +7080,7 @@ const QUESTIONS = [];
     Speed: [
       [spdCombinedTaps, 4, 4],            // two taps filling one tank
       [spdHalfSpeedWithStops, 4, 4],      // half the speed is twice the time
+      [spdSpeedTimeMatch, 4, 4],          // steady speed is a FLAT line here
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
       [spdMphHoursMin, 2, 3],             // mixed hours and minutes
       [spdGapBetweenTwo, 3, 3],
@@ -6943,6 +7149,9 @@ const QUESTIONS = [];
       [statAboveMean, 4, 4],              // count the bars above the mean
       [statPossibleRange, 4, 4],          // one member unknown, so the range is a span
       [statLargestDailyRange, 4, 4],      // the range of one day, not of the week
+      [statVennThreeRegions, 4, 4],       // which regions make up one circle
+      [statPieDifference, 4, 4],          // the gap between two sectors
+      [statPieTotalFromPart, 4, 4],       // the whole from a part
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
       [statMissingMean, 3, 3],            // mean worked backwards
       [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
