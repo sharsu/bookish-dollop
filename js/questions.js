@@ -6922,6 +6922,201 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* MKT Maths 9 Q55: a hexagonal pyramid, and the ratio of its faces to its
+     vertices. geoPrismFEV covers prisms - F = n + 2, E = 3n, V = 2n - and a
+     pyramid is not the same shape of formula: F = n + 1, E = 2n, V = n + 1, so
+     its faces and vertices are always equal. That last fact is worth a question
+     of its own, because "the same" is a surprising answer. */
+  /* The base's own noun is stored rather than derived from the adjective:
+     stripping "al" and adding "on" turned decagonal into "decagonon". */
+  const PYRAMID_BASES = [
+    [3, "triangular", "triangle"], [4, "square", "square"],
+    [5, "pentagonal", "pentagon"], [6, "hexagonal", "hexagon"],
+    [7, "heptagonal", "heptagon"], [8, "octagonal", "octagon"],
+    [9, "nonagonal", "nonagon"], [10, "decagonal", "decagon"]
+  ];
+
+  function geoPyramidFEV(i) {
+    const [n, name, base] = PYRAMID_BASES[i % PYRAMID_BASES.length];
+    const F = n + 1, E = 2 * n, V = n + 1;
+    const asks = [
+      ["how many faces does it have", `${F}`, [`${n}`, `${E}`, `${F + 1}`, `${n + 2}`]],
+      ["how many edges does it have", `${E}`, [`${n}`, `${F}`, `${E + 1}`, `${3 * n}`]],
+      ["how many vertices does it have", `${V}`, [`${n}`, `${E}`, `${2 * n}`, `${V + 1}`]],
+      ["what is the ratio of its faces to its vertices", "1 : 1",
+       [`${F} : ${E}`, `${n} : ${F}`, `${E} : ${F}`, "2 : 1"]]
+    ];
+    const [phrase, ans, wrong] = asks[Math.floor(i / PYRAMID_BASES.length) % asks.length];
+    const q = mk("Geometry",
+      `A ${name} pyramid has a ${base} for its base and a single apex.\n\n` +
+      `${phrase[0].toUpperCase() + phrase.slice(1)}?`,
+      ans, wrong, 4, i);
+    if (q) q.explain =
+      `A pyramid on an ${n}-sided base has ${n} triangular faces plus the base, ` +
+      `so F = ${n} + 1 = ${F}. It has the ${n} edges of the base plus ${n} sloping ` +
+      `up to the apex, so E = 2 × ${n} = ${E}. And it has the ${n} corners of the ` +
+      `base plus the apex, so V = ${n} + 1 = ${V}. Notice that F and V come out ` +
+      `equal for every pyramid — the ratio of faces to vertices is always 1 : 1, ` +
+      `whatever the base. Do not use the prism formulas: a prism has F = n + 2, ` +
+      `E = 3n and V = 2n.`;
+    return q;
+  }
+
+  /* A triangular prism: the cross-section is a triangle, so its area is halved
+     before the length is applied. Forgetting the half is the whole question. */
+  function meaTriangularPrismVolume(i) {
+    const b = 4 + 2 * axis(i, 0, 8);
+    const hgt = 3 + axis(i, 1, 9);
+    const len = 5 + 2 * axis(i, 2, 8);
+    if ((b * hgt) % 2) return null;                 // keep the answer whole
+    const ans = (b * hgt / 2) * len;
+    const q = mk("Measurement",
+      `A prism has a triangular cross-section with a base of ${b} cm and a ` +
+      `height of ${hgt} cm. The prism is ${len} cm long.\n\n` +
+      `What is its volume?`,
+      `${comma(ans)} cm³`,
+      [`${comma(b * hgt * len)} cm³`,               // forgot to halve the triangle
+       `${comma(Math.round(b * hgt * len / 3))} cm³`,  // used a third, as for a pyramid
+       `${comma(b * hgt / 2)} cm³`,                 // stopped at the cross-section
+       `${comma(ans * 2)} cm³`, `${comma((b + hgt) * len)} cm³`],
+      4, i);
+    if (q) q.explain =
+      `The volume of any prism is the area of its cross-section times its ` +
+      `length. The cross-section here is a triangle, so its area is ` +
+      `½ × ${b} × ${hgt} = ${comma(b * hgt / 2)} cm², not ${comma(b * hgt)} cm². ` +
+      `Then ${comma(b * hgt / 2)} × ${len} = ${comma(ans)} cm³. Leaving the half ` +
+      `out gives ${comma(b * hgt * len)}, which is the volume of the box the ` +
+      `prism would fit inside.`;
+    return q;
+  }
+
+  /* MKT Maths 9: "by what percentage should the car decrease its speed so that
+     the speed becomes 80 m/s?" The percentage is of the ORIGINAL, and dividing
+     by the new figure instead is the mistake worth offering. */
+  function pctDecreaseToTarget(i) {
+    /* Both from i % 10 gave ten combinations and eight surviving questions. */
+    const from = [100, 200, 250, 400, 500, 50, 300, 80, 120, 150][i % 10];
+    const drop = [10, 20, 25, 40, 50, 5, 30, 15, 60, 75][Math.floor(i / 10) % 10];
+    const to = from * (100 - drop) / 100;
+    if (!Number.isInteger(to) || to <= 0) return null;
+    const wrongWay = Math.round((from - to) / to * 1000) / 10;
+    const q = mk("Percentages",
+      `A car is travelling at ${from} m/s.\n\n` +
+      `By what percentage must its speed decrease so that it is travelling at ` +
+      `${to} m/s?`,
+      `${drop}%`,
+      [`${fmt(wrongWay)}%`,                  // divided by the new speed, not the old
+       `${from - to}%`,                      // gave the drop in m/s as a percentage
+       `${100 - drop}%`,                     // gave what is left rather than what goes
+       `${drop / 2}%`, `${drop * 2}%`],
+      4, i);
+    if (q) q.explain =
+      `A percentage change is always measured against what you STARTED with. ` +
+      `The speed falls by ${from} − ${to} = ${from - to} m/s, and that has to be ` +
+      `written as a fraction of the original ${from}: ${from - to} ÷ ${from} = ` +
+      `${fmt((from - to) / from)}, which is ${drop}%. Dividing by the new speed ` +
+      `instead gives ${fmt(wrongWay)}%, and that is the answer to a different ` +
+      `question — by what percentage would ${to} have to INCREASE to reach ${from}.`;
+    return q;
+  }
+
+  /* "How much will it cost to buy enough paint to cover shape B, if each 1 litre
+     tin costs 3?" Tins come whole, so the division has to round UP however small
+     the leftover is - and then the cost follows. */
+  function meaPaintTins(i) {
+    const area = 20 + 3 * axis(i, 0, 20);
+    const covers = 4 + axis(i, 1, 5);
+    const cost = 3 + axis(i, 2, 6);
+    const tins = Math.ceil(area / covers);
+    if (area % covers === 0) return null;           // no rounding up to do
+    const total = tins * cost;
+    const q = mk("Measurement",
+      `A wall has an area of ${area} m². One tin of paint covers ${covers} m², ` +
+      `and a tin costs £${cost}.\n\n` +
+      `What is the least it can cost to buy enough paint for the whole wall?`,
+      money(total),
+      [money(Math.floor(area / covers) * cost),      // rounded the tins down
+       money(Math.round(area / covers * cost * 100) / 100),  // bought part of a tin
+       money(area * cost),                           // a tin per square metre
+       money(total + cost), money(tins)],
+      4, i);
+    if (q) q.explain =
+      `Work out the tins first, and round UP. ${tins - 1} tins cover ` +
+      `${comma((tins - 1) * covers)} m², which is not enough for ${area} m², and ` +
+      `${tins} tins cover ${comma(tins * covers)} m², which is — so ${tins} tins ` +
+      `have to be bought, and the last one is mostly unused. Then ${tins} × ` +
+      `£${cost} = ${money(total)}. Rounding down to ${tins - 1} gives ` +
+      `${money((tins - 1) * cost)} and leaves part of the wall bare.`;
+    return q;
+  }
+
+  /* MKT Maths 9: "the difference between the largest and the smallest whole
+     numbers that round to 45,650 to the nearest 50". The bounds are half a step
+     either side, and the gap between the whole numbers inside them is one less
+     than the step - which is the part that surprises. */
+  function numRoundingBoundsGap(i) {
+    const step = [10, 50, 100, 20, 500, 1000, 5, 200][i % 8];
+    const target = step * (12 + axis(i, 1, 90));
+    const lowest = target - step / 2;               // rounds up by convention
+    const highest = target + step / 2 - 1;
+    if (!Number.isInteger(lowest)) return null;
+    const ans = highest - lowest;
+    const q = mk("Numbers",
+      `A whole number is rounded to the nearest ${step} and the answer is ` +
+      `${comma(target)}.\n\n` +
+      `What is the difference between the largest and the smallest whole number ` +
+      `it could have been?`,
+      `${comma(ans)}`,
+      [`${comma(step)}`,                             // gave the step itself
+       `${comma(step / 2)}`,                         // gave half the step
+       `${comma(ans + 1)}`, `${comma(step - 2)}`, `${comma(step * 2)}`],
+      4, i);
+    if (q) q.explain =
+      `Anything from half a step below to half a step above rounds to ` +
+      `${comma(target)}. Half of ${step} is ${step / 2}, so the smallest is ` +
+      `${comma(target)} − ${step / 2} = ${comma(lowest)}, which rounds up, and ` +
+      `the largest is ${comma(target)} + ${step / 2} − 1 = ${comma(highest)}, ` +
+      `because ${comma(target + step / 2)} would round up to the next ${step} ` +
+      `instead. The difference is ${comma(highest)} − ${comma(lowest)} = ` +
+      `${comma(ans)} — one less than ${step}, not ${step}.`;
+    return q;
+  }
+
+  /* MKT Maths 9 Q13: Mark's scale of 'ticks' and 'tocks'. Two invented units and
+     a rate between them, which is a ratio question wearing a disguise - and the
+     disguise is what makes it hard, because there is no familiar unit to lean on. */
+  function ratInventedScale(i) {
+    const NAMES = [["ticks", "tocks"], ["glips", "glops"], ["zags", "zigs"],
+                   ["murps", "murks"], ["blens", "blons"], ["quils", "quals"]];
+    const [a, b] = NAMES[i % NAMES.length];
+    const na = 2 + axis(i, 0, 5), nb = 2 + axis(i, 1, 6);
+    if (na === nb) return null;                     // a 1:1 scale asks nothing
+    const given = nb * (2 + axis(i, 2, 9));         // a whole number of the second unit
+    const ans = given / nb * na;
+    if (!Number.isInteger(ans)) return null;
+    const q = mk("Ratio",
+      `On Mark's scale, ${na} ${a} measure the same length as ${nb} ${b}.\n\n` +
+      `How many ${a} are there in ${given} ${b}?`,
+      `${comma(ans)} ${a}`,
+      [`${comma(given / na * nb)} ${b === a ? "" : a}`.trim(),   // used the ratio upside down
+       `${comma(given)} ${a}`,                                   // assumed they are the same
+       `${comma(given * na)} ${a}`, `${comma(Math.round(given / na))} ${a}`,
+       `${comma(ans + na)} ${a}`],
+      4, i);
+    if (q) q.explain =
+      `Work in whole lots and no decimals are needed. ${nb} ${b} make ${na} ${a}, ` +
+      `so first ask how many lots of ${nb} there are: ${given} ÷ ${nb} = ` +
+      `${comma(given / nb)}. Each of those lots is worth ${na} ${a}, so ` +
+      `${comma(given / nb)} × ${na} = ${comma(ans)} ${a}. Finding what one ` +
+      `${b.replace(/s$/, "")} is worth first also works, but it can give a ` +
+      `recurring decimal — and rounding it before you multiply will not land on ` +
+      `the exact answer. Check the direction too: there are ` +
+      `${na < nb ? "fewer" : "more"} ${a} than ${b}, so the answer should be ` +
+      `${na < nb ? "smaller" : "larger"} than ${given}.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -6966,7 +7161,8 @@ const QUESTIONS = [];
       [numFactorsNotFactors, 4, 4],       // two factor lists, then subtract
       [numDistinctPrimeFactors, 4, 4],    // different primes, not counting repeats
       [numSupplyDuration, 4, 4],          // complete days, or the day it runs out
-      [numExtremeDivisible, 4, 4]         // step inwards from each end
+      [numExtremeDivisible, 4, 4],        // step inwards from each end
+      [numRoundingBoundsGap, 4, 4]        // the gap is one less than the step
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -6999,6 +7195,7 @@ const QUESTIONS = [];
       [figShadedTriangles, 3, 3]          // a shape cut into equal triangles
     ],
     Percentages: [
+      [pctDecreaseToTarget, 4, 4],        // the percentage is of the ORIGINAL
       [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
       [pctSalePrice, 2, 2], [pctIncrease, 2, 2], [pctSimpleInterest, 2, 3],
       [pctReverse, 2, 3],                 // work back to the original
@@ -7059,6 +7256,7 @@ const QUESTIONS = [];
       [seqInterleaved, 4, 4]              // two sequences laid alternately      // falling terms, growing gaps
     ],
     Ratio: [
+      [ratInventedScale, 4, 4],           // two invented units and a rate
       [ratSimplify, 1, 1], [ratSplit, 2, 2], [ratWordTotal, 2, 2],
       [ratDifference, 3, 3], [ratRecipe, 2, 2], [ratMapScale, 2, 2],
       [ratInverseProp, 3, 3],             // inverse proportion
@@ -7113,12 +7311,15 @@ const QUESTIONS = [];
       [meaEarningsPattern, 4, 4],         // a shift, days a week, and a rate
       /* question-bank/20260823-Onwards */
       [meaEstimateSize, 3, 4],            // a sensible length, height or capacity
-      [meaEstimateCombine, 4, 4]          // estimate two things, then combine
+      [meaEstimateCombine, 4, 4],         // estimate two things, then combine
+      [meaTriangularPrismVolume, 4, 4],   // halve the cross-section first
+      [meaPaintTins, 4, 4]                // tins come whole, so round up
     ],
     Geometry: [
       [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
       [geoCompassTurnSequence, 4, 4],     // three turns, angles over a full revolution
       [geoTurnThenWalk, 4, 4],            // reduce the turn, then walk
+      [geoPyramidFEV, 4, 4],              // a pyramid is not a prism
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
       [geoComplementary, 1, 2], [geoTriangleArea, 2, 2], [geoLinesSymmetry, 1, 2],
       [geoRotSymmetry, 2, 2], [geoPrismFEV, 2, 2], [geoCuboidMissingEdge, 2, 2],
