@@ -7284,296 +7284,314 @@ const QUESTIONS = [];
      property of the template, not of where a variation landed in the loop:
      "What is the LCM of 6 and 9?" is not harder than "the LCM of 15 and 20?"
      just because it was generated on a multiple of 5. Where a band spans more
-     than one level, the variations are spread evenly through it. */
+     than one level, the variations are spread evenly through it.
+
+     The bands are calibrated against MKT QE Maths Mock Paper 9, by counting the
+     computations a question needs to reach its answer. All 60 of the paper's
+     questions average 2.65 such steps, so:
+
+         1 step   → [2, 2]   below the paper's floor; not served in QE prep
+         2 steps  → [2, 3]   half its variations serve Hard
+         3 steps  → [3, 3]   the paper's own standard
+         4+ steps → [4, 4]   deliberately above the paper
+
+     That puts Hard at 2.67 steps against the paper's 2.65, and Super Hard at
+     4.00 — which is the point: Hard should feel like the real thing and Super
+     Hard should be harder than it.
+
+     A new template belongs in the band its step count earns. Note the paper does
+     NOT get harder by adding steps (its thirds run 2.85 → 2.55 → 2.55) — the late
+     questions are harder because the TYPE is unfamiliar, so step count sets the
+     band but is not on its own a measure of how hard a question is. */
   const generators = {
     Numbers: [
       [numPlaceValue, 1, 2],              // read one digit's value
-      [numPlaceValueDiff, 2, 3],          // two place values, then subtract
+      [numPlaceValueDiff, 3, 3],          // two place values, then subtract
       [numRounding, 1, 2],
-      [numRoundingBounds, 2, 3],          // rounding worked backwards
+      [numRoundingBounds, 2, 2],          // rounding worked backwards
       [numIsPrime, 1, 2],
       [numLCM, 2, 2],
       [numHCF, 2, 2],
       [numHCFofFour, 3, 3],               // four numbers at once
       [numPowers, 1, 1],
-      [numFactorCount, 2, 3],
-      [numPrimeFactorCount, 3, 3],        // index notation
+      [numFactorCount, 3, 3],
+      [numPrimeFactorCount, 2, 2],        // index notation
       [numArithmetic, 1, 2],
       [numWordProblem, 1, 1],
       [numBusLCM, 3, 3],                  // LCM of three, applied
       [numSmallestEvenFromDigits, 2, 3],
       [numCubeMissing, 2, 2],
       [numPrimeSumSquare, 4, 4],          // search over a range
-      [numFourConsecOdd, 3, 3],
-      [numCompareExpressions, 3, 3],      // four calculations, then compare
-      [numRoundLargePlace, 2, 3], [numDigitProductCount, 4, 4], [numClosestToTarget, 3, 3],
-      [numRemainderPuzzle, 4, 4],         // common multiple, then adjust
-      [numLastDigitPower, 4, 4],  // spot the repeating cycle
+      [numFourConsecOdd, 2, 3],
+      [numCompareExpressions, 4, 4],      // four calculations, then compare
+      [numRoundLargePlace, 2, 2], [numDigitProductCount, 4, 4], [numClosestToTarget, 2, 3],
+      [numRemainderPuzzle, 3, 3],         // common multiple, then adjust
+      [numLastDigitPower, 3, 3],  // spot the repeating cycle
       [numWordsToDigits, 2, 2],           // words to digits, empty hundreds column
-      [numSquaresMinusCubes, 4, 4],       // count squares and cubes in one list
-      [numFactorStatements, 4, 4],        // which claim about factors is false
-      [numDivisibilityRule, 3, 4],        // divides exactly, without dividing
+      [numSquaresMinusCubes, 3, 3],       // count squares and cubes in one list
+      [numFactorStatements, 3, 3],        // which claim about factors is false
+      [numDivisibilityRule, 3, 3],        // divides exactly, without dividing
       [numSmallestWithFactors, 4, 4],     // fewest number with that many factors
       /* question-bank/NewText, second scan */
-      [numOddFactorCount, 4, 4],          // strip the 2s out first
+      [numOddFactorCount, 3, 3],          // strip the 2s out first
       [numFactorsNotFactors, 4, 4],       // two factor lists, then subtract
-      [numDistinctPrimeFactors, 4, 4],    // different primes, not counting repeats
-      [numSupplyDuration, 4, 4],          // complete days, or the day it runs out
+      [numDistinctPrimeFactors, 2, 3],    // different primes, not counting repeats
+      [numSupplyDuration, 3, 3],          // complete days, or the day it runs out
       [numExtremeDivisible, 4, 4],        // step inwards from each end
-      [numRoundingBoundsGap, 4, 4]        // the gap is one less than the step
+      [numRoundingBoundsGap, 3, 3]        // the gap is one less than the step
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
       [decCompare, 1, 2], [decRound, 1, 2], [decToFrac, 2, 2],
-      [decHalfway, 3, 3],                 // midpoint of two decimals
-      [decMultFactReuse, 3, 4],           // reuse a known product, shift place value
-      [decPriceChange, 3, 3],             // increase then decrease
-      [decDivideByDecimal, 4, 4],         // dividing by a number below 1
-      [decChainedOf, 4, 4],               // decimal of a decimal of a whole
+      [decHalfway, 2, 2],                 // midpoint of two decimals
+      [decMultFactReuse, 2, 3],           // reuse a known product, shift place value
+      [decPriceChange, 2, 3],             // increase then decrease
+      [decDivideByDecimal, 2, 3],         // dividing by a number below 1
+      [decChainedOf, 2, 3],               // decimal of a decimal of a whole
       /* harder decimals */
-      [decMultiplyBySmall, 3, 4],         // the point shifts, the digits do not
-      [decOrderMixed, 3, 4],              // decimals against percentages
-      [decUnitPrice, 3, 4],               // better value, per 100 g
-      [decMultiplyGivenFact, 4, 4],       // a whole-number product handed over
-      [decMoneySplit, 4, 4]               // shared out, with pence left over
+      [decMultiplyBySmall, 2, 2],         // the point shifts, the digits do not
+      [decOrderMixed, 2, 3],              // decimals against percentages
+      [decUnitPrice, 3, 3],               // better value, per 100 g
+      [decMultiplyGivenFact, 2, 3],       // a whole-number product handed over
+      [decMoneySplit, 3, 3]               // shared out, with pence left over
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
       [fracSimplify, 1, 1], [fracImproperToMixed, 1, 2], [fracOfX, 2, 2],
       [fracMixedMultiply, 3, 3],          // convert, multiply, simplify
-      [fracOfFrac, 3, 3],                 // fraction of a fraction, in words
+      [fracOfFrac, 2, 3],                 // fraction of a fraction, in words
       [fracReverseTwoStage, 4, 4],        // two fractions removed, worked back
       [fracOfRemainderMoney, 4, 4],       // fraction of what was left
-      [fracBetweenTwo, 4, 4],             // strictly between two fractions
-      [fracOfCapacity, 4, 4], [figShadedFraction, 2, 3],
+      [fracBetweenTwo, 3, 3],             // strictly between two fractions
+      [fracOfCapacity, 2, 3], [figShadedFraction, 2, 3],
       /* harder fractions */
-      [fracMixedAddSubtract, 3, 4],       // mixed numbers, unlike denominators
-      [fracDivideMixed, 4, 4],            // improper first, then flip
-      [fracReverseOf, 4, 4],              // given the part, find the whole
-      [figShadedTriangles, 3, 3]          // a shape cut into equal triangles
+      [fracMixedAddSubtract, 3, 3],       // mixed numbers, unlike denominators
+      [fracDivideMixed, 3, 3],            // improper first, then flip
+      [fracReverseOf, 2, 3],              // given the part, find the whole
+      [figShadedTriangles, 2, 3]          // a shape cut into equal triangles
     ],
     Percentages: [
-      [pctDecreaseToTarget, 4, 4],        // the percentage is of the ORIGINAL
+      [pctDecreaseToTarget, 2, 3],        // the percentage is of the ORIGINAL
       [pctOf, 1, 1], [pctFracToPct, 2, 2], [pctDecToPct, 1, 2],
       [pctSalePrice, 2, 2], [pctIncrease, 2, 2], [pctSimpleInterest, 2, 3],
-      [pctReverse, 2, 3],                 // work back to the original
-      [pctChained, 3, 4],                 // percentage of a percentage of a percentage
+      [pctReverse, 2, 2],                 // work back to the original
+      [pctChained, 3, 3],                 // percentage of a percentage of a percentage
       [pctSaleChange, 3, 3],              // discount, total, then change
-      [pctVennNeither, 3, 4],             // overlapping sets
-      [pctProfitAfterLoss, 4, 4], [pctProfitPerItem, 3, 3],
+      [pctVennNeither, 4, 4],             // overlapping sets
+      [pctProfitAfterLoss, 4, 4], [pctProfitPerItem, 2, 3],
       /* harder percentages */
-      [pctReverseAfterChange, 4, 4],      // back through a rise or a fall
-      [pctSingleEquivalent, 4, 4],        // two changes as one
-      [pctProfitPercent, 4, 4]            // profit as a percentage of cost
+      [pctReverseAfterChange, 2, 3],      // back through a rise or a fall
+      [pctSingleEquivalent, 3, 3],        // two changes as one
+      [pctProfitPercent, 2, 3]            // profit as a percentage of cost
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
-      [bidMixed, 2, 3], [bidNegative, 3, 3], [bidTempChange, 2, 2],
+      [bidMixed, 3, 3], [bidNegative, 2, 3], [bidTempChange, 2, 2],
       [bidNestedBrackets, 4, 4],          // brackets inside brackets, with a power
-      [bidMissingOperator, 4, 4],         // choose the operations
-      [bidInsertBrackets, 4, 4],
+      [bidMissingOperator, 3, 3],         // choose the operations
+      [bidInsertBrackets, 3, 3],
       /* harder BIDMAS */
-      [bidFractionBar, 3, 4],             // the bar groups top and bottom
-      [bidNegativePower, 3, 4],           // -3 squared is not (-3) squared
-      [bidRootsAndPowers, 4, 4],          // a root and a power together
+      [bidFractionBar, 2, 3],             // the bar groups top and bottom
+      [bidNegativePower, 2, 3],           // -3 squared is not (-3) squared
+      [bidRootsAndPowers, 3, 3],          // a root and a power together
       [bidNotEqual, 4, 4],                // three are equal, one is not
-      [bidBracketsFourTerms, 4, 4]        // place brackets in four terms           // place the brackets
+      [bidBracketsFourTerms, 3, 3]        // place brackets in four terms           // place the brackets
     ],
     Algebra: [
-      [algExpressionProperty, 4, 4],      // a property of the expression, not a value
-      [algSubLinear, 1, 1], [algSubMulti, 2, 3], [algSubQuadratic, 3, 3],
+      [algExpressionProperty, 3, 3],      // a property of the expression, not a value
+      [algSubLinear, 1, 1], [algSubMulti, 2, 3], [algSubQuadratic, 2, 3],
       [algSolve1Step, 1, 1], [algSolve2Step, 2, 2], [algSolveBothSides, 2, 3],
       [algSimplifyTerms, 2, 2], [algCustomOp, 2, 3],
-      [algWeightPair, 3, 3],              // sum and difference
+      [algWeightPair, 2, 3],              // sum and difference
       [algTriangleAngles, 4, 4],          // several constraints at once
       [algThreeItemPricing, 4, 4],        // three unknowns
-      [algSimultaneous, 4, 4],            // two equations, two unknowns
-      [algChainSubstitute, 3, 3], [algFunctionMachine, 3, 3],
+      [algSimultaneous, 3, 3],            // two equations, two unknowns
+      [algChainSubstitute, 2, 3], [algFunctionMachine, 2, 3],
       /* August QE/EPP papers */
-      [algPowerEquation, 2, 3],           // 2^x = 64
-      [algExpressionChange, 3, 3],        // build the expression, do not evaluate
-      [algRemainderDivisor, 3, 3],        // 40 / N = 3 remainder 4
-      [algInequalityInteger, 3, 4],       // 41 < 3y < 43
-      [algPerimeterEquation, 4, 4],       // form the equation from a perimeter
-      [algInequalityCount, 4, 4]          // how many whole numbers fit
+      [algPowerEquation, 2, 2],           // 2^x = 64
+      [algExpressionChange, 2, 2],        // build the expression, do not evaluate
+      [algRemainderDivisor, 2, 3],        // 40 / N = 3 remainder 4
+      [algInequalityInteger, 2, 3],       // 41 < 3y < 43
+      [algPerimeterEquation, 3, 3],       // form the equation from a perimeter
+      [algInequalityCount, 2, 3]          // how many whole numbers fit
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
       [seqFibLike, 2, 2], [seqGeomNext, 2, 2], [seqBallPattern, 2, 2],
-      [seqMatchstickNth, 3, 3],           // nth term as an expression
-      [seqQuadraticNext, 4, 4],           // the gaps themselves grow
-      [seqNthFromTwoTerms, 4, 4],         // rule from two scattered terms
-      [seqFibMissingStart, 4, 4],         // Fibonacci-like, worked backwards
-      [seqQuadraticDecreasing, 4, 4],
+      [seqMatchstickNth, 2, 3],           // nth term as an expression
+      [seqQuadraticNext, 3, 3],           // the gaps themselves grow
+      [seqNthFromTwoTerms, 3, 3],         // rule from two scattered terms
+      [seqFibMissingStart, 2, 3],         // Fibonacci-like, worked backwards
+      [seqQuadraticDecreasing, 3, 3],
       /* harder sequences */
-      [seqWhichTerm, 3, 4],               // which position holds this value
-      [seqTriangular, 3, 4],              // dot patterns, drawn
-      [seqRecurrenceMissing, 3, 4],       // a rule using the term before
+      [seqWhichTerm, 2, 3],               // which position holds this value
+      [seqTriangular, 2, 3],              // dot patterns, drawn
+      [seqRecurrenceMissing, 2, 2],       // a rule using the term before
       [seqQuadraticNth, 4, 4],            // nth term with a constant 2nd difference
-      [seqArithSum, 4, 4],                // total of the first n terms
-      [seqInterleaved, 4, 4]              // two sequences laid alternately      // falling terms, growing gaps
+      [seqArithSum, 3, 3],                // total of the first n terms
+      [seqInterleaved, 3, 3]              // two sequences laid alternately      // falling terms, growing gaps
     ],
     Ratio: [
-      [ratInventedScale, 4, 4],           // two invented units and a rate
+      [ratInventedScale, 2, 3],           // two invented units and a rate
       [ratSimplify, 1, 1], [ratSplit, 2, 2], [ratWordTotal, 2, 2],
-      [ratDifference, 3, 3], [ratRecipe, 2, 2], [ratMapScale, 2, 2],
-      [ratInverseProp, 3, 3],             // inverse proportion
-      [ratChained, 4, 4],                 // link two ratios
+      [ratDifference, 2, 3], [ratRecipe, 2, 2], [ratMapScale, 2, 2],
+      [ratInverseProp, 2, 3],             // inverse proportion
+      [ratChained, 3, 3],                 // link two ratios
       [ratAfterChange, 4, 4],             // ratio before and after a change
-      [ratMapReverse, 3, 3],
+      [ratMapReverse, 2, 2],
       [ratThreeCategories, 4, 4],         // three kinds, a ratio across another split
-      [ratInverseTime, 4, 4],             // more power, less time
+      [ratInverseTime, 2, 3],             // more power, less time
       /* harder ratio */
-      [ratThreePart, 3, 4],               // three parts, not two
-      [ratFractionOfWhole, 3, 4],         // fraction of the whole, and back
-      [ratBestValue, 3, 4],               // per-item cost across pack sizes
-      [ratCompareTwoRatios, 3, 4],        // equivalent, or one larger
+      [ratThreePart, 3, 3],               // three parts, not two
+      [ratFractionOfWhole, 2, 3],         // fraction of the whole, and back
+      [ratBestValue, 3, 3],               // per-item cost across pack sizes
+      [ratCompareTwoRatios, 2, 3],        // equivalent, or one larger
       /* question-bank/NewText, second scan */
       [ratLimitingIngredient, 4, 4],      // the ingredient that runs out first
       [ratRelativeValueChain, 4, 4],      // price everything in one currency
-      [ratEqualise, 4, 4]                 // move enough to even them up
+      [ratEqualise, 2, 3]                 // move enough to even them up
     ],
     Speed: [
       [spdCombinedTaps, 4, 4],            // two taps filling one tank
       [spdHalfSpeedWithStops, 4, 4],      // half the speed is twice the time
-      [spdSpeedTimeMatch, 4, 4],          // steady speed is a FLAT line here
+      [spdSpeedTimeMatch, 3, 3],          // steady speed is a FLAT line here
       [spdFindSpeed, 1, 1], [spdFindDistance, 1, 2], [spdFindTime, 2, 2],
       [spdMphHoursMin, 2, 3],             // mixed hours and minutes
       [spdGapBetweenTwo, 3, 3],
       [spdAverageTwoLegs, 4, 4],          // average speed is not the mean speed
-      [spdCatchUp, 4, 4],                 // closing a head start
-      [spdMeetingPoint, 4, 4],            // travelling towards each other
-      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 3, 3],
-      [spdSpeedFromMinutes, 3, 4],        // the time is given in minutes
-      [figTwoTravellersGraph, 4, 4],      // two journeys on one graph
-      [spdUnitConvert, 3, 4],             // km/h into m/s
+      [spdCatchUp, 3, 3],                 // closing a head start
+      [spdMeetingPoint, 3, 3],            // travelling towards each other
+      [figDistanceTimeStationary, 2, 2], [figDistanceTimeSpeed, 2, 3],
+      [spdSpeedFromMinutes, 2, 3],        // the time is given in minutes
+      [figTwoTravellersGraph, 2, 3],      // two journeys on one graph
+      [spdUnitConvert, 2, 3],             // km/h into m/s
       [spdAverageThreeLegs, 4, 4],        // three legs, not two
-      [spdTimetable, 3, 4],               // minutes crossing the hour
+      [spdTimetable, 2, 2],               // minutes crossing the hour
       [spdReturnUnknownDistance, 4, 4]    // out and back, total time known
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
-      [meaTempDiff, 2, 2], [meaInchConvert, 2, 3], [meaMoneyChange, 2, 2],
+      [meaTempDiff, 2, 2], [meaInchConvert, 2, 2], [meaMoneyChange, 2, 2],
       [meaOverlapArea, 3, 3],
       [meaCompoundVolume, 4, 4],          // L-shaped cross-section
       [meaSurfaceAreaFromVolume, 4, 4],   // volume back to surface area
-      [meaScaleArea, 4, 4],               // areas scale by the square
-      [meaFoldPaper, 3, 3], [meaFrameWidth, 4, 4], [meaSquaresInRectangle, 2, 2],
-      [figCompoundPerimeter, 3, 4],       // L-shape drawn, area or perimeter
+      [meaScaleArea, 2, 3],               // areas scale by the square
+      [meaFoldPaper, 3, 3], [meaFrameWidth, 3, 3], [meaSquaresInRectangle, 2, 2],
+      [figCompoundPerimeter, 3, 3],       // L-shape drawn, area or perimeter
       /* question-bank/20260822 */
-      [meaPourFromContainer, 3, 3],       // litres in, millilitres out
-      [meaEstimateWeight, 3, 3],          // is a banana 20 g or 200 g
-      [numMultiItemTotal, 3, 3],          // one of one thing, several of another
+      [meaPourFromContainer, 2, 3],       // litres in, millilitres out
+      [meaEstimateWeight, 2, 2],          // is a banana 20 g or 200 g
+      [numMultiItemTotal, 2, 3],          // one of one thing, several of another
       [meaCubePacking, 4, 4],             // whole cubes only, so the leftover is wasted
       [meaCubeFromCluster, 4, 4],         // one cube out of a cuboid of cubes
-      [meaEarningsPattern, 4, 4],         // a shift, days a week, and a rate
+      [meaEarningsPattern, 3, 3],         // a shift, days a week, and a rate
       /* question-bank/20260823-Onwards */
-      [meaEstimateSize, 3, 4],            // a sensible length, height or capacity
-      [meaEstimateCombine, 4, 4],         // estimate two things, then combine
-      [meaTriangularPrismVolume, 4, 4],   // halve the cross-section first
-      [meaPaintTins, 4, 4]                // tins come whole, so round up
+      [meaEstimateSize, 2, 2],            // a sensible length, height or capacity
+      [meaEstimateCombine, 2, 3],         // estimate two things, then combine
+      [meaTriangularPrismVolume, 2, 3],   // halve the cross-section first
+      [meaPaintTins, 3, 3]                // tins come whole, so round up
     ],
     Geometry: [
-      [geoMissingEndpoint, 4, 4],         // one end and the midpoint, find the far end
-      [geoCompassTurnSequence, 4, 4],     // three turns, angles over a full revolution
-      [geoTurnThenWalk, 4, 4],            // reduce the turn, then walk
-      [geoPyramidFEV, 4, 4],              // a pyramid is not a prism
+      [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
+      [geoCompassTurnSequence, 3, 3],     // three turns, angles over a full revolution
+      [geoTurnThenWalk, 3, 3],            // reduce the turn, then walk
+      [geoPyramidFEV, 2, 2],              // a pyramid is not a prism
       [geoAngleSum, 1, 1], [geoAngleType, 1, 1], [geoShapeAngle, 2, 2],
       [geoComplementary, 1, 2], [geoTriangleArea, 2, 2], [geoLinesSymmetry, 1, 2],
       [geoRotSymmetry, 2, 2], [geoPrismFEV, 2, 2], [geoCuboidMissingEdge, 2, 2],
-      [geoRotationCoords, 3, 4],          // rotation about a point
-      [geoShapeProperty, 3, 3], [geoShapeSplit, 3, 3],
-      [geoPolygonFromAngleSum, 4, 4],     // angle sum back to side count
-      [geoShadedArea, 4, 4],              // what is left after a cut-out
-      [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 4, 4],
-      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 4, 4],
+      [geoRotationCoords, 2, 3],          // rotation about a point
+      [geoShapeProperty, 2, 2], [geoShapeSplit, 2, 3],
+      [geoPolygonFromAngleSum, 3, 3],     // angle sum back to side count
+      [geoShadedArea, 3, 3],              // what is left after a cut-out
+      [figAnglesOnLine, 2, 3], [figAnglesAtPoint, 2, 3],
+      [figCoordinatesRead, 2, 2], [figCoordinatesMidpoint, 2, 3],
       /* question-bank/20260822 */
-      [geoShapeFromSymmetry, 3, 4],       // which drawn shape fits both properties
-      [geoNameTriangles, 3, 4],           // name four triangles from pictures
-      [geoSplitPolygon, 4, 4],            // cut a corner off a regular polygon
+      [geoShapeFromSymmetry, 2, 2],       // which drawn shape fits both properties
+      [geoNameTriangles, 2, 3],           // name four triangles from pictures
+      [geoSplitPolygon, 2, 3],            // cut a corner off a regular polygon
       /* August QE/EPP papers */
-      [geoCompassTurn, 2, 3],             // direction after turning right angles
-      [geoCompassAngle, 2, 3],            // smallest turn between compass points
+      [geoCompassTurn, 2, 2],             // direction after turning right angles
+      [geoCompassAngle, 2, 2],            // smallest turn between compass points
       [geoSymmetryCombined, 2, 3],        // lines of symmetry of two named shapes
       [geoSymmetryLetters, 2, 3],         // vertical mirror line in capitals
-      [geoParallelogramVertex, 3, 4],     // fourth vertex from three
-      [geoTriangleInequality, 3, 4],      // can these lengths make a triangle
-      [geoPolygonMissingAngle, 3, 4],     // angle sum with a reflex angle
-      [geoTransformCompose, 4, 4]         // translate, then rotate
+      [geoParallelogramVertex, 2, 3],     // fourth vertex from three
+      [geoTriangleInequality, 3, 3],      // can these lengths make a triangle
+      [geoPolygonMissingAngle, 2, 3],     // angle sum with a reflex angle
+      [geoTransformCompose, 3, 3]         // translate, then rotate
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
       [statRequiredAverage, 4, 4],        // what average is needed from here on
       [statMeanOfRemaining, 4, 4],        // the mean after some are taken out
-      [statAboveMean, 4, 4],              // count the bars above the mean
-      [statPossibleRange, 4, 4],          // one member unknown, so the range is a span
-      [statLargestDailyRange, 4, 4],      // the range of one day, not of the week
-      [statVennThreeRegions, 4, 4],       // which regions make up one circle
-      [statPieDifference, 4, 4],          // the gap between two sectors
+      [statAboveMean, 3, 3],              // count the bars above the mean
+      [statPossibleRange, 3, 3],          // one member unknown, so the range is a span
+      [statLargestDailyRange, 3, 3],      // the range of one day, not of the week
+      [statVennThreeRegions, 3, 3],       // which regions make up one circle
+      [statPieDifference, 3, 3],          // the gap between two sectors
       [statPieTotalFromPart, 4, 4],       // the whole from a part
       [statMean, 1, 1], [statMedian, 2, 2], [statMode, 1, 1], [statRange, 1, 1],
-      [statMissingMean, 3, 3],            // mean worked backwards
+      [statMissingMean, 2, 3],            // mean worked backwards
       [statFreqMidpoint, 2, 2], [statPieAngle, 1, 2], [statPictogram, 2, 2],
-      [statCorrelation, 1, 1], [statPieFromAngle, 3, 3], [statFreqTotal, 2, 3],
-      [statMeanOfFactors, 3, 4],          // list factors, then average them
+      [statCorrelation, 1, 1], [statPieFromAngle, 2, 3], [statFreqTotal, 2, 3],
+      [statMeanOfFactors, 3, 3],          // list factors, then average them
       [statCombinedMean, 4, 4],           // weighted, not halfway
-      [statMedianFromFreq, 4, 4],         // median out of a frequency table
+      [statMedianFromFreq, 3, 3],         // median out of a frequency table
       [figBarChartTotal, 2, 3], [figBarChartDifference, 2, 3], [figPictogram, 2, 3],
-      [figPieChart, 2, 3], [figVennOnly, 3, 4],
-      [statMedianAngleTriangle, 4, 4],    // which value could be the median
-      [figBarChartMode, 3, 3],            // the modal height on a bar chart
-      [statMeanAfterChange, 4, 4]         // the count changes as well as the mean
+      [figPieChart, 2, 3], [figVennOnly, 2, 3],
+      [statMedianAngleTriangle, 3, 3],    // which value could be the median
+      [figBarChartMode, 2, 2],            // the modal height on a bar chart
+      [statMeanAfterChange, 3, 3]         // the count changes as well as the mean
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements
       /* The topic had only hand-written questions before, and none that a
          generator could vary. Pitched where the papers set it. */
-      [countHandshakes, 3, 3],                // pairs, so halve the double count
-      [countArrangeNoRepeat, 3, 4],           // n x (n-1) x (n-2)
-      [countArrangeFirstRestrict, 3, 4],      // zero may not lead
-      [countPlateLettersDigits, 3, 4],        // letters repeat, digits do not
-      [countChooseCommittee, 3, 4],           // order does not matter
-      [countEvenNoRepeat, 4, 4],              // fill the restricted place first
-      [countGreaterThan, 4, 4],               // only the leading digit is bound
-      [countWordRepeatedLetters, 4, 4],       // divide the repeats out
-      [countCircular, 4, 4],                  // no first seat round a table
-      [countGridPaths, 4, 4],                 // choose which moves go sideways
-      [countCircularReflect, 4, 4],           // a bracelet can be turned over
-      [countChooseFromTwoGroups, 4, 4]        // two selections multiplied
+      [countHandshakes, 2, 3],                // pairs, so halve the double count
+      [countArrangeNoRepeat, 2, 3],           // n x (n-1) x (n-2)
+      [countArrangeFirstRestrict, 3, 3],      // zero may not lead
+      [countPlateLettersDigits, 3, 3],        // letters repeat, digits do not
+      [countChooseCommittee, 2, 3],           // order does not matter
+      [countEvenNoRepeat, 3, 3],              // fill the restricted place first
+      [countGreaterThan, 3, 3],               // only the leading digit is bound
+      [countWordRepeatedLetters, 3, 3],       // divide the repeats out
+      [countCircular, 3, 3],                  // no first seat round a table
+      [countGridPaths, 3, 3],                 // choose which moves go sideways
+      [countCircularReflect, 3, 3],           // a bracelet can be turned over
+      [countChooseFromTwoGroups, 3, 3]        // two selections multiplied
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
-      [probExpected, 2, 2], [probIndependent, 3, 3],
-      [probWithoutReplacement, 3, 4],     // the pool changes between picks
-      [probTwoDiceSum, 4, 4],             // count the favourable pairs
-      [probAtLeastOne, 4, 4],             // easier via the complement
+      [probExpected, 2, 2], [probIndependent, 2, 2],
+      [probWithoutReplacement, 3, 3],     // the pool changes between picks
+      [probTwoDiceSum, 3, 3],             // count the favourable pairs
+      [probAtLeastOne, 2, 3],             // easier via the complement
       /* Harder two-stage and complement work */
-      [probTwoSameColour, 3, 4],          // both red, nothing put back
-      [probConditionalSecond, 3, 4],      // the first pick has already happened
-      [probTwoWayTable, 3, 4],            // overlap taken off one group
-      [probFindOtherIndependent, 3, 4],   // worked backwards to the missing one
-      [probAtLeastOneSix, 3, 4],          // complement of "none at all"
-      [probOneOfEach, 4, 4],              // both orders count
-      [probTwoSpinnersSum, 4, 4],         // count the pairs making the total
-      [probAddToTarget, 4, 4],            // backwards from the probability
-      [probNotAllSame, 4, 4],             // 1 minus the two matching ways
-      [probThreeDrawsAllSame, 4, 4]       // three shrinking denominators
+      [probTwoSameColour, 2, 3],          // both red, nothing put back
+      [probConditionalSecond, 2, 2],      // the first pick has already happened
+      [probTwoWayTable, 2, 3],            // overlap taken off one group
+      [probFindOtherIndependent, 2, 2],   // worked backwards to the missing one
+      [probAtLeastOneSix, 3, 3],          // complement of "none at all"
+      [probOneOfEach, 3, 3],              // both orders count
+      [probTwoSpinnersSum, 3, 3],         // count the pairs making the total
+      [probAddToTarget, 3, 3],            // backwards from the probability
+      [probNotAllSame, 2, 3],             // 1 minus the two matching ways
+      [probThreeDrawsAllSame, 3, 3]       // three shrinking denominators
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
-      [logConsecutiveOddPuzzle, 3, 4], [logPalindromeYesNo, 1, 1],
+      [logConsecutiveOddPuzzle, 3, 3], [logPalindromeYesNo, 1, 1],
       [logNextPalindrome, 2, 2], [logSquarePalindromesInRange, 3, 3],
-      [logDayOfWeek, 2, 2], [logDayWeeksAgo, 2, 2], [logDayShiftAcrossYear, 3, 3],
-      [logLeapYearPick, 1, 2], [logLeapBirthday, 4, 4],
-      [logClockAngleAtHour, 3, 3], [logClockMirror, 3, 3], [logSumAndDiff, 2, 2],
-      [logArithmagonProduct, 3, 4], [logAdditionPyramid, 2, 3],
+      [logDayOfWeek, 2, 2], [logDayWeeksAgo, 2, 2], [logDayShiftAcrossYear, 2, 3],
+      [logLeapYearPick, 1, 2], [logLeapBirthday, 3, 3],
+      [logClockAngleAtHour, 3, 3], [logClockMirror, 2, 2], [logSumAndDiff, 2, 2],
+      [logArithmagonProduct, 3, 3], [logAdditionPyramid, 3, 3],
       [logLetterPuzzle, 2, 2], [logMagicSquareRow, 2, 2], [logDigitSumOfSum, 2, 2],
-      [logTimeZone, 4, 4],                // hours ahead or behind, across midnight
-      [logClockReflexAngle, 3, 4],        // the reflex angle between the hands
+      [logTimeZone, 2, 2],                // hours ahead or behind, across midnight
+      [logClockReflexAngle, 2, 3],        // the reflex angle between the hands
       [logSumOfAgesAgo, 4, 4],            // one member not yet born
-      [logDefinedOperator, 4, 4],         // an invented symbol, applied twice
+      [logDefinedOperator, 3, 3],         // an invented symbol, applied twice
       [logBandedSeatCount, 4, 4],         // rows closed, rows short, rest full
-      [logTimeZoneChain, 4, 4],           // two offsets, one of them implied
+      [logTimeZoneChain, 3, 3],           // two offsets, one of them implied
       [logClocksCoincide, 4, 4],          // one gains, one loses
       [logClockDigits, 4, 4],             // the next time with the same digits
       [logMazeBounce, 4, 4]               // turn clockwise at every wall
