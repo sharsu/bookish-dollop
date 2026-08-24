@@ -747,7 +747,21 @@ function orderGroupsTogether(questions) {
   return ordered;
 }
 
+/* A mix set in config wins over both the even split and the score-based tilt.
+   Returns null when nothing usable is configured, so a typo cannot leave a
+   paper with no levels to draw on - the same rule allowedDifficulties follows. */
+function configuredDifficultyMix(allowed) {
+  const raw = CONFIG.difficultyMix;
+  if (!raw || typeof raw !== "object") return null;
+  const usable = allowed.filter(level => Number(raw[level]) > 0);
+  if (!usable.length) return null;
+  return restrictWeights(raw, allowed);
+}
+
 function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES) {
+  const configured = configuredDifficultyMix(allowed);
+  if (configured) return buildWeightedTargets(allowed, configured, totalQuestions);
+
   const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
   if (recent.length < 2) return buildDifficultyTargets(totalQuestions, allowed);
 
