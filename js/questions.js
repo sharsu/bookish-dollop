@@ -2584,6 +2584,113 @@ const QUESTIONS = [];
       4, i);
   }
 
+  /* ── Spatial: solids built from unit cubes ──
+
+     A big cube is built out of small ones and its outside is painted, then the
+     child is asked how many small cubes carry paint on exactly so many faces.
+     The whole difficulty is seeing WHERE such cubes sit, which is why this
+     cannot be answered by pushing the given numbers around: the 3-face ones are
+     the 8 corners, the 2-face ones run along the edges between the corners, the
+     1-face ones tile the middle of each face, and the unpainted ones form the
+     smaller cube hidden inside. Each class is stored with the count it gives and
+     the words for where it is, so the hint can explain the picture rather than
+     assert a formula. */
+  const CUBE_CLASSES = [
+    { faces: 3, count: n => 8,
+      where: () => "the 8 corners, where three painted faces meet" },
+    { faces: 2, count: n => 12 * (n - 2),
+      where: n => `the 12 edges, with ${n - 2} ${n - 2 === 1 ? "cube" : "cubes"} ` +
+        `left along each edge once the corners are taken out` },
+    { faces: 1, count: n => 6 * (n - 2) * (n - 2),
+      where: n => `the middle of each of the 6 faces, a ${n - 2} by ${n - 2} square on every one` },
+    { faces: 0, count: n => (n - 2) * (n - 2) * (n - 2),
+      where: n => `a hidden ${n - 2} by ${n - 2} by ${n - 2} cube inside, which the paint never reaches` }
+  ];
+
+  function geoPaintedCube(i) {
+    /* Two of the four counts coincide at some sizes — at n = 4 the edge and the
+       face counts are both 24, at n = 8 the face and inside counts are both 216
+       — and mk compares options by value, so those seeds would lose a distractor
+       and have one invented by nudge instead. Scan for the sizes that keep all
+       four distinct rather than listing them and hoping. */
+    const sizes = [];
+    for (let n = 3; n <= 12; n += 1) {
+      if (new Set(CUBE_CLASSES.map(c => c.count(n))).size === 4) sizes.push(n);
+    }
+    const n = sizes[i % sizes.length];
+    /* 4 classes and 7 usable sizes share no factor, so both indices turn over
+       independently and every combination is reachable. */
+    const cls = CUBE_CLASSES[Math.floor(i / 7) % CUBE_CLASSES.length];
+    const counts = CUBE_CLASSES.map(c => c.count(n));
+    const ans = cls.count(n);
+    /* The other three classes are the distractors: mixing up "no faces" with
+       "one face" is the actual mistake this question is testing for. */
+    const others = counts.filter(c => c !== ans);
+    if (others.length !== 3) return null;
+    if (counts.reduce((a, b) => a + b, 0) !== n * n * n) return null;
+
+    const asked = cls.faces === 0
+      ? "have no paint on them at all"
+      : `have paint on exactly ${cls.faces} ${cls.faces === 1 ? "face" : "faces"}`;
+    const q = mk("Geometry",
+      `Small cubes measuring 1 cm on every edge are glued together to build a ` +
+      `solid cube measuring ${n} cm along each edge. The whole of the outside ` +
+      `of the big cube is then painted. How many of the small cubes ${asked}?`,
+      comma(ans), others.map(c => comma(c)), 4, i);
+
+    if (q) q.explain =
+      `Step 1. Picture where each kind of small cube sits. There are only four ` +
+      `kinds, and every one of the ${comma(n * n * n)} small cubes is one of them:\n` +
+      CUBE_CLASSES.map(c =>
+        `  • ${c.faces === 0 ? "no faces" : c.faces + (c.faces === 1 ? " face" : " faces")} painted — ` +
+        `${c.where(n)}: ${comma(c.count(n))}`).join("\n") +
+      `\n\nStep 2. This question asks for the ones that ${asked}, which is ` +
+      `${cls.where(n)}.\n\n` +
+      `Step 3. That gives ${comma(ans)}.\n\n` +
+      `Check it by adding all four kinds together: ` +
+      `${counts.map(c => comma(c)).join(" + ")} = ${comma(n * n * n)}, which is ` +
+      `${n} × ${n} × ${n} — every small cube accounted for once. If your four ` +
+      `numbers do not add up to that, one of them is wrong. The trap is answering ` +
+      `with the wrong kind: ${comma(counts[3])} is the hidden inside block and ` +
+      `${comma(counts[2])} is the middle of the faces, and those are easy to swap.`;
+    return q;
+  }
+
+  /* Cubes glued in a row: the join destroys two faces, not one. Counting 6 faces
+     per cube and forgetting the joins altogether is the common mistake, so that
+     answer is offered. */
+  function geoJoinedCubesSurface(i) {
+    const k = 3 + (i % 6);              // how many cubes in the row
+    const s = 2 + ((i * 3) % 5);        // edge of one cube, in cm
+    const faces = 6 * k - 2 * (k - 1);  // two faces are lost at each join
+    const ans = faces * s * s;
+    const wrong = [
+      6 * k * s * s,                    // forgot the joins
+      (6 * k - (k - 1)) * s * s,        // lost one face per join, not two
+      faces * s                         // used the edge instead of the face area
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Geometry",
+      `${k} identical cubes, each measuring ${s} cm along every edge, are glued ` +
+      `together face to face in a single straight row. What is the surface area ` +
+      `of the solid this makes?`,
+      `${comma(ans)} cm²`, wrong.map(w => `${comma(w)} cm²`), 4, i);
+
+    if (q) q.explain =
+      `Step 1. On their own the ${k} cubes have ${k} × 6 = ${6 * k} faces ` +
+      `showing.\n\n` +
+      `Step 2. Gluing them in a row makes ${k - 1} joins, and each join hides ` +
+      `two faces — one on each of the cubes being stuck together. That is ` +
+      `${k - 1} × 2 = ${2 * (k - 1)} faces lost, leaving ${6 * k} − ` +
+      `${2 * (k - 1)} = ${faces}.\n\n` +
+      `Step 3. One face is ${s} × ${s} = ${s * s} cm², so the surface area is ` +
+      `${faces} × ${s * s} = ${comma(ans)} cm².\n\n` +
+      `Losing one face per join instead of two gives ${comma(wrong[1])} cm², and ` +
+      `forgetting the joins altogether gives ${comma(wrong[0])} cm² — both are ` +
+      `offered, so the count of hidden faces is the whole question.`;
+    return q;
+  }
+
   /* ── Statistics ── */
 
   /* Combining two group means: the answer is weighted, not the halfway point. */
@@ -7517,7 +7624,11 @@ const QUESTIONS = [];
       [geoParallelogramVertex, 2, 3],     // fourth vertex from three
       [geoTriangleInequality, 3, 3],      // can these lengths make a triangle
       [geoPolygonMissingAngle, 2, 3],     // angle sum with a reflex angle
-      [geoTransformCompose, 3, 3]         // translate, then rotate
+      [geoTransformCompose, 3, 3],        // translate, then rotate
+      /* Spatial work, appended so no earlier entry's gIdx — and so no earlier
+         template's seeds — moves. QE Mock Paper 9 Q50 is the painted cube. */
+      [geoPaintedCube, 4, 4],             // where each kind of small cube sits
+      [geoJoinedCubesSurface, 4, 4]       // a join hides two faces, not one
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
