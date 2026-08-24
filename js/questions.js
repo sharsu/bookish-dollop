@@ -3042,6 +3042,205 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* Scatter graphs and correlation. The points are generated from a rule with a
+     small wobble on top, so the correlation the question asks about is a fact
+     about the data rather than an impression: the sign of the gradient in the
+     rule IS the answer, and the wobble is kept too small to overturn it. */
+  const SCATTER_SUBJECTS = [
+    { x: "Hours of revision", y: "Test score", xMax: 10, yMax: 100, m: 8, c: 20 },
+    { x: "Age of car (years)", y: "Value (£100s)", xMax: 10, yMax: 100, m: -8, c: 95 },
+    { x: "Temperature (°C)", y: "Cups of soup sold", xMax: 25, yMax: 100, m: -3, c: 95 },
+    /* Arm span against height was dropped: with a gradient of 1 and almost
+       no intercept the points sat close enough to a line through the origin
+       that "direct proportion" - offered as a distractor - was arguable, and
+       spacing the points across the whole axis put children 20 cm tall on
+       the graph. */
+    { x: "Hours of TV each evening", y: "Test score", xMax: 8, yMax: 100, m: -10, c: 95 },
+    { x: "Shoe size", y: "Maths score", xMax: 10, yMax: 100, m: 0, c: 55 },
+    { x: "Rainfall (mm)", y: "Visitors to the park", xMax: 20, yMax: 100, m: -4, c: 92 },
+    { x: "Minutes of exercise", y: "Resting heart rate", xMax: 60, yMax: 100, m: -0.5, c: 85 },
+    { x: "Number of pages", y: "Minutes to read", xMax: 100, yMax: 100, m: 0.9, c: 5 }
+  ];
+
+  function statScatterCorrelation(i) {
+    if (!D) return null;
+    const S = SCATTER_SUBJECTS[i % SCATTER_SUBJECTS.length];
+    const n = 8;
+    const points = [];
+    for (let k = 0; k < n; k++) {
+      const x = Math.round(S.xMax * (k + 1) / (n + 1));
+      /* A repeatable wobble, small next to the trend over the whole range. */
+      const wob = ((i * 7 + k * 13) % 11) - 5;
+      const y = Math.round(S.m * x + S.c + wob);
+      if (y < 0 || y > S.yMax) return null;
+      points.push([x, y]);
+    }
+    /* Decide the answer from the points, not from the rule that made them: if a
+       later point is not reliably higher or lower there is no correlation to
+       claim. Guards against a wobble large enough to break the trend. */
+    const first = points[0][1], last = points[n - 1][1];
+    const rise = last - first;
+    const spread = Math.max(...points.map(p => p[1])) - Math.min(...points.map(p => p[1]));
+    let kind;
+    if (Math.abs(rise) < spread * 0.5) kind = "no";
+    else kind = rise > 0 ? "positive" : "negative";
+    if (kind !== "no" && S.m === 0) return null;
+    if (kind === "no" && S.m !== 0) return null;
+    const say = {
+      positive: "Positive correlation: as one goes up, so does the other",
+      negative: "Negative correlation: as one goes up, the other goes down",
+      no: "No correlation: the two are not linked"
+    };
+    const wrong = Object.keys(say).filter(k2 => k2 !== kind).map(k2 => say[k2])
+      .concat(["The two are in direct proportion, so one is a fixed multiple of the other"]);
+    const q = mkFig("Statistics",
+      `The scatter graph shows ${S.y.toLowerCase()} against ` +
+      `${S.x.toLowerCase()} for eight children. Which statement best describes ` +
+      `the relationship?`,
+      say[kind], wrong, 3, i,
+      D.scatter({ points, xLabel: S.x, yLabel: S.y, xMax: S.xMax, yMax: S.yMax }));
+    if (q) q.explain =
+      `Read the points from left to right and watch what happens to the height.\n\n` +
+      `The leftmost point is at ${points[0][0]}, ${points[0][1]} and the ` +
+      `rightmost is at ${points[n - 1][0]}, ${points[n - 1][1]}` +
+      (kind === "no"
+        ? `, and in between the heights go up and down with no pattern, so ` +
+          `there is no correlation. Two things can both be measured without ` +
+          `being connected at all.`
+        : `, so overall the points ${kind === "positive" ? "rise" : "fall"} ` +
+          `as you go right. That is ${kind} correlation.`) +
+      `\n\nCorrelation is not the same as direct proportion: direct proportion ` +
+      `would need the points to sit on a straight line through (0, 0), and ` +
+      `these only follow a trend.`;
+    return q;
+  }
+
+  /* Constructing triangles. The drawing itself cannot be asked for in a multiple
+     choice, but the thing the construction teaches can be: which measurements
+     pin a triangle down to exactly one, and which leave it free. Three angles
+     fix the shape and not the size; two sides on their own fix nothing; and
+     three sides only work if the two shorter ones can reach past the longest. */
+  function geoTriangleUnique(i) {
+    const sides = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [6, 7, 8], [9, 10, 11],
+                   [4, 6, 7], [5, 6, 9], [7, 9, 12]][i % 8];
+    const angles = [[40, 60, 80], [30, 70, 80], [50, 60, 70], [45, 55, 80],
+                    [20, 60, 100], [35, 65, 80]][Math.floor(i / 8) % 6];
+    if (angles.reduce((s, x) => s + x, 0) !== 180) return null;
+    if (sides[0] + sides[1] <= sides[2]) return null;
+    const [p, q2, r] = sides;
+    const sss = `sides of ${p} cm, ${q2} cm and ${r} cm`;
+    const sas = `sides of ${p} cm and ${q2} cm, with an angle of ${angles[0]}° between them`;
+    const asa = `angles of ${angles[0]}° and ${angles[1]}°, with a side of ${r} cm between them`;
+    const aaa = `angles of ${angles[0]}°, ${angles[1]}° and ${angles[2]}°`;
+    /* Two shorter sides that cannot reach past the longest: no triangle at all. */
+    const impossible = `sides of ${p} cm, ${q2} cm and ${p + q2 + 1} cm`;
+    const twoSides = `sides of ${p} cm and ${q2} cm, and nothing else`;
+
+    const askUnique = Math.floor(i / 3) % 2 === 1;
+    const q = askUnique
+      ? mk("Geometry",
+          `Which of these sets of measurements describes exactly one triangle?`,
+          sss, [aaa, impossible, twoSides], 4, i)
+      : mk("Geometry",
+          `Which of these sets of measurements does NOT describe exactly one ` +
+          `triangle?`, aaa, [sss, sas, asa], 4, i);
+    if (q) q.explain = askUnique
+      ? `Three sides fix a triangle completely, as long as the two shorter ones ` +
+        `add up to more than the longest: ${p} + ${q2} = ${p + q2}, which is ` +
+        `more than ${r}, so ${sss} can be built, and only one shape fits.\n\n` +
+        `Of the others: ${aaa} fixes the shape but not the size — you could ` +
+        `draw it any size you liked and the angles would still be right. ` +
+        `${impossible} cannot be built at all, because ${p} + ${q2} = ` +
+        `${p + q2} is less than ${p + q2 + 1}, so those two sides cannot reach ` +
+        `past the longest one. And two sides with nothing else leaves the angle ` +
+        `between them free, so the triangle can be squeezed or opened out.`
+      : `Three angles are not enough. They fix the SHAPE, but nothing in them ` +
+        `says how big the triangle is: ${aaa} describes a whole family of ` +
+        `triangles, every one a different size and all the same shape.\n\n` +
+        `Each of the others pins down exactly one triangle. Three sides do it, ` +
+        `as long as the two shorter reach past the longest. Two sides with the ` +
+        `angle BETWEEN them do it, because the two arms are fixed and so is ` +
+        `how far apart they open. Two angles with the side between them do it, ` +
+        `because the third angle follows from 180° and the two arms can only ` +
+        `meet in one place.`;
+    return q;
+  }
+
+  /* Angles in parallel lines. Every one of the eight angles is either the marked
+     angle or its supplement, and which of the two it is depends only on the
+     position: the four that match sit diagonally opposite each other through the
+     two crossings. Storing that as a set membership, rather than as a list of
+     rules to look up, is what makes the answer derivable for any pair of
+     positions the figure can show. */
+  const ANGLE_SPOTS = [
+    { line: "upper", vert: "above", side: "left",  same: true },
+    { line: "upper", vert: "above", side: "right", same: false },
+    { line: "upper", vert: "below", side: "left",  same: false },
+    { line: "upper", vert: "below", side: "right", same: true },
+    { line: "lower", vert: "above", side: "left",  same: true },
+    { line: "lower", vert: "above", side: "right", same: false },
+    { line: "lower", vert: "below", side: "left",  same: false },
+    { line: "lower", vert: "below", side: "right", same: true }
+  ];
+
+  /* Why the two positions are related, in the language a child is taught. */
+  function parallelReason(g, a) {
+    if (g.line === a.line) {
+      return g.vert !== a.vert && g.side !== a.side
+        ? { name: "vertically opposite", equal: true }
+        : { name: "angles on a straight line", equal: false };
+    }
+    if (g.vert === a.vert && g.side === a.side)
+      return { name: "corresponding angles, in an F shape", equal: true };
+    if (g.vert !== a.vert && g.side !== a.side)
+      return { name: "alternate angles, in a Z shape", equal: true };
+    return { name: "co-interior angles, in a C shape", equal: false };
+  }
+
+  function geoParallelLineAngles(i) {
+    if (!D) return null;
+    /* 8 given positions x 7 others x a set of angles: strides coprime with 8 and
+       7 keep the three from turning over together. */
+    const given = ANGLE_SPOTS[i % 8];
+    const others = ANGLE_SPOTS.filter(p => p !== given);
+    const ask = others[Math.floor(i / 8) % others.length];
+    const theta = 34 + (Math.floor(i / 3) % 9) * 7;      // 34..90, never exactly 90
+    if (theta === 90) return null;
+    const ans = given.same === ask.same ? theta : 180 - theta;
+    const why = parallelReason(given, ask);
+    /* Sanity: the words and the set membership must agree, or the hint would
+       explain a different relationship from the one the answer uses. */
+    if (why.equal !== (given.same === ask.same)) return null;
+    const cand = [180 - ans, 90, ans > 90 ? ans - 90 : ans + 90, 360 - ans]
+      .filter(v => v !== ans && v > 0 && v < 180);
+    const q = mkFig("Geometry",
+      `The diagram shows two parallel lines crossed by a straight line. ` +
+      `What is the size of the angle marked x?`,
+      `${ans}°`, cand.map(v => `${v}°`), 3, i,
+      D.parallelAngles({ given, givenValue: theta, ask, askLabel: "x" }));
+    if (q) q.explain =
+      `The two angles are ${why.name}.\n\n` +
+      (why.equal
+        ? `${why.name.startsWith("vertically")
+            ? "Vertically opposite angles are equal, so x is the same as the " +
+              "angle given."
+            : why.name.startsWith("corresponding")
+            ? "Corresponding angles sit in matching positions at the two " +
+              "crossings, and because the lines are parallel they are equal."
+            : "Alternate angles sit on opposite sides of the slanted line, one " +
+              "at each crossing, and they are equal when the lines are parallel."}` +
+          `\n\nSo x = ${theta}°.`
+        : `${why.name.startsWith("angles on")
+            ? "Angles on a straight line add up to 180°."
+            : "Co-interior angles are between the two parallel lines on the " +
+              "same side of the slanted line, and they add up to 180°."}` +
+          `\n\nSo x = 180 − ${theta} = ${ans}°.`) +
+      `\n\nEvery one of the eight angles in a diagram like this is either ` +
+      `${theta}° or ${180 - theta}°, so the whole question is deciding which of ` +
+      `the two this one is. ${180 - ans}° is offered, and it is the other one.`;
+    return q;
+  }
+
   /* Three-figure bearings: measured clockwise from north, always three digits. */
   /* Named BEARING_POINTS, not COMPASS: a COMPASS array of the eight direction
      names already exists further down this file, and two consts of the same name
@@ -8362,7 +8561,9 @@ const QUESTIONS = [];
       [geoCircleInSquare, 4, 4],          // the side comes from the radius
       /* Reflections and bearings: two more Year 7/8 rows with no cover. */
       [geoReflectPoint, 2, 3],            // across the mirror, same distance
-      [geoBearing, 3, 3]                  // clockwise from north, three figures
+      [geoBearing, 3, 3],                 // clockwise from north, three figures
+      [geoParallelLineAngles, 3, 3],      // F, Z and C shapes on parallel lines
+      [geoTriangleUnique, 4, 4]           // what pins a triangle down to one
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -8387,7 +8588,8 @@ const QUESTIONS = [];
       [figBarChartMode, 2, 2],            // the modal height on a bar chart
       [statMeanAfterChange, 3, 3],        // the count changes as well as the mean
       /* Comparing distributions: an average and a range, held at once. */
-      [statCompareDistributions, 4, 4]
+      [statCompareDistributions, 4, 4],
+      [statScatterCorrelation, 3, 3]      // read the trend, left to right
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements
