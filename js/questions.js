@@ -3408,6 +3408,192 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── More Super Hard ──
+
+     Decimals and Probability had no difficulty-4 template at all, and Sequences
+     and Counting Principle had one each. These are written to 4 or more
+     computations so they earn the band rather than being promoted into it.
+     Money is counted in whole pence throughout: 0.2 has no exact binary form,
+     so a bill worked in pounds lands on 15.360000000000001 sooner or later. */
+
+  function decMultiStepBill(i) {
+    /* Both prices are whole multiples of 20p, so the bill is too - and a
+       multiple of 20 divides exactly by 10, by 5 and by 4, which is every
+       discount this template uses. Without that the discount lands on a
+       fraction of a penny and most seeds are thrown away. */
+    const mainP = 240 + (i % 12) * 20;          // pence
+    const sideP = 100 + (Math.floor(i / 12) % 9) * 20;
+    const mains = 2 + (Math.floor(i / 5) % 4);
+    const sides = 2 + (Math.floor(i / 7) % 4);
+    const off = [10, 20, 25][Math.floor(i / 9) % 3];
+    const grossP = mains * mainP + sides * sideP;
+    const discountP = grossP * off / 100;
+    if (!Number.isInteger(discountP)) return null;
+    const netP = grossP - discountP;
+    const noteP = [2000, 3000, 5000].find(n => n > netP);
+    if (!noteP) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [
+      noteP - grossP,   // forgot the discount
+      netP,             // gave the bill, not the change
+      discountP,        // gave the saving
+      grossP
+    ].filter(v => v > 0 && v !== noteP - netP);
+    const q = mk("Decimals",
+      `A café sells jacket potatoes at ${money(mainP)} and side salads at ` +
+      `${money(sideP)}. Nadia buys ${mains} jacket potatoes and ${sides} side ` +
+      `salads. She has a voucher for ${off}% off the whole bill. She pays with ` +
+      /* Notes are whole pounds: "a £20.00 note" is not how anyone says it. */
+      `a £${noteP / 100} note. How much change should she get?`,
+      money(noteP - netP), wrong.map(money), 4, i);
+    if (q) q.explain =
+      `Step 1. The potatoes: ${mains} × ${money(mainP)} = ${money(mains * mainP)}.\n\n` +
+      `Step 2. The salads: ${sides} × ${money(sideP)} = ${money(sides * sideP)}. ` +
+      `So the bill before the voucher is ${money(grossP)}.\n\n` +
+      `Step 3. Take ${off}% off: ${off}% of ${money(grossP)} is ` +
+      `${money(discountP)}, leaving ${money(grossP)} − ${money(discountP)} = ` +
+      `${money(netP)}.\n\n` +
+      `Step 4. Change from ${money(noteP)}: ${money(noteP)} − ${money(netP)} = ` +
+      `${money(noteP - netP)}.\n\n` +
+      `Every step is a place to stop too early. ${money(netP)} is the bill, ` +
+      `${money(discountP)} is the saving, and ${money(noteP - grossP)} is the ` +
+      `change if the voucher is forgotten — all three are offered.`;
+    return q;
+  }
+
+  /* "At least one" is the question that is far easier backwards: count the ways
+     it does NOT happen and take them off 1. */
+  function probAtLeastOneOfColour(i) {
+    const red = 2 + (i % 6);
+    const blue = 3 + (Math.floor(i / 6) % 8);
+    const total = red + blue;
+    if (total < 5 || blue < 2) return null;
+    /* P(no red) = both drawn from the blues. */
+    const noRedNum = blue * (blue - 1), den = total * (total - 1);
+    const ans = simp(den - noRedNum, den);
+    const cand = [
+      simp(noRedNum, den),                  // the complement, not the answer
+      simp(red, total),                     // one draw only
+      simp(red * (red - 1), den),           // both red
+      simp(total - red, total)
+    ].filter(o => o !== ans);
+    const q = mk("Probability",
+      `A bag holds ${red} red counters and ${blue} blue counters. Two counters ` +
+      `are taken out at random, without replacement. What is the probability ` +
+      `that at least one of them is red?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `"At least one" covers one red or two reds, and adding those two cases up ` +
+      `is slow. Turn it round: the only way to get NO red is to draw two blues.\n\n` +
+      `Step 1. First counter blue: ${blue} of the ${total}.\n\n` +
+      `Step 2. Second counter blue: one blue and one counter have gone, so ` +
+      `${blue - 1} of the remaining ${total - 1}.\n\n` +
+      `Step 3. Both blue: ${blue}/${total} × ${blue - 1}/${total - 1} = ` +
+      `${simp(noRedNum, den)}.\n\n` +
+      `Step 4. At least one red is everything else: 1 − ${simp(noRedNum, den)} = ` +
+      `${ans}.\n\n` +
+      `${simp(noRedNum, den)} is offered on its own — it is the probability of ` +
+      `no red at all, which is the step before the answer, not the answer.`;
+    return q;
+  }
+
+  /* Two sequences running towards each other: the rules have to be found before
+     the question can even be started. */
+  function seqTwoSequencesMeet(i) {
+    const aStart = 3 + (i % 9), aStep = 4 + (Math.floor(i / 9) % 5);
+    const bStart = 80 + (Math.floor(i / 4) % 9) * 5, bStep = 3 + (Math.floor(i / 7) % 4);
+    let n = 1;
+    while (n < 200 && aStart + (n - 1) * aStep <= bStart - (n - 1) * bStep) n += 1;
+    if (n >= 200 || n < 3) return null;
+    const term = k => [aStart + (k - 1) * aStep, bStart - (k - 1) * bStep];
+    const cand = [n - 1, n + 1, n - 2, term(n)[0]].filter(v => v !== n && v > 0);
+    const seqA = [0, 1, 2, 3].map(k => aStart + k * aStep).join(", ");
+    const seqB = [0, 1, 2, 3].map(k => bStart - k * bStep).join(", ");
+    const q = mk("Sequences",
+      `Sequence A starts ${seqA} and carries on in the same way. Sequence B ` +
+      `starts ${seqB} and carries on in the same way. At which term number is ` +
+      `sequence A first greater than sequence B?`,
+      `${n}`, cand.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Step 1. Find both rules. A goes up in ${aStep}s, so its nth term is ` +
+      `${aStep}n ${aStart - aStep >= 0 ? "+ " + (aStart - aStep) : "− " + (aStep - aStart)}. ` +
+      `B goes down in ${bStep}s, so its nth term is ` +
+      `${bStart + bStep} − ${bStep}n.\n\n` +
+      `Step 2. A gains on B by ${aStep} + ${bStep} = ${aStep + bStep} each term, ` +
+      `and it starts ${bStart - aStart} behind.\n\n` +
+      `Step 3. Check around where they cross. At term ${n - 1}, A is ` +
+      `${term(n - 1)[0]} and B is ${term(n - 1)[1]}. At term ${n}, A is ` +
+      `${term(n)[0]} and B is ${term(n)[1]}.\n\n` +
+      `So term ${n} is the first where A is greater. The question asks WHICH ` +
+      `TERM, not what the term is — ${term(n)[0]} is the value there, and it is ` +
+      `offered as a trap.`;
+    return q;
+  }
+
+  /* Two restrictions at once. The count is built by listing, because a formula
+     for "even AND above a bound with no repeats" is easy to get wrong and the
+     list is the thing a child is actually taught to organise. */
+  function countTwoRestrictions(i) {
+    const pools = [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [1, 3, 4, 6, 7],
+                   [2, 4, 5, 7, 8], [1, 2, 5, 6, 8], [3, 4, 5, 6, 9],
+                   [1, 4, 6, 7, 8], [2, 3, 6, 7, 9], [1, 2, 4, 7, 9],
+                   [2, 5, 6, 8, 9], [3, 4, 7, 8, 9], [1, 5, 6, 7, 8],
+                   [2, 3, 4, 8, 9], [1, 2, 6, 7, 9], [3, 5, 6, 7, 8],
+                   [1, 4, 5, 8, 9]][i % 16];
+    const bound = pools[1 + (Math.floor(i / 16) % 3)] * 100;
+    let count = 0;
+    for (const a of pools) for (const b of pools) for (const c of pools) {
+      if (a === b || b === c || a === c) continue;
+      const v = a * 100 + b * 10 + c;
+      if (v > bound && c % 2 === 0) count += 1;
+    }
+    if (count < 4) return null;
+    const cand = [count + 4, count - 4, count * 2, count + 8]
+      .filter(v => v > 0 && v !== count);
+    const q = mk("Counting Principle",
+      `Using the digits ${pools.join(", ")}, how many three-digit numbers ` +
+      `greater than ${comma(bound)} can be made that are even, if no digit may ` +
+      `be used more than once?`,
+      `${count}`, cand.map(v => `${v}`), 4, i);
+    return q;
+  }
+
+  /* Two reductions, worked backwards. Each stage has to be undone separately -
+     the two percentages cannot be added together and taken off in one go. */
+  function pctSuccessiveReverse(i) {
+    const first = [10, 20, 25][i % 3];
+    const second = [10, 20, 25][Math.floor(i / 3) % 3];
+    const startP = (60 + (Math.floor(i / 9) % 12) * 10) * 100;   // whole pounds, in pence
+    const afterFirst = startP * (100 - first) / 100;
+    const finalP = afterFirst * (100 - second) / 100;
+    if (!Number.isInteger(afterFirst) || !Number.isInteger(finalP)) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [
+      finalP * (100 + first + second) / 100,   // added the two percentages back
+      afterFirst,                              // stopped one stage early
+      finalP * (100 + second) / 100,
+      startP - finalP
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== startP);
+    const q = mk("Percentages",
+      `A coat is reduced by ${first}% in a sale. In a later sale the new price ` +
+      `is reduced by a further ${second}%. The coat now costs ${money(finalP)}. ` +
+      `What did it cost before either reduction?`,
+      money(startP), wrong.map(money), 4, i);
+    if (q) q.explain =
+      `Work backwards one sale at a time, undoing the later one first.\n\n` +
+      `Step 1. The second sale took ${second}% off, so ${money(finalP)} is ` +
+      `${100 - second}% of the price before it. Divide: ${money(finalP)} ÷ ` +
+      `${(100 - second) / 100} = ${money(afterFirst)}.\n\n` +
+      `Step 2. The first sale took ${first}% off, so ${money(afterFirst)} is ` +
+      `${100 - first}% of the original. Divide again: ${money(afterFirst)} ÷ ` +
+      `${(100 - first) / 100} = ${money(startP)}.\n\n` +
+      `The two percentages cannot be added and taken off in one go, because the ` +
+      `second one is a percentage of an already-reduced price, not of the ` +
+      `original. Adding them gives ${money(finalP * (100 + first + second) / 100)}, ` +
+      `which is offered.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -8372,7 +8558,9 @@ const QUESTIONS = [];
       [decOrderMixed, 2, 3],              // decimals against percentages
       [decUnitPrice, 3, 3],               // better value, per 100 g
       [decMultiplyGivenFact, 2, 3],       // a whole-number product handed over
-      [decMoneySplit, 3, 3]               // shared out, with pence left over
+      [decMoneySplit, 3, 3],              // shared out, with pence left over
+      /* Decimals had no Super Hard template at all. */
+      [decMultiStepBill, 4, 4]            // two prices, a discount, then change
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -8401,7 +8589,8 @@ const QUESTIONS = [];
       /* harder percentages */
       [pctReverseAfterChange, 2, 3],      // back through a rise or a fall
       [pctSingleEquivalent, 3, 3],        // two changes as one
-      [pctProfitPercent, 2, 3]            // profit as a percentage of cost
+      [pctProfitPercent, 2, 3],           // profit as a percentage of cost
+      [pctSuccessiveReverse, 4, 4]        // undo two sales, later one first
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
@@ -8451,7 +8640,8 @@ const QUESTIONS = [];
       [seqRecurrenceMissing, 2, 2],       // a rule using the term before
       [seqQuadraticNth, 4, 4],            // nth term with a constant 2nd difference
       [seqArithSum, 3, 3],                // total of the first n terms
-      [seqInterleaved, 3, 3]              // two sequences laid alternately      // falling terms, growing gaps
+      [seqInterleaved, 3, 3],             // two sequences laid alternately
+      [seqTwoSequencesMeet, 4, 4]         // find both rules, then the crossing
     ],
     Ratio: [
       [ratInventedScale, 2, 3],           // two invented units and a rate
@@ -8606,7 +8796,8 @@ const QUESTIONS = [];
       [countCircular, 3, 3],                  // no first seat round a table
       [countGridPaths, 3, 3],                 // choose which moves go sideways
       [countCircularReflect, 3, 3],           // a bracelet can be turned over
-      [countChooseFromTwoGroups, 3, 3]        // two selections multiplied
+      [countChooseFromTwoGroups, 3, 3],       // two selections multiplied
+      [countTwoRestrictions, 4, 4]            // even AND above a bound
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
@@ -8624,7 +8815,9 @@ const QUESTIONS = [];
       [probTwoSpinnersSum, 3, 3],         // count the pairs making the total
       [probAddToTarget, 3, 3],            // backwards from the probability
       [probNotAllSame, 2, 3],             // 1 minus the two matching ways
-      [probThreeDrawsAllSame, 3, 3]       // three shrinking denominators
+      [probThreeDrawsAllSame, 3, 3],      // three shrinking denominators
+      /* Probability had no Super Hard template at all. */
+      [probAtLeastOneOfColour, 4, 4]      // easier backwards, from 1
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
@@ -8647,13 +8840,46 @@ const QUESTIONS = [];
     ]
   };
 
+  /* ── Pool sizes ──
+
+     These templates are still producing a different question on every seed
+     when the default 50 run out, so they are given more. Each number is the
+     seed at which that template first repeats itself, measured with an
+     oversized probe pool, capped at 150.
+
+     Only templates already in the Super Hard band are listed. Adding seeds
+     here grows Super Hard without lowering it: every extra question comes
+     from a template that was scored at 4 or more computations against QE
+     Mock Paper 9. */
+  algThreeItemPricing.poolSize = 126;
+  bidNestedBrackets.poolSize = 150;  // clean to 183
+  fracReverseTwoStage.poolSize = 60;
+  geoNetOppositeSum.poolSize = 150;  // clean to 260
+  logClockDigits.poolSize = 84;
+  meaCompoundVolume.poolSize = 150;  // clean to 168
+  numCompareExpressions.poolSize = 57;
+  pctProfitAfterLoss.poolSize = 81;
+  pctVennNeither.poolSize = 150;  // clean to 260
+  ratAfterChange.poolSize = 60;
+  spdAverageTwoLegs.poolSize = 65;
+  statCompareDistributions.poolSize = 150;  // clean to 160
+  statMeanOfRemaining.poolSize = 55;
+  statRequiredAverage.poolSize = 150;  // clean to 236
+
   // Single scale knob — produces ~140 generators × N variations questions.
   const VARIATIONS_PER_TEMPLATE = 50;
 
   Object.values(generators).forEach(gens => {
     gens.forEach(([gen, lo, hi], gIdx) => {
       const span = hi - lo + 1;
-      for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
+      /* A template whose combinations are far from exhausted at 50 seeds can ask
+         for more, by setting `poolSize` on itself. Only ever more, never fewer:
+         the loop starts at v = 0 either way, so the questions already in the
+         bank are unchanged and a longer pool simply appends. Worth doing only
+         where the extra seeds give DIFFERENT questions - past a template's
+         ceiling they repeat, which is worse than nothing. */
+      const variations = Math.max(VARIATIONS_PER_TEMPLATE, gen.poolSize || 0);
+      for (let v = 0; v < variations; v++) {
         try {
           const q = gen(v + gIdx * 13);
           if (!q) continue;
