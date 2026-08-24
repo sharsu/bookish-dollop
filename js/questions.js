@@ -2804,6 +2804,380 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── Rounding and estimating to a given accuracy ──
+
+     Decimal places and significant figures are Year 8 rows with nothing behind
+     them: the only rounding left at Hard was numRoundingBoundsGap, which is
+     about bounds rather than rounding to an accuracy. The arithmetic is done on
+     integers throughout - rounding a binary float to a decimal place is exactly
+     the kind of thing that silently produces 4.8299999999999996. */
+  function numRoundDecimalPlaces(i) {
+    const whole = 2 + (i % 38);
+    const d1 = i % 10, d2 = (i * 3 + 1) % 10, d3 = (i * 7 + 3) % 10;
+    const thousandths = whole * 1000 + d1 * 100 + d2 * 10 + d3;
+    const places = 1 + (i % 2);
+    /* Round by integer arithmetic, then print with a fixed number of places so
+       a trailing zero is kept: 4.80 to 2 d.p. must not print as 4.8. */
+    const scale = places === 1 ? 100 : 10;
+    const rounded = Math.round(thousandths / scale) / (places === 1 ? 10 : 100);
+    const ans = rounded.toFixed(places);
+    const truncated = (Math.floor(thousandths / scale) / (places === 1 ? 10 : 100)).toFixed(places);
+    const other = places === 1
+      ? (Math.round(thousandths / 10) / 100).toFixed(2)
+      : (Math.round(thousandths / 100) / 10).toFixed(1);
+    /* Chopping the digits off gives the same answer as rounding whenever the
+       deciding digit is under 5, so that candidate cannot be relied on. mk keeps
+       the first three DISTINCT options, so a longer list is offered and the
+       question survives either way rather than being dropped for half the seeds. */
+    const wrong = [truncated, other, (whole).toFixed(places),
+                   (rounded + (places === 1 ? 0.1 : 0.01)).toFixed(places),
+                   (whole + 1).toFixed(places)];
+    const shown = (thousandths / 1000).toFixed(3);
+    const q = mk("Numbers",
+      `What is ${shown} rounded to ${places} decimal place${places === 1 ? "" : "s"}?`,
+      ans, wrong, 3, i);
+    if (q) q.explain =
+      `To round to ${places} decimal place${places === 1 ? "" : "s"}, look at ` +
+      `the digit in the next place along. ${shown} has ` +
+      `${places === 1 ? `${d2} in the hundredths` : `${d3} in the thousandths`} ` +
+      `place, and ${(places === 1 ? d2 : d3) >= 5 ? "5 or more rounds up" :
+      "less than 5 leaves the digit alone"}, giving ${ans}.\n\n` +
+      `Cutting the extra digits off instead of rounding gives ${truncated}, ` +
+      `which is offered — chopping and rounding are only the same when the next ` +
+      `digit is under 5.`;
+    return q;
+  }
+
+  function numRoundSigFigs(i) {
+    const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9][i % 9];
+    const second = (i * 3) % 10, third = (i * 7 + 1) % 10;
+    const magnitude = [100, 1000, 10000][i % 3];
+    const n = digits * magnitude + second * (magnitude / 10) + third * (magnitude / 100);
+    const sf = 1 + (i % 2);
+    /* Round at the right place by integer arithmetic. */
+    const place = sf === 1 ? magnitude : magnitude / 10;
+    const ans = Math.round(n / place) * place;
+    /* As above: truncation coincides with rounding when the deciding digit is
+       under 5, so more candidates are offered than are needed. */
+    const wrong = [
+      Math.floor(n / place) * place,                   // truncated, not rounded
+      sf === 1 ? Math.round(n / (magnitude / 10)) * (magnitude / 10)
+               : Math.round(n / magnitude) * magnitude, // the other accuracy
+      Math.round(n / 10) * 10,                         // rounded to the nearest 10
+      ans + place,                                     // rounded the wrong way
+      ans - place
+    ].filter(v => Number.isInteger(v) && v > 0);
+    if (!Number.isInteger(ans)) return null;
+    return mk("Numbers",
+      `What is ${comma(n)} rounded to ${sf} significant figure${sf === 1 ? "" : "s"}?`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+  }
+
+  /* Estimating by rounding each number to one significant figure. The exact
+     answer is offered, because working it out exactly is the mistake. */
+  function numEstimateOneSigFig(i) {
+    const a = 1000 + (i * 137) % 9000;
+    const b = 11 + (i * 7) % 88;
+    const round1 = x => {
+      const p = Math.pow(10, String(Math.trunc(x)).length - 1);
+      return Math.round(x / p) * p;
+    };
+    const A = round1(a), B = round1(b);
+    const ans = A * B;
+    const wrong = [a * b, A * b, a * B, A * B * 10, A * B / 10]
+      .filter(v => Number.isInteger(v) && v !== ans);
+    const q = mk("Numbers",
+      `Estimate ${comma(a)} × ${b} by rounding each number to 1 significant figure.`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+    if (q) q.explain =
+      `Round each number to its first digit: ${comma(a)} becomes ${comma(A)} ` +
+      `and ${b} becomes ${B}.\n\n` +
+      `Then ${comma(A)} × ${B} = ${comma(ans)}.\n\n` +
+      `The exact answer, ${comma(a * b)}, is offered as well — an estimate is ` +
+      `meant to be quick, and if you found yourself doing the full ` +
+      `multiplication you answered a different question.`;
+    return q;
+  }
+
+  /* Fraction to percentage: the FDP row was carried by decOrderMixed alone. */
+  function numFractionToPercent(i) {
+    const pool = [[1, 8], [3, 8], [5, 8], [7, 8], [1, 4], [3, 4], [1, 5], [2, 5],
+                  [3, 5], [4, 5], [1, 20], [7, 20], [9, 20], [13, 20], [17, 20],
+                  [1, 25], [6, 25], [1, 40], [7, 40], [1, 50], [3, 50],
+                  [1, 2], [1, 10], [3, 10], [7, 10], [9, 10], [11, 20], [19, 20],
+                  [2, 25], [11, 25], [13, 25], [21, 25], [3, 20], [9, 40],
+                  [11, 40], [7, 50], [9, 50], [21, 50], [1, 16], [3, 16]];
+    const [n, d] = pool[i % pool.length];
+    const pct = n / d * 100;
+    if (!Number.isFinite(pct)) return null;
+    const wrong = [
+      d / n * 100,           // divided the wrong way round
+      n / d,                 // forgot to multiply by 100
+      n * 10 + d             // read the digits off as a number
+    ];
+    if (new Set([pct, ...wrong].map(v => Number(Number(v).toFixed(3)))).size !== 4) return null;
+    return mk("Numbers", `What is ${n}/${d} as a percentage?`,
+      `${fmt(pct)}%`, wrong.map(w => `${fmt(w)}%`), 3, i);
+  }
+
+  /* An LCM word problem that is not a bus timetable: numBusLCM was carrying the
+     whole Multiples and LCM row on its own. */
+  function numLCMShare(i) {
+    const triples = [[4, 6, 9], [4, 6, 8], [6, 8, 9], [3, 4, 10], [4, 5, 6],
+                     [6, 9, 12], [4, 9, 12], [8, 10, 12], [3, 8, 10], [5, 6, 9],
+                     [4, 10, 12], [6, 8, 10], [2, 9, 12], [8, 9, 12], [5, 8, 12],
+                     [3, 5, 8], [4, 7, 10], [6, 10, 15], [5, 9, 12], [8, 12, 15],
+                     [3, 7, 12], [5, 10, 14], [6, 14, 21], [9, 10, 12], [4, 11, 12],
+                     [7, 8, 12], [5, 12, 15], [6, 15, 20], [8, 14, 21], [9, 12, 15]];
+    const [a, b, c] = triples[i % triples.length];
+    const ans = lcmAll([a, b, c]);
+    /* lcm(a, b) is the answer itself whenever c already divides it, so it
+       cannot be relied on; mk takes the first three distinct. */
+    const wrong = [a * b * c, lcm(a, b), a + b + c, ans * 2, lcm(b, c)]
+      .filter(v => v !== ans);
+    const q = mk("Numbers",
+      `A teacher wants to buy a box of pencils that can be shared out equally ` +
+      `between ${a} children, or ${b} children, or ${c} children, with none ` +
+      `left over. What is the smallest number of pencils the box can hold?`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+    if (q) q.explain =
+      `A number that divides equally by ${a}, ${b} and ${c} is a common ` +
+      `multiple of all three, and the smallest one is the lowest common ` +
+      `multiple.\n\n` +
+      `Take them two at a time: the LCM of ${a} and ${b} is ${lcm(a, b)}, and ` +
+      `the LCM of ${lcm(a, b)} and ${c} is ${ans}.\n\n` +
+      `Multiplying all three together gives ${comma(a * b * c)}, which does ` +
+      `divide by each of them — but it is not the smallest, and "smallest" is ` +
+      `what the question asks for.`;
+    return q;
+  }
+
+  /* Metric to imperial, which lost its only cover when meaInchConvert - a single
+     multiplication - was moved down to Medium. Priced in whole pence so the
+     money never lands on a binary rounding error. */
+  function meaImperialConvert(i) {
+    const gallons = 8 + (i % 9);
+    const litresPerGallon = 45;            // tenths of a litre: 4.5
+    const pencePerLitre = 130 + (Math.floor(i / 9) % 6) * 5;
+    /* 4.5 litres to the gallon puts every odd number of gallons on a half
+       litre, which is fine - only the money has to come out whole. */
+    const litres = gallons * litresPerGallon / 10;
+    const totalPence = Math.round(litres * pencePerLitre * 100) / 100;
+    if (!Number.isInteger(totalPence)) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    /* Offer spare candidates rather than dropping the seed when two coincide:
+       mk keeps the first three that are genuinely distinct. */
+    const wrong = [
+      gallons * pencePerLitre,              // never converted to litres
+      litres * 100,                         // gave the litres, not the cost
+      litresPerGallon / 10 * pencePerLitre, // priced one gallon only
+      totalPence + pencePerLitre,           // one litre too many
+      gallons * litresPerGallon             // multiplied the tenths straight out
+    ].filter(v => Number.isInteger(v) && v > 0);
+    const q = mk("Measurement",
+      `1 gallon is equal to 4.5 litres. A tank holds ${gallons} gallons. ` +
+      `Petrol costs ${money(pencePerLitre)} per litre. What does it cost to ` +
+      `fill the tank?`,
+      money(totalPence), wrong.map(w => money(w)), 4, i);
+    if (q) q.explain =
+      `Step 1. Turn the gallons into litres, because the price is per litre: ` +
+      `${gallons} × 4.5 = ${fmt(litres)} litres.\n\n` +
+      `Step 2. Multiply by the price: ${fmt(litres)} × ` +
+      `${(pencePerLitre / 100).toFixed(2)} = ${money(totalPence)}.\n\n` +
+      `Pricing the gallons directly gives ${money(gallons * pencePerLitre)} — ` +
+      `the units have to match before you multiply, and that is the whole point ` +
+      `of the question.`;
+    return q;
+  }
+
+  /* ── Circles ──
+
+     KS3 Year 8, and a gap the bank had no cover for at all: not one question
+     mentioned a circumference. QE Mock Paper 9 asked two circle questions and
+     printed the formula in the question both times, so it is printed here too.
+     At 11+ the thing being tested is whether the child works from the radius
+     rather than the diameter, not whether they have memorised pi, and 3.14 is
+     the value that paper used. */
+  const PI = 3.14;
+  /* Radii that keep both the area and the circumference tidy. */
+  const tidyRadius = i => [5, 10, 15, 20, 25, 50][i % 6];
+
+  function geoCircleArea(i) {
+    /* 19 radii x 2 ways of stating them; the form must not be i % 2 or it would
+       turn over in step with the radius and halve the variety. */
+    const r = 2 + (i % 19);
+    const asDiameter = Math.floor(i / 19) % 2 === 1;
+    const ans = PI * r * r;
+    const wrong = [
+      PI * (2 * r) * (2 * r),   // squared the diameter instead of the radius
+      2 * PI * r,               // gave the circumference
+      PI * r                    // forgot to square at all
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    return mk("Geometry",
+      `A circle has a ${asDiameter ? "diameter" : "radius"} of ` +
+      `${asDiameter ? 2 * r : r} cm. What is its area? ` +
+      `(Area of a circle = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 3, i);
+  }
+
+  function geoCircleCircumference(i) {
+    const r = 2 + (i % 19);
+    const asDiameter = Math.floor(i / 19) % 2 === 0;
+    const ans = 2 * PI * r;
+    const wrong = [
+      PI * r,                   // forgot to double
+      PI * r * r,               // gave the area
+      2 * PI * (2 * r)          // doubled the diameter as well
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    return mk("Geometry",
+      `A circle has a ${asDiameter ? "diameter" : "radius"} of ` +
+      `${asDiameter ? 2 * r : r} cm. What is its circumference? ` +
+      `(Circumference = 2 × 3.14 × radius)`,
+      `${fmt(ans)} cm`, wrong.map(w => `${fmt(w)} cm`), 3, i);
+  }
+
+  /* Mock Paper 9 Q39: the circumference is given and the area is wanted, so the
+     radius has to be recovered first. */
+  function geoCircleAreaFromCircumference(i) {
+    const r = 3 + (i % 23);
+    const C = 2 * PI * r;
+    const ans = PI * r * r;
+    /* Using the circumference itself as a radius gives numbers in the tens of
+       thousands with a third decimal place - implausible as an answer, so it
+       teaches nothing and only clutters the options. These are the mistakes a
+       child actually makes. */
+    const wrong = [
+      r * r,             // dropped pi
+      2 * PI * r * r,    // doubled, mixing the two formulas
+      PI * r,            // used the radius once, not twice
+      C                  // restated the circumference
+    ];
+    const q = mk("Geometry",
+      `The circumference of a circle is ${fmt(C)} cm. What is its area? ` +
+      `(Circumference = 2 × 3.14 × radius, Area = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 4, i);
+    if (q) q.explain =
+      `Step 1. The circumference is 2 × 3.14 × radius, which is ` +
+      `6.28 × radius. So work backwards to the radius: ` +
+      `${fmt(C)} ÷ 6.28 = ${r} cm.\n\n` +
+      `Step 2. Now use the radius in the area formula: ` +
+      `3.14 × ${r} × ${r} = ${fmt(ans)} cm².\n\n` +
+      `The radius is the bridge between the two formulas — there is no way ` +
+      `from a circumference straight to an area, and putting ${fmt(C)} into ` +
+      `the area formula gives ${fmt(PI * C * C)} cm², which is one of the ` +
+      `options offered.`;
+    return q;
+  }
+
+  /* Mock Paper 9 Q31: a circle cut out of a square, so the shaded part is what
+     is left. Choosing the side as twice the radius makes the circle touch all
+     four sides, which is what makes the side length knowable. */
+  function geoCircleInSquare(i) {
+    const r = 3 + (i % 12);
+    const s = 2 * r;
+    const bySide = Math.floor(i / 12) % 2 === 1;
+    const ans = s * s - PI * r * r;
+    const wrong = [
+      PI * r * r,               // gave the circle, not what is left
+      s * s,                    // forgot to take the circle away
+      s * s - 2 * PI * r        // took away the circumference instead of the area
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Geometry",
+      `A circle is drawn inside a square so that it just touches all four ` +
+      `sides. The ${bySide ? `square has a side of ${s} cm` :
+        `circle has a radius of ${r} cm`}. What area of the square is ` +
+      `left uncovered? (Area of a circle = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 4, i);
+    if (q) q.explain =
+      (bySide
+        ? `Step 1. The circle touches all four sides, so the circle is as wide ` +
+          `as the square: its diameter is ${s} cm, and its radius is half of ` +
+          `that, ${r} cm.\n\n`
+        : `Step 1. The circle touches all four sides, so the square's side is ` +
+          `two radiuses across: 2 × ${r} = ${s} cm.\n\n`) +
+      `Step 2. Area of the square: ${s} × ${s} = ${s * s} cm².\n\n` +
+      `Step 3. Area of the circle: 3.14 × ${r} × ${r} = ${fmt(PI * r * r)} cm².\n\n` +
+      `Step 4. What is left is the square minus the circle: ` +
+      `${s * s} − ${fmt(PI * r * r)} = ${fmt(ans)} cm².\n\n` +
+      (bySide
+        ? `Halving is the step that is easy to miss. The side is given, not the ` +
+          `radius, and putting ${s} into the area formula instead of ${r} would ` +
+          `make the circle four times too big.`
+        : `Finding the side length is the step that is easy to miss. The radius ` +
+          `is given, not the side, and the circle touching all four sides is ` +
+          `what tells you the side must be ${s} cm.`);
+    return q;
+  }
+
+  /* ── Areas the bank had no cover for: trapezium, and working an area back ── */
+  function meaTrapeziumArea(i) {
+    const a = 4 + (i % 9);
+    const b = a + 2 + ((i * 3) % 8);        // the longer parallel side
+    const h = 2 * (2 + ((i * 5) % 6));      // even, so halving stays whole
+    const ans = (a + b) / 2 * h;
+    const wrong = [
+      (a + b) * h,          // forgot to halve
+      a * b,                // multiplied the parallel sides
+      (a + b) / 2 + h       // added the height instead of multiplying
+    ];
+    if (!Number.isInteger(ans)) return null;
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Measurement",
+      `A trapezium has two parallel sides of ${a} cm and ${b} cm, and a ` +
+      `perpendicular height of ${h} cm. What is its area?`,
+      `${comma(ans)} cm²`, wrong.map(w => `${comma(w)} cm²`), 3, i);
+    if (q) q.explain =
+      `Add the two parallel sides, halve the total, then multiply by the ` +
+      `height: (${a} + ${b}) ÷ 2 × ${h} = ${(a + b) / 2} × ${h} = ` +
+      `${comma(ans)} cm².\n\n` +
+      `Halving is the step that gets dropped — leaving it out gives ` +
+      `${comma((a + b) * h)} cm², which is offered. Averaging the two parallel ` +
+      `sides is what turns the trapezium into a rectangle of the same area, ` +
+      `which is why the formula works.`;
+    return q;
+  }
+
+  /* An area is given and a length is wanted, which is the half that gets
+     practised least. The triangle's halving has to be undone, not applied. */
+  function meaAreaFindMissingSide(i) {
+    /* Base and height must not both turn on i % 8, or they move together and
+       only eight questions exist. */
+    const base = 2 * (3 + (i % 8));
+    const height = 4 + (Math.floor(i / 8) % 12);
+    /* A parallelogram as well as a triangle: "Area - parallelograms,
+       trapeziums" is its own Year 8 row, and the pair makes the halving the
+       thing that tells them apart rather than a rule to be recalled. */
+    const triangle = i % 2 === 0;
+    const area = triangle ? base * height / 2 : base * height;
+    if (!Number.isInteger(area)) return null;
+    const wrong = triangle
+      ? [area / base, area * 2 * base, area - base, height + 2]
+      : [2 * area / base, area - base, area / (2 * base), height + 2];
+    const q = mk("Measurement",
+      `A ${triangle ? "triangle" : "parallelogram"} has an area of ` +
+      `${comma(area)} cm² and a base of ${base} cm. What is its ` +
+      `perpendicular height?`,
+      `${fmt(height)} cm`, wrong.map(w => `${fmt(w)} cm`), 3, i);
+    if (q) q.explain = triangle
+      ? `The area of a triangle is base × height ÷ 2, so going backwards the ` +
+        `÷ 2 has to be undone first: double the area, then divide by the base.\n\n` +
+        `${comma(area)} × 2 = ${comma(area * 2)}, and ${comma(area * 2)} ÷ ` +
+        `${base} = ${fmt(height)} cm.\n\n` +
+        `Dividing the area by the base without doubling gives ` +
+        `${fmt(area / base)} cm — exactly half the right answer, and offered here.`
+      : `The area of a parallelogram is base × height, with no halving, so ` +
+        `going backwards is a single division: ${comma(area)} ÷ ${base} = ` +
+        `${fmt(height)} cm.\n\n` +
+        `A triangle would need the area doubled first, which here would give ` +
+        `${fmt(2 * area / base)} cm — twice the right answer, and offered. A ` +
+        `parallelogram is two of that triangle put together, which is why its ` +
+        `formula has no half in it.`;
+    return q;
+  }
+
   /* ── Statistics ── */
 
   /* Combining two group means: the answer is weighted, not the halfway point. */
@@ -7558,7 +7932,14 @@ const QUESTIONS = [];
       [numDistinctPrimeFactors, 2, 3],    // different primes, not counting repeats
       [numSupplyDuration, 3, 3],          // complete days, or the day it runs out
       [numExtremeDivisible, 4, 4],        // step inwards from each end
-      [numRoundingBoundsGap, 3, 3]        // the gap is one less than the step
+      [numRoundingBoundsGap, 3, 3],       // the gap is one less than the step
+      /* KS3 Year 7/8 rows the bank had no cover for. Bands follow the step
+         count, as documented at the top of this registry. */
+      [numRoundDecimalPlaces, 2, 3],      // chopping is not rounding
+      [numRoundSigFigs, 2, 3],            // significant figures, not places
+      [numEstimateOneSigFig, 3, 3],       // round both, then multiply
+      [numFractionToPercent, 2, 3],       // divide, then x 100
+      [numLCMShare, 3, 3]                 // smallest, not just any common multiple
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -7709,7 +8090,13 @@ const QUESTIONS = [];
       [meaEstimateSize, 2, 2],            // a sensible length, height or capacity
       [meaEstimateCombine, 2, 3],         // estimate two things, then combine
       [meaTriangularPrismVolume, 2, 3],   // halve the cross-section first
-      [meaPaintTins, 3, 3]                // tins come whole, so round up
+      [meaPaintTins, 3, 3],               // tins come whole, so round up
+      /* KS3 Year 8: trapezium area, an area worked backwards, and the
+         metric-imperial row, which lost its only cover when meaInchConvert
+         went down to Medium. */
+      [meaTrapeziumArea, 3, 3],           // halving is the step that gets dropped
+      [meaAreaFindMissingSide, 3, 3],     // undo the triangle's half
+      [meaImperialConvert, 3, 3]          // match the units before multiplying
     ],
     Geometry: [
       [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
@@ -7743,7 +8130,14 @@ const QUESTIONS = [];
       [geoPaintedCube, 4, 4],             // where each kind of small cube sits
       [geoJoinedCubesSurface, 4, 4],      // a join hides two faces, not one
       [geoNetOppositeFace, 3, 3],         // fold the net, find the far face
-      [geoNetOppositeSum, 4, 4]           // the same fold, then a total to hit
+      [geoNetOppositeSum, 4, 4],          // the same fold, then a total to hit
+      /* Circles: a Year 8 row with nothing behind it at all, and two of
+         Mock Paper 9's questions. The formula is given in the question,
+         as that paper gave it. */
+      [geoCircleArea, 2, 3],              // radius or diameter, then square it
+      [geoCircleCircumference, 2, 3],     // 2 x pi x r, not pi x r
+      [geoCircleAreaFromCircumference, 4, 4],  // back to the radius first
+      [geoCircleInSquare, 4, 4]           // the side comes from the radius
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
