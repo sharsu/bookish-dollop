@@ -1578,6 +1578,12 @@ const QUESTIONS = [];
     const num = 1 + (i % (granularity - 1));
     const p = +(num / granularity).toFixed(3);
     const ans = +(1 - p).toFixed(3);
+    /* At p = 0.5 the complement is p, so the distractor that carries the whole
+       point of the question - answering with the probability you were given -
+       is a duplicate of the answer. mk drops it, is left one short, and pads
+       with nudge(), which offered 6.5 as a probability. The question has
+       nothing to test at 0.5 either way. */
+    if (ans === p) return null;
     const wording = pickWording(i, [
       `The probability of an event is ${fmt(p)}. What is the probability it does NOT happen?`,
       `P(A) = ${fmt(p)}. What is P(not A)?`,
@@ -3591,6 +3597,302 @@ const QUESTIONS = [];
       `second one is a percentage of an already-reduced price, not of the ` +
       `original. Adding them gives ${money(finalP * (100 + first + second) / 100)}, ` +
       `which is offered.`;
+    return q;
+  }
+
+  /* ── More Decimals ──
+
+     The topic was broad at the bottom and thin at the top: eighteen templates,
+     but only one above Hard. All the arithmetic below is done on integers and
+     the decimal point is put in at the end, because 0.8 x 0.8 x 0.8 in binary
+     floating point is 0.5120000000000001. */
+
+  /* A quantity shrinking by the same factor each time - the shape behind bounce
+     heights, depreciation and half-lives. The drop height is chosen so the
+     answer comes out exact rather than rounded. */
+  function decBounceHeight(i) {
+    const FACTORS = [[1, 2, "half"], [3, 5, "three fifths"], [4, 5, "four fifths"],
+                     [3, 4, "three quarters"]];
+    const [p, den, words] = FACTORS[i % FACTORS.length];
+    const bounces = 2 + (Math.floor(i / 4) % 2);
+    const unit = Math.pow(den, bounces);          // makes the answer whole
+    /* Cap k by what the unit allows rather than rejecting the seed afterwards:
+       five cubed is already 125, so a fixed range of six would put most drops
+       past 500 cm and throw them away. */
+    const room = Math.max(1, Math.floor(500 / unit));
+    const k = 1 + (Math.floor(i / 8) % room);
+    const drop = unit * k;
+    if (drop < 20) return null;
+    const ans = Math.pow(p, bounces) * k;
+    const dec = n => `${Number(n.toFixed(3))}`;
+    const one = drop * p / den;
+    const wrong = [
+      one,                                        // stopped after one bounce
+      drop * p * bounces / den,                   // multiplied instead of repeating
+      Math.pow(p, bounces + 1) * k / den * den,   // one bounce too many
+      drop - ans
+    ].filter(v => v > 0 && Math.abs(v - ans) > 1e-9);
+    const q = mk("Decimals",
+      `A ball is dropped from a height of ${drop} cm. After every bounce it ` +
+      `rises to ${words} (${dec(p / den)}) of the height it fell from. How high ` +
+      `does it rise after the ${bounces === 2 ? "second" : "third"} bounce?`,
+      `${dec(ans)} cm`, wrong.map(v => `${dec(v)} cm`), 4, i);
+    if (q) q.explain =
+      `Each bounce takes ${dec(p / den)} of the height before it, so the ` +
+      `multiplying happens ${bounces} times over — it does not add up.\n\n` +
+      `Bounce 1: ${drop} × ${dec(p / den)} = ${dec(one)} cm.\n` +
+      `Bounce 2: ${dec(one)} × ${dec(p / den)} = ${dec(one * p / den)} cm.` +
+      (bounces === 3
+        ? `\nBounce 3: ${dec(one * p / den)} × ${dec(p / den)} = ${dec(ans)} cm.`
+        : "") +
+      `\n\nSo it reaches ${dec(ans)} cm. Multiplying the drop by ` +
+      `${dec(p / den)} × ${bounces} instead gives ${dec(drop * p * bounces / den)} cm, ` +
+      `which is offered — but the ball does not lose the same NUMBER of ` +
+      `centimetres each time, it loses the same FRACTION, and the fraction is of ` +
+      `a smaller height every bounce.`;
+    return q;
+  }
+
+  /* A division handed over, then the place value moved. The digits never change;
+     only where the point sits does. */
+  function decDivideGivenFact(i) {
+    const b = 12 + (i % 38);
+    const c = 3 + (Math.floor(i / 38) % 12);
+    const a = b * c;
+    /* Shift the dividend down by 10 and the divisor stays, so the answer moves
+       down by 10 as well - one clean step from the fact given. */
+    const shown = a / 10, ansV = c / 10;
+    const dec = n => `${Number(n.toFixed(4))}`;
+    const wrong = [c, c / 100, c * 10].filter(v => Math.abs(v - ansV) > 1e-9);
+    const q = mk("Decimals",
+      `Given that ${comma(a)} ÷ ${b} = ${c}, work out ${dec(shown)} ÷ ${b}.`,
+      dec(ansV), wrong.map(dec), 3, i);
+    if (q) q.explain =
+      `Nothing needs dividing again — the digits of the answer are already ` +
+      `known, and only the place value changes.\n\n` +
+      `${dec(shown)} is ${comma(a)} divided by 10, and the number being divided ` +
+      `BY has not moved. Divide something 10 times smaller and the answer is 10 ` +
+      `times smaller too: ${c} ÷ 10 = ${dec(ansV)}.\n\n` +
+      `Answering ${c} is forgetting the shift altogether, and it is offered.`;
+    return q;
+  }
+
+  /* Undoing a multiplication by a decimal below 1, where the answer is BIGGER
+     than the number you started with. */
+  function decReverseMultiply(i) {
+    /* All multiples of 5, so n x hundredths is always a multiple of 5 and the
+       product lands on at most two decimal places for every seed. */
+    const hundredths = [15, 25, 35, 45, 55, 65, 75, 85, 95, 20, 40, 60, 80, 5][i % 14];
+    const n = 12 + (Math.floor(i / 14) % 24);
+    const productH = n * hundredths;                 // in hundredths
+    const dec = v => `${Number(v.toFixed(4))}`;
+    const mult = hundredths / 100, product = productH / 100;
+    const wrong = [product * mult, product + mult, product / hundredths]
+      .filter(v => Math.abs(v - n) > 1e-9);
+    const q = mk("Decimals",
+      `When a number is multiplied by ${dec(mult)}, the answer is ` +
+      `${dec(product)}. What is the number?`,
+      dec(n), wrong.map(dec), 3, i);
+    if (q) q.explain =
+      `Multiplying is undone by dividing, so the number is ${dec(product)} ÷ ` +
+      `${dec(mult)} = ${n}.\n\n` +
+      `Notice the answer is BIGGER than ${dec(product)}. That looks wrong until ` +
+      `you see that multiplying by ${dec(mult)} — a number below 1 — makes ` +
+      `things smaller, so undoing it has to make them bigger again. Multiplying ` +
+      `by ${dec(mult)} a second time gives ${dec(product * mult)}, which is ` +
+      `offered and is the wrong direction.`;
+    return q;
+  }
+
+  /* Place value on its own: what does this have to be multiplied by? */
+  function decPlaceValueChain(i) {
+    const digits = [45, 6, 125, 3, 72, 8, 15, 24, 9, 36][i % 10];
+    const downs = 2 + (i % 3);                        // 10^2 .. 10^4
+    const ups = 1 + (Math.floor(i / 10) % 2);
+    const small = digits / Math.pow(10, downs);
+    const big = digits * Math.pow(10, ups);
+    const factor = Math.pow(10, downs + ups);
+    const dec = v => `${Number(v.toFixed(6))}`;
+    const wrong = [factor / 10, factor * 10, Math.pow(10, downs)]
+      .filter(v => v !== factor);
+    const q = mk("Decimals",
+      `What must ${dec(small)} be multiplied by to give ${comma(big)}?`,
+      comma(factor), wrong.map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `Both numbers are made of the same digits, so this is only about how far ` +
+      `the point has to move.\n\n` +
+      `${dec(small)} → ${comma(big)} moves the digits ${downs + ups} places to ` +
+      `the left, and every place to the left is another × 10. So the factor is ` +
+      `10 multiplied by itself ${downs + ups} times, which is ${comma(factor)}.\n\n` +
+      `Counting the places is the whole job — count one too few and you get ` +
+      `${comma(factor / 10)}, which is offered.`;
+    return q;
+  }
+
+  /* ── More Probability ── */
+
+  /* The probabilities of everything that can happen add to 1, and two of the
+     outcomes are tied together by a ratio - so the leftover has to be shared,
+     not just read off. Worked in whole percentage points. */
+  function probSumToOneUnknown(i) {
+    const RATIOS = [[2, 1], [3, 1], [3, 2], [4, 1], [5, 1], [5, 3]];
+    const [hi, lo] = RATIOS[i % RATIOS.length];
+    const parts = hi + lo;
+    /* Choose what green and yellow share FIRST, as a multiple of both the number
+       of parts and 5, then split the rest between red and blue. Picking red and
+       blue first and hoping the remainder divides threw away most seeds. */
+    const step = lcm(parts, 5);
+    const rest = step * (1 + (Math.floor(i / 6) % Math.max(1, Math.floor(65 / step))));
+    const forRedBlue = 100 - rest;
+    if (forRedBlue < 20) return null;
+    const red = 5 * (1 + (Math.floor(i / 5) % Math.max(1, Math.floor(forRedBlue / 5) - 1)));
+    const blue = forRedBlue - red;
+    if (red <= 0 || blue <= 0) return null;
+    const green = rest / parts * hi, yellow = rest / parts * lo;
+    if (green === yellow) return null;
+    const dec = v => `${Number((v / 100).toFixed(4))}`;
+    const wrong = [yellow, rest, red + blue, green / 2, red, blue,
+                   100 - green]
+      .filter(v => v > 0 && v < 100 && v !== green);
+    const q = mk("Probability",
+      `A spinner has red, blue, green and yellow sections. The probability of ` +
+      `red is ${dec(red)} and the probability of blue is ${dec(blue)}. The ` +
+      `probabilities of green and yellow are in the ratio ${hi} : ${lo}. What ` +
+      `is the probability of green?`,
+      dec(green), wrong.map(dec), 4, i);
+    if (q) q.explain =
+      `Step 1. Everything that can happen adds to 1, so red, blue, green and ` +
+      `yellow together make 1.\n\n` +
+      `Step 2. Red and blue take ${dec(red)} + ${dec(blue)} = ${dec(red + blue)}, ` +
+      `so green and yellow share what is left: 1 − ${dec(red + blue)} = ` +
+      `${dec(rest)}.\n\n` +
+      `Step 3. That ${dec(rest)} is split in the ratio ${hi} : ${lo}, which is ` +
+      `${parts} equal parts. One part is ${dec(rest / parts)}.\n\n` +
+      `Step 4. Green takes ${hi} of them: ${hi} × ${dec(rest / parts)} = ` +
+      `${dec(green)}.\n\n` +
+      `${dec(rest)} on its own is offered — that is green AND yellow together, ` +
+      `which is the step before the answer.`;
+    return q;
+  }
+
+  /* Expected frequency, asked backwards: not "how many would you expect" but
+     "how many goes would it take". */
+  function probExpectedReverse(i) {
+    const sections = [4, 5, 6, 8, 10, 12][i % 6];
+    const wanted = 1 + (Math.floor(i / 6) % (sections - 1));
+    const target = sections * (2 + (Math.floor(i / 4) % 8));
+    const spins = target / (wanted / sections);
+    if (!Number.isInteger(spins) || spins > 2000) return null;
+    const wrong = [target * wanted / sections, target * sections, target + sections,
+                   spins / 2].filter(v => Number.isInteger(v) && v > 0 && v !== spins);
+    const q = mk("Probability",
+      `A fair spinner has ${sections} equal sections, ${wanted} of which are ` +
+      `red. How many times would the spinner have to be spun to expect ` +
+      `${comma(target)} reds?`,
+      comma(spins), wrong.map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `The probability of red is ${wanted}/${sections}, so red is expected on ` +
+      `${wanted} out of every ${sections} spins.\n\n` +
+      `Turn it round: ${comma(target)} reds need ${comma(target)} ÷ ` +
+      `${wanted}/${sections} spins, and dividing by a fraction means ` +
+      `multiplying by it upside down: ${comma(target)} × ${sections}/${wanted} = ` +
+      `${comma(spins)}.\n\n` +
+      `Multiplying by ${wanted}/${sections} instead gives ` +
+      `${comma(target * wanted / sections)}, which is how many reds you would ` +
+      `expect in ${comma(target)} spins — the question the other way round, and ` +
+      `it is offered.`;
+    return q;
+  }
+
+  /* Two bags with unlike denominators: the comparison is the question. */
+  function probCompareChances(i) {
+    const rA = 2 + (i % 6), bA = 3 + (Math.floor(i / 6) % 7);
+    const rB = 2 + (Math.floor(i / 5) % 6), bB = 3 + (Math.floor(i / 9) % 7);
+    const tA = rA + bA, tB = rB + bB;
+    if (rA * tB === rB * tA) return null;             // a tie has no answer
+    const better = rA * tB > rB * tA ? "A" : "B";
+    const ans = `Bag ${better}, with a probability of ${simp(better === "A" ? rA : rB, better === "A" ? tA : tB)}`;
+    const other = `Bag ${better === "A" ? "B" : "A"}, with a probability of ` +
+      `${simp(better === "A" ? rB : rA, better === "A" ? tB : tA)}`;
+    const cand = [other,
+      `Bag ${better}, with a probability of ${simp(better === "A" ? rA : rB, better === "A" ? bA : bB)}`,
+      `The two bags give exactly the same chance`,
+      `Bag ${better === "A" ? "B" : "A"}, with a probability of ${simp(better === "A" ? rB : rA, better === "A" ? bB : bA)}`
+    ].filter(o => o !== ans);
+    const q = mk("Probability",
+      `Bag A holds ${rA} red and ${bA} blue counters. Bag B holds ${rB} red and ` +
+      `${bB} blue counters. One counter is taken at random from each bag. Which ` +
+      `bag gives the better chance of a red, and what is that probability?`,
+      ans, cand, 3, i);
+    if (q) q.explain =
+      `Bag A gives ${rA} reds out of ${tA} counters, so ${simp(rA, tA)}. Bag B ` +
+      `gives ${rB} out of ${tB}, so ${simp(rB, tB)}.\n\n` +
+      `The denominators are different, so compare them across: ${rA} × ${tB} = ` +
+      `${rA * tB} against ${rB} × ${tA} = ${rB * tA}. ` +
+      `${better === "A" ? `${rA * tB} is the larger, so bag A` : `${rB * tA} is the larger, so bag B`} ` +
+      `gives the better chance.\n\n` +
+      `Comparing reds against BLUES rather than against the whole bag is the ` +
+      `trap: the probability is reds out of everything in the bag, not reds for ` +
+      `every blue.`;
+    return q;
+  }
+
+  /* Three independent goes at the same thing. */
+  function probThreeIndependent(i) {
+    /* Every one of these leaves a whole number of tenths after subtracting, so
+       squaring or cubing it stays inside three decimal places. */
+    /* 50 is left out on purpose: at p = 0.5 the probability and its
+       complement are the same number, so several distractors collapse into
+       each other and mk is left short - which is when nudge() starts
+       inventing values like 7.25 for a probability. */
+    const pct = [10, 20, 30, 40, 60, 70][i % 6];
+    const notPct = 100 - pct;
+    const days = 2 + (Math.floor(i / 6) % 2);
+    const askNone = Math.floor(i / 4) % 2 === 0;
+    /* 6 x 2 x 2 is only 24 questions, so the setting varies too. 7 shares no
+       factor with 6, 2 or 4, so it turns over independently of the rest. */
+    const SETTINGS = [
+      { thing: "a bus", bad: "late", verb: "is" },
+      { thing: "a train", bad: "cancelled", verb: "is" },
+      { thing: "a machine at a factory", bad: "faulty", verb: "is" }
+    ];
+    const S = SETTINGS[Math.floor(i / 7) % SETTINGS.length];
+    const none = Math.pow(notPct, days) / Math.pow(100, days);
+    const atLeast = 1 - none;
+    const ans = askNone ? none : atLeast;
+    const dec = v => `${Number(v.toFixed(6))}`;
+    /* Every candidate is between 0 and 1 by construction, and there are enough
+       of them that mk never has to invent one: nudge() knows nothing about
+       probabilities and was offering 7.064 as an answer. */
+    const wrong = [askNone ? atLeast : none,
+                   Math.pow(pct / 100, days),          // the bad day every day
+                   1 - Math.pow(pct / 100, days),      // its complement
+                   days * pct / 100,                   // added, not multiplied
+                   1 - days * pct / 100,
+                   pct / 100,                          // just one day
+                   notPct / 100]
+      .filter(v => v > 0 && v < 1 && Math.abs(v - ans) > 1e-9);
+    const q = mk("Probability",
+      `The probability that ${S.thing} ${S.verb} ${S.bad} on any given day is ` +
+      `${dec(pct / 100)}, and each day is independent of the others. What is ` +
+      `the probability that it ${askNone
+        ? `${S.verb} not ${S.bad} on any of the next ${days === 2 ? "two" : "three"} days`
+        : `${S.verb} ${S.bad} on at least one of the next ${days === 2 ? "two" : "three"} days`}?`,
+      dec(ans), wrong.map(dec), 4, i);
+    if (q) q.explain =
+      `Step 1. Not ${S.bad} on one day has probability 1 − ${dec(pct / 100)} = ` +
+      `${dec(notPct / 100)}.\n\n` +
+      `Step 2. Independent days multiply, so not ${S.bad} on any of them is ` +
+      `${Array(days).fill(dec(notPct / 100)).join(" × ")} = ${dec(none)}.\n\n` +
+      (askNone
+        ? `That is what was asked, so the answer is ${dec(none)}.`
+        : `Step 3. "At least one" is everything else: 1 − ${dec(none)} = ` +
+          `${dec(atLeast)}.`) +
+      `\n\nAdding ${dec(pct / 100)} ${days === 2 ? "twice" : "three times"} ` +
+      `would give ${dec(days * pct / 100)}, ` +
+      `and it is offered — but probabilities of separate days are multiplied, ` +
+      `not added, and adding them can even take you past 1, which no ` +
+      `probability can be.`;
     return q;
   }
 
@@ -8560,7 +8862,11 @@ const QUESTIONS = [];
       [decMultiplyGivenFact, 2, 3],       // a whole-number product handed over
       [decMoneySplit, 3, 3],              // shared out, with pence left over
       /* Decimals had no Super Hard template at all. */
-      [decMultiStepBill, 4, 4]            // two prices, a discount, then change
+      [decMultiStepBill, 4, 4],           // two prices, a discount, then change
+      [decBounceHeight, 4, 4],            // the same fraction of a smaller number
+      [decDivideGivenFact, 2, 3],         // the digits are known, the point moves
+      [decReverseMultiply, 3, 3],         // undoing x0.35 makes it bigger
+      [decPlaceValueChain, 2, 3]          // how many places, and which way
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -8817,7 +9123,11 @@ const QUESTIONS = [];
       [probNotAllSame, 2, 3],             // 1 minus the two matching ways
       [probThreeDrawsAllSame, 3, 3],      // three shrinking denominators
       /* Probability had no Super Hard template at all. */
-      [probAtLeastOneOfColour, 4, 4]      // easier backwards, from 1
+      [probAtLeastOneOfColour, 4, 4],     // easier backwards, from 1
+      [probSumToOneUnknown, 4, 4],        // the leftover is shared, not read off
+      [probExpectedReverse, 3, 3],        // how many goes, not how many hits
+      [probCompareChances, 3, 3],         // unlike denominators, compared across
+      [probThreeIndependent, 4, 4]        // multiplied, never added
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
