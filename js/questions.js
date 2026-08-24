@@ -3896,6 +3896,390 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── Super Hard for the five thinnest topics ──
+
+     Algebra, BIDMAS, Decimals, Fractions and Sequences each had two templates
+     above Hard, against eight to fifteen at Hard. At 60% Super Hard a paper
+     wants about 2.4 from every topic, so two templates meant the same shape
+     coming round three times in one paper with different numbers. */
+
+  /* Ages: the whole difficulty is turning two sentences into two expressions
+     before any arithmetic starts. Built from the answer backwards so the ages
+     always come out whole. */
+  function algAgeProblem(i) {
+    const gap = 4 + (i % 9);                 // how much younger the sibling is
+    const years = 2 + (Math.floor(i / 9) % 7);
+    /* now + years = 2 x (now - gap) solves to now = 2 x gap + years. */
+    const now = 2 * gap + years;
+    const sibling = now - gap;
+    if (sibling < 4 || now > 60) return null;
+    const NAMES = [["Priya", "her brother", "her"], ["Marcus", "his sister", "his"],
+                   ["Leah", "her cousin", "her"], ["Daniel", "his brother", "his"]];
+    const [who, rel, poss] = NAMES[Math.floor(i / 5) % NAMES.length];
+    const wrong = [sibling, now + years, 2 * gap, now - years, gap + years]
+      .filter(v => v > 0 && v !== now);
+    const q = mk("Algebra",
+      `${who} is ${gap} years older than ${rel}. In ${years} years' time ` +
+      `${who} will be twice as old as ${rel} is now. How old is ${who} now?`,
+      `${now}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Step 1. Give the unknown a name. Let ${who}'s age now be a. Then ` +
+      `${rel} is ${gap} years younger, so ${rel} is a − ${gap}.\n\n` +
+      `Step 2. In ${years} years ${who} will be a + ${years}.\n\n` +
+      `Step 3. That is twice ${rel}'s age NOW — not in ${years} years — so ` +
+      `a + ${years} = 2(a − ${gap}).\n\n` +
+      `Step 4. Multiply out and solve: a + ${years} = 2a − ${2 * gap}, so ` +
+      `a = ${2 * gap} + ${years} = ${now}.\n\n` +
+      `${sibling} is ${rel}'s age and is offered. Reading "as old as ${rel} is ` +
+      `now" as "as old as ${rel} will be then" is the mistake the question is ` +
+      `built around.`;
+    return q;
+  }
+
+  /* Two purchases with the same number of one item, so subtracting the two
+     removes it. Priced in pence so nothing lands between the coins. */
+  function algTwoItemElimination(i) {
+    const pencil = 12 + (i % 24);             // pence
+    const pen = 30 + (Math.floor(i / 24) % 40);
+    const many = 4 + (i % 3), few = 2 + (Math.floor(i / 7) % 2);
+    const same = 2 + (Math.floor(i / 5) % 4);
+    if (many <= few) return null;
+    const billA = many * pencil + same * pen;
+    const billB = few * pencil + same * pen;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [pen, billA - billB, pencil + pen, Math.round(billA / many)]
+      .filter(v => v > 0 && v !== pencil);
+    const q = mk("Algebra",
+      `${many} pencils and ${same} pens cost ${money(billA)}. ${few} pencils ` +
+      `and ${same} pens cost ${money(billB)}. How much does one pencil cost?`,
+      `${pencil}p`, wrong.map(v => `${v}p`), 4, i);
+    if (q) q.explain =
+      `Step 1. Both baskets hold ${same} pens, so the pens are the same in each ` +
+      `and the difference between the two bills must be down to the pencils ` +
+      `alone.\n\n` +
+      `Step 2. The difference in cost: ${money(billA)} − ${money(billB)} = ` +
+      `${money(billA - billB)}.\n\n` +
+      `Step 3. The difference in pencils: ${many} − ${few} = ${many - few}.\n\n` +
+      `Step 4. So ${many - few} pencils cost ${money(billA - billB)}, and one ` +
+      `pencil costs ${billA - billB} ÷ ${many - few} = ${pencil}p.\n\n` +
+      `Nothing has to be worked out about the pens at all. Matching the number ` +
+      `of pens is what makes them cancel, and spotting that is the question.`;
+    return q;
+  }
+
+  /* Two facts about a balance. The ratio alone does not give a weight, and the
+     total alone does not either - they have to be used together. */
+  function algBalanceWeights(i) {
+    const RATIOS = [[3, 5], [2, 3], [3, 4], [4, 5], [2, 5], [5, 6], [3, 7], [4, 7]];
+    const [p, r] = RATIOS[i % RATIOS.length];
+    const unit = 4 + (Math.floor(i / 8) % 12);
+    const total = (p + r) * unit;              // keeps both weights whole
+    const cube = r * unit, sphere = p * unit;
+    if (cube === sphere) return null;
+    const wrong = [sphere, total / 2, total - sphere, Math.round(total * p / r)]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== cube);
+    const q = mk("Algebra",
+      `On a balance, ${p} identical cubes weigh exactly the same as ${r} ` +
+      `identical spheres. One cube and one sphere together weigh ${total} g. ` +
+      `How heavy is one cube?`,
+      `${cube} g`, wrong.map(v => `${v} g`), 4, i);
+    if (q) q.explain =
+      `Step 1. ${p} cubes balance ${r} spheres, so a cube is heavier than a ` +
+      `sphere in the ratio ${r} : ${p} — the FEWER of something you need, the ` +
+      `heavier each one is.\n\n` +
+      `Step 2. So think of a cube as ${r} parts and a sphere as ${p} parts.\n\n` +
+      `Step 3. Together they are ${r} + ${p} = ${p + r} parts, and that weighs ` +
+      `${total} g, so one part is ${total} ÷ ${p + r} = ${unit} g.\n\n` +
+      `Step 4. A cube is ${r} parts: ${r} × ${unit} = ${cube} g.\n\n` +
+      `Getting the ratio the wrong way round gives ${sphere} g, which is the ` +
+      `sphere and is offered. Halving the total gives ${total / 2} g, which ` +
+      `would only be right if the two weighed the same.`;
+    return q;
+  }
+
+  /* BIDMAS worked backwards: the operations have to be undone in reverse order,
+     which is where the order of operations really bites. */
+  function bidMissingNumberInChain(i) {
+    const a = 2 + (i % 8), b = 1 + (Math.floor(i / 8) % 12);
+    const c = 3 + (Math.floor(i / 5) % 15);
+    const x = 2 + (Math.floor(i / 11) % 14);
+    const result = a * (x + b) - c;
+    if (result < 10 || result > 400) return null;
+    const wrong = [
+      (result - c) / a - b,            // subtracted c again instead of adding
+      (result + c) / a + b,            // added b instead of subtracting
+      result / a - b,                  // ignored c altogether
+      x + b
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== x);
+    const q = mk("BIDMAS",
+      `${a} × (□ + ${b}) − ${c} = ${result}. What number goes in the box?`,
+      `${x}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Work backwards, undoing the operations in the OPPOSITE order to the one ` +
+      `they were done in. The last thing done was subtracting ${c}, so that is ` +
+      `the first thing to undo.\n\n` +
+      `Step 1. Undo the − ${c}: ${result} + ${c} = ${result + c}.\n` +
+      `Step 2. Undo the × ${a}: ${result + c} ÷ ${a} = ${(result + c) / a}.\n` +
+      `Step 3. Undo the + ${b}: ${(result + c) / a} − ${b} = ${x}.\n\n` +
+      `Check it forwards: ${a} × (${x} + ${b}) − ${c} = ${a} × ${x + b} − ${c} ` +
+      `= ${result}. ✓\n\n` +
+      `Undoing them in the order they appear rather than in reverse is the trap ` +
+      `— the bracket was worked out FIRST going forwards, so it is undone LAST ` +
+      `coming back.`;
+    return q;
+  }
+
+  /* A chain with a root, a power, a bracket and a division all in one. */
+  function bidPowersRootsChain(i) {
+    const root = 4 + (i % 9);                  // sqrt(root^2)
+    const base = 2 + (Math.floor(i / 9) % 5);  // base^2
+    const inner = 2 + (Math.floor(i / 5) % 8);
+    const div = [1, 2, 4][Math.floor(i / 7) % 3];
+    const product = base * base * inner;
+    if (product % div !== 0) return null;
+    const ans = root + product / div;
+    const wrong = [
+      root * root + product / div,             // did not take the root
+      (root + base * base) * inner / div,      // worked left to right
+      root + base * 2 * inner / div,           // doubled instead of squaring
+      root + product
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== ans);
+    const q = mk("BIDMAS",
+      `What is √${root * root} + ${base}² × ${inner} ÷ ${div}?`,
+      `${ans}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Roots and powers are worked out first, then × and ÷ from left to right, ` +
+      `and only then + and −.\n\n` +
+      `Step 1. √${root * root} = ${root} and ${base}² = ${base * base}.\n` +
+      `Step 2. Now the × and ÷, left to right: ${base * base} × ${inner} = ` +
+      `${base * base * inner}, then ÷ ${div} = ${product / div}.\n` +
+      `Step 3. Finally the addition: ${root} + ${product / div} = ${ans}.\n\n` +
+      `Adding first — ${root} + ${base * base} before multiplying — gives ` +
+      `${(root + base * base) * inner / div}, which is offered. The + is the ` +
+      `LAST thing to do here, not the first, however far left it sits.`;
+    return q;
+  }
+
+  /* Three pack sizes: two comparisons are not enough, all three have to be put
+     on the same footing. */
+  function decBestOfThreePacks(i) {
+    /* Even pence only: the 750 g pack costs 7.5 times the per-100 g price, so
+       an odd price would land on half a penny and the seed would be thrown out. */
+    const per100 = [24, 26, 28, 30, 32, 36, 38, 40, 42, 44][i % 10];
+    const gapA = 2 + (Math.floor(i / 8) % 4), gapB = 2 + (Math.floor(i / 5) % 5);
+    const sizes = [400, 750, 1000];
+    /* The middle pack is the best value; the others are dearer per 100 g. */
+    const rates = [per100 + gapA, per100, per100 + gapB];
+    if (new Set(rates).size !== 3) return null;
+    const costs = sizes.map((g, k) => g / 100 * rates[k]);
+    if (!costs.every(c => Number.isInteger(c))) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const name = g => (g === 1000 ? "1 kg" : `${g} g`);
+    const ans = `The ${name(sizes[1])} pack, at ${rates[1]}p per 100 g`;
+    const cand = [
+      `The ${name(sizes[0])} pack, at ${rates[0]}p per 100 g`,
+      `The ${name(sizes[2])} pack, at ${rates[2]}p per 100 g`,
+      `The ${name(sizes[2])} pack, at ${rates[1]}p per 100 g`,
+      `The ${name(sizes[0])} pack, at ${rates[2]}p per 100 g`
+    ].filter(o => o !== ans);
+    const q = mk("Decimals",
+      `Rice is sold in three sizes: ${name(sizes[0])} for ${money(costs[0])}, ` +
+      `${name(sizes[1])} for ${money(costs[1])}, and ${name(sizes[2])} for ` +
+      `${money(costs[2])}. Which is the best value, and what does 100 g cost ` +
+      `in that pack?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Three different sizes and three different prices cannot be compared as ` +
+      `they stand, so put all three on the same footing — the cost of 100 g.\n\n` +
+      /* In pence on both sides: "£1.56 ÷ 4 = 39p" is true as a sentence about
+         money and false as an equation, and the working has to balance. */
+      `${name(sizes[0])}: ${costs[0]}p ÷ ${sizes[0] / 100} = ${rates[0]}p per 100 g.\n` +
+      `${name(sizes[1])}: ${costs[1]}p ÷ ${sizes[1] / 100} = ${rates[1]}p per 100 g.\n` +
+      `${name(sizes[2])}: ${costs[2]}p ÷ ${sizes[2] / 100} = ${rates[2]}p per 100 g.\n\n` +
+      `The lowest is ${rates[1]}p, so the ${name(sizes[1])} pack is the best ` +
+      `value.\n\n` +
+      `The biggest pack costs the most money and is the cheapest per 100 g only ` +
+      `sometimes — here it is not, which is why every pack has to be worked out ` +
+      `rather than assumed.`;
+    return q;
+  }
+
+  /* A price in another currency, converted back and compared. */
+  function decCurrencyCompare(i) {
+    const RATES = [[115, 100], [120, 100], [125, 100], [110, 100], [140, 100]];
+    const [euroPer, poundPer] = RATES[i % RATES.length];
+    const k = 12 + (Math.floor(i / 5) % 30);
+    const abroadEuros = euroPer * k / 100 * 100;   // keeps the conversion exact
+    const abroadPounds = poundPer * k;
+    const saving = 5 * (1 + (Math.floor(i / 7) % 8));
+    const homePounds = abroadPounds + saving;
+    const money = p => `£${p}`;
+    const rate = `€${(euroPer / 100).toFixed(2)}`;
+    const wrong = [abroadPounds, homePounds, Math.round(abroadEuros - homePounds),
+                   saving * 2].filter(v => Number.isInteger(v) && v > 0 && v !== saving);
+    const q = mk("Decimals",
+      `£1 is worth ${rate}. A camera costs €${comma(abroadEuros)} in Paris and ` +
+      `${money(comma(homePounds))} in London. How much cheaper is the Paris ` +
+      `price, in pounds?`,
+      money(saving), wrong.map(v => money(comma(v))), 4, i);
+    if (q) q.explain =
+      `The two prices are in different currencies, so one has to be turned into ` +
+      `the other before they can be compared at all.\n\n` +
+      `Step 1. £1 buys ${rate}, so to go from euros back to pounds, divide: ` +
+      `€${comma(abroadEuros)} ÷ ${(euroPer / 100).toFixed(2)} = ` +
+      `${money(comma(abroadPounds))}.\n\n` +
+      `Step 2. Now both are in pounds, so compare: ` +
+      `${money(comma(homePounds))} − ${money(comma(abroadPounds))} = ` +
+      `${money(saving)}.\n\n` +
+      `Multiplying by the rate instead of dividing is the usual slip — it turns ` +
+      `pounds into euros, which is the wrong way for this question.`;
+    return q;
+  }
+
+  /* Three mixed numbers, unlike denominators, added and subtracted. */
+  function fracThreeMixedChain(i) {
+    const dens = [[2, 3, 4], [3, 4, 6], [2, 5, 10], [4, 6, 8], [3, 5, 6],
+                  [2, 3, 6], [4, 5, 10], [3, 8, 12]][i % 8];
+    const [d1, d2, d3] = dens;
+    /* Only numerators already in lowest terms, so the question never prints
+       something like "3 2/10" that a child would cancel before starting. */
+    const coprime = d => { const out = []; for (let k = 1; k < d; k++) if (gcd(k, d) === 1) out.push(k); return out; };
+    const c1 = coprime(d1), c2 = coprime(d2), c3 = coprime(d3);
+    if (!c1.length || !c2.length || !c3.length) return null;
+    const n1 = c1[i % c1.length];
+    const n2 = c2[Math.floor(i / 8) % c2.length];
+    const n3 = c3[Math.floor(i / 5) % c3.length];
+    const w1 = 1 + (i % 4), w2 = 1 + (Math.floor(i / 6) % 3), w3 = 1 + (Math.floor(i / 9) % 3);
+    const L = lcmAll(dens);
+    const total = (w1 * L + n1 * L / d1) + (w2 * L + n2 * L / d2) - (w3 * L + n3 * L / d3);
+    if (total <= 0) return null;
+    const whole = Math.floor(total / L), rem = total - whole * L;
+    if (rem === 0) return null;                       // keep a fraction in the answer
+    const mixed = (wn, num) => (wn ? `${wn} ` : "") + simp(num, L);
+    const ans = mixed(whole, rem);
+    const cand = [
+      mixed(whole + 1, rem), mixed(whole - 1, rem),
+      mixed(whole, L - rem),
+      `${w1 + w2 - w3} ${simp(n1 + n2 - n3 > 0 ? n1 + n2 - n3 : 1, d1 + d2 - d3 > 0 ? d1 + d2 - d3 : 2)}`
+    ].filter(o => o !== ans && !/-/.test(o));
+    const mx = (w, n, d) => `${w} ${n}/${d}`;
+    const q = mk("Fractions",
+      `What is ${mx(w1, n1, d1)} + ${mx(w2, n2, d2)} − ${mx(w3, n3, d3)}?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Step 1. The denominators ${d1}, ${d2} and ${d3} all divide into ${L}, so ` +
+      `${L} is the one to use for all three.\n\n` +
+      `Step 2. Deal with the whole numbers on their own: ${w1} + ${w2} − ${w3} ` +
+      `= ${w1 + w2 - w3}.\n\n` +
+      `Step 3. Now the fraction parts over ${L}: ${n1 * L / d1}/${L} + ` +
+      `${n2 * L / d2}/${L} − ${n3 * L / d3}/${L} = ` +
+      `${n1 * L / d1 + n2 * L / d2 - n3 * L / d3}/${L}.\n\n` +
+      `Step 4. Put the two back together and tidy up: the answer is ${ans}.\n\n` +
+      `Adding the denominators as well as the numerators is the commonest ` +
+      `mistake with a question like this — thirds and quarters are different ` +
+      `sizes, and they cannot be counted together until they are both ${L}ths.`;
+    return q;
+  }
+
+  /* Scaling a recipe by a fraction that is not a whole number of times. */
+  function fracRecipeScale(i) {
+    /* 12 divides by 2, 3 and 4, so it survives far more of the scale fractions
+       below than 6 or 8 do. */
+    const BASE = [[6, 3, 4], [4, 2, 3], [8, 3, 4], [6, 5, 6], [4, 3, 4],
+                  [10, 2, 5], [6, 1, 2], [8, 5, 8], [12, 3, 4], [12, 2, 3],
+                  [12, 5, 6], [12, 1, 2], [8, 1, 4], [6, 2, 3]][i % 14];
+    const [serves, num, den] = BASE;
+    /* The scale is deliberately not a whole number of times - that is what the
+       template is for - and picking it from a list of fractions gives far more
+       combinations than stepping the batch size did. */
+    const SCALES = [[3, 2], [5, 2], [7, 2], [4, 3], [5, 3], [7, 3], [5, 4], [7, 4], [9, 4]];
+    const [sp, sq] = SCALES[Math.floor(i / 8) % SCALES.length];
+    if (serves % sq !== 0) return null;
+    const wanted = serves * sp / sq;
+    if (wanted <= serves || wanted > 60) return null;
+    const scaleN = wanted, scaleD = serves;
+    const topN = num * scaleN, topD = den * scaleD;
+    const g = gcd(topN, topD);
+    const n = topN / g, d = topD / g;
+    if (d === 1) return null;                        // keep a fraction in the answer
+    const whole = Math.floor(n / d), rem = n - whole * d;
+    const ans = rem ? `${whole ? whole + " " : ""}${simp(rem, d)}` : `${whole}`;
+    const cand = [
+      `${num}/${den}`,                                // never scaled at all
+      simp(num * scaleD, den * scaleN),               // scaled the wrong way up
+      `${whole + 1}`,
+      `${whole ? whole + 1 + " " : "1 "}${simp(rem || 1, d)}`
+    ].filter(o => o !== ans);
+    const q = mk("Fractions",
+      `A recipe for ${serves} pancakes uses ${num}/${den} of a cup of flour. ` +
+      `How much flour is needed to make ${wanted} pancakes?`,
+      `${ans} cups`, cand.map(o => `${o} cups`), 4, i);
+    if (q) q.explain =
+      `Step 1. Work out how many times bigger the new batch is: ${wanted} ÷ ` +
+      `${serves} = ${simp(scaleN, scaleD)}.\n\n` +
+      `Step 2. Multiply the flour by that: ${num}/${den} × ${simp(scaleN, scaleD)} ` +
+      `= ${topN}/${topD}.\n\n` +
+      `Step 3. Cancel it down: ${topN}/${topD} = ${simp(n, d)}.\n\n` +
+      `Step 4. Written as a mixed number that is ${ans} cups.\n\n` +
+      `The scale is not a whole number here, which is the point — you cannot ` +
+      `just double or treble, you have to multiply by the fraction.`;
+    return q;
+  }
+
+  /* Given the nth term, find WHICH term takes a stated value. */
+  function seqWhichTermEquals(i) {
+    const a = 1 + (i % 3), b = 1 + (Math.floor(i / 3) % 6);
+    const c = Math.floor(i / 7) % 8;
+    const n = 4 + (Math.floor(i / 5) % 9);
+    const value = a * n * n + b * n + c;
+    if (value > 900) return null;
+    const term = k => a * k * k + b * k + c;
+    const wrong = [n + 1, n - 1, n + 2, value % 100]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== n);
+    const q = mk("Sequences",
+      `The nth term of a sequence is ${a === 1 ? "" : a}n² ${b === 1 ? "+ n" : "+ " + b + "n"}` +
+      `${c ? " + " + c : ""}. Which term of the sequence is equal to ${comma(value)}?`,
+      `the ${n}th term`, wrong.map(v => `the ${v}th term`), 4, i);
+    if (q) q.explain =
+      `The rule turns a term NUMBER into a term VALUE, and here the value is ` +
+      `known and the number is wanted, so the rule has to be run the other way.\n\n` +
+      `Trying values is the quickest route in, because the terms grow fast. ` +
+      `Term ${n - 1} gives ${comma(term(n - 1))}, and term ${n} gives ` +
+      `${comma(term(n))}.\n\n` +
+      `So it is the ${n}th term. Check it: ${a === 1 ? "" : a + " × "}${n}² ` +
+      `${b === 1 ? "+ " + n : "+ " + b + " × " + n}${c ? " + " + c : ""} = ` +
+      `${comma(value)}. ✓\n\n` +
+      `Answering ${comma(value)} is answering a different question — that is ` +
+      `the value, and the question asks which term.`;
+    return q;
+  }
+
+  /* A doubling or trebling sequence, and the first term past a bound. */
+  function seqGeometricExceeds(i) {
+    const start = 2 + (i % 7);
+    const ratio = [2, 3][Math.floor(i / 7) % 2];
+    const bound = [100, 500, 1000, 2000, 5000][Math.floor(i / 5) % 5];
+    let value = start, n = 1;
+    while (value <= bound && n < 40) { value *= ratio; n += 1; }
+    if (n < 3 || n > 15) return null;
+    const first4 = [0, 1, 2, 3].map(k => comma(start * Math.pow(ratio, k))).join(", ");
+    const wrong = [n - 1, n + 1, n - 2, value].filter(v => v > 0 && v !== n);
+    const q = mk("Sequences",
+      `A sequence starts ${first4} and carries on in the same way. Which is the ` +
+      `first term greater than ${comma(bound)}?`,
+      `the ${n}th term`, wrong.map(v => `the ${v}th term`), 4, i);
+    if (q) q.explain =
+      `Each term is ${ratio === 2 ? "double" : "three times"} the one before, so ` +
+      `the sequence grows quickly and there is no adding rule to find.\n\n` +
+      `Keep multiplying until it passes ${comma(bound)}: the ${n - 1}th term is ` +
+      `${comma(start * Math.pow(ratio, n - 2))}, which is not past it, and the ` +
+      `${n}th term is ${comma(value)}, which is.\n\n` +
+      `So the ${n}th term is the first one greater than ${comma(bound)}. ` +
+      `${comma(value)} itself is offered — that is the term's value, not its ` +
+      `position, and the question asks which term.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -8866,7 +9250,10 @@ const QUESTIONS = [];
       [decBounceHeight, 4, 4],            // the same fraction of a smaller number
       [decDivideGivenFact, 2, 3],         // the digits are known, the point moves
       [decReverseMultiply, 3, 3],         // undoing x0.35 makes it bigger
-      [decPlaceValueChain, 2, 3]          // how many places, and which way
+      [decPlaceValueChain, 2, 3],         // how many places, and which way
+      /* Super Hard: Decimals had only two above Hard. */
+      [decBestOfThreePacks, 4, 4],        // three sizes on the same footing
+      [decCurrencyCompare, 4, 4]          // convert before comparing
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -8881,7 +9268,10 @@ const QUESTIONS = [];
       [fracMixedAddSubtract, 3, 3],       // mixed numbers, unlike denominators
       [fracDivideMixed, 3, 3],            // improper first, then flip
       [fracReverseOf, 2, 3],              // given the part, find the whole
-      [figShadedTriangles, 2, 3]          // a shape cut into equal triangles
+      [figShadedTriangles, 2, 3],         // a shape cut into equal triangles
+      /* Super Hard: Fractions had only two above Hard. */
+      [fracThreeMixedChain, 4, 4],        // three mixed numbers, unlike bottoms
+      [fracRecipeScale, 4, 4]             // the scale is itself a fraction
     ],
     Percentages: [
       [pctDecreaseToTarget, 2, 3],        // the percentage is of the ORIGINAL
@@ -8909,7 +9299,10 @@ const QUESTIONS = [];
       [bidNegativePower, 2, 3],           // -3 squared is not (-3) squared
       [bidRootsAndPowers, 3, 3],          // a root and a power together
       [bidNotEqual, 4, 4],                // three are equal, one is not
-      [bidBracketsFourTerms, 3, 3]        // place brackets in four terms           // place the brackets
+      [bidBracketsFourTerms, 3, 3],       // place brackets in four terms
+      /* Super Hard: BIDMAS had only two above Hard. */
+      [bidMissingNumberInChain, 4, 4],    // undo the operations in reverse
+      [bidPowersRootsChain, 4, 4]         // a root, a power, a bracket, a divide
     ],
     Algebra: [
       [algExpressionProperty, 3, 3],      // a property of the expression, not a value
@@ -8930,7 +9323,11 @@ const QUESTIONS = [];
       [algInequalityCount, 2, 3],         // how many whole numbers fit
       /* Year 8 brackets, which the bank could not pose at all. */
       [algExpandBrackets, 3, 3],          // a subtracted bracket flips both signs
-      [algFactoriseSimple, 2, 3]          // fully means the largest common factor
+      [algFactoriseSimple, 2, 3],         // fully means the largest common factor
+      /* Super Hard: Algebra had only two above Hard. */
+      [algAgeProblem, 4, 4],              // two sentences, two expressions
+      [algTwoItemElimination, 4, 4],      // the matching item cancels itself out
+      [algBalanceWeights, 4, 4]           // a ratio and a total, used together
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -8947,7 +9344,9 @@ const QUESTIONS = [];
       [seqQuadraticNth, 4, 4],            // nth term with a constant 2nd difference
       [seqArithSum, 3, 3],                // total of the first n terms
       [seqInterleaved, 3, 3],             // two sequences laid alternately
-      [seqTwoSequencesMeet, 4, 4]         // find both rules, then the crossing
+      [seqTwoSequencesMeet, 4, 4],        // find both rules, then the crossing
+      [seqWhichTermEquals, 4, 4],         // the rule run backwards
+      [seqGeometricExceeds, 4, 4]         // multiply until it passes the bound
     ],
     Ratio: [
       [ratInventedScale, 2, 3],           // two invented units and a rate
