@@ -1578,6 +1578,12 @@ const QUESTIONS = [];
     const num = 1 + (i % (granularity - 1));
     const p = +(num / granularity).toFixed(3);
     const ans = +(1 - p).toFixed(3);
+    /* At p = 0.5 the complement is p, so the distractor that carries the whole
+       point of the question - answering with the probability you were given -
+       is a duplicate of the answer. mk drops it, is left one short, and pads
+       with nudge(), which offered 6.5 as a probability. The question has
+       nothing to test at 0.5 either way. */
+    if (ans === p) return null;
     const wording = pickWording(i, [
       `The probability of an event is ${fmt(p)}. What is the probability it does NOT happen?`,
       `P(A) = ${fmt(p)}. What is P(not A)?`,
@@ -2582,6 +2588,1884 @@ const QUESTIONS = [];
       `${fmt(ans)} cm²`,
       [`${fmt(s * s - b * h)} cm²`, `${fmt(triangle)} cm²`, `${fmt(s * s)} cm²`],
       4, i);
+  }
+
+  /* ── Spatial: solids built from unit cubes ──
+
+     A big cube is built out of small ones and its outside is painted, then the
+     child is asked how many small cubes carry paint on exactly so many faces.
+     The whole difficulty is seeing WHERE such cubes sit, which is why this
+     cannot be answered by pushing the given numbers around: the 3-face ones are
+     the 8 corners, the 2-face ones run along the edges between the corners, the
+     1-face ones tile the middle of each face, and the unpainted ones form the
+     smaller cube hidden inside. Each class is stored with the count it gives and
+     the words for where it is, so the hint can explain the picture rather than
+     assert a formula. */
+  const CUBE_CLASSES = [
+    { faces: 3, count: n => 8,
+      where: () => "the 8 corners, where three painted faces meet" },
+    { faces: 2, count: n => 12 * (n - 2),
+      where: n => `the 12 edges, with ${n - 2} ${n - 2 === 1 ? "cube" : "cubes"} ` +
+        `left along each edge once the corners are taken out` },
+    { faces: 1, count: n => 6 * (n - 2) * (n - 2),
+      where: n => `the middle of each of the 6 faces, a ${n - 2} by ${n - 2} square on every one` },
+    { faces: 0, count: n => (n - 2) * (n - 2) * (n - 2),
+      where: n => `a hidden ${n - 2} by ${n - 2} by ${n - 2} cube inside, which the paint never reaches` }
+  ];
+
+  function geoPaintedCube(i) {
+    /* Two of the four counts coincide at some sizes — at n = 4 the edge and the
+       face counts are both 24, at n = 8 the face and inside counts are both 216
+       — and mk compares options by value, so those seeds would lose a distractor
+       and have one invented by nudge instead. Scan for the sizes that keep all
+       four distinct rather than listing them and hoping. */
+    const sizes = [];
+    for (let n = 3; n <= 12; n += 1) {
+      if (new Set(CUBE_CLASSES.map(c => c.count(n))).size === 4) sizes.push(n);
+    }
+    const n = sizes[i % sizes.length];
+    /* 4 classes and 7 usable sizes share no factor, so both indices turn over
+       independently and every combination is reachable. */
+    const cls = CUBE_CLASSES[Math.floor(i / 7) % CUBE_CLASSES.length];
+    const counts = CUBE_CLASSES.map(c => c.count(n));
+    const ans = cls.count(n);
+    /* The other three classes are the distractors: mixing up "no faces" with
+       "one face" is the actual mistake this question is testing for. */
+    const others = counts.filter(c => c !== ans);
+    if (others.length !== 3) return null;
+    if (counts.reduce((a, b) => a + b, 0) !== n * n * n) return null;
+
+    const asked = cls.faces === 0
+      ? "have no paint on them at all"
+      : `have paint on exactly ${cls.faces} ${cls.faces === 1 ? "face" : "faces"}`;
+    const q = mk("Geometry",
+      `Small cubes measuring 1 cm on every edge are glued together to build a ` +
+      `solid cube measuring ${n} cm along each edge. The whole of the outside ` +
+      `of the big cube is then painted. How many of the small cubes ${asked}?`,
+      comma(ans), others.map(c => comma(c)), 4, i);
+
+    if (q) q.explain =
+      `Step 1. Picture where each kind of small cube sits. There are only four ` +
+      `kinds, and every one of the ${comma(n * n * n)} small cubes is one of them:\n` +
+      CUBE_CLASSES.map(c =>
+        `  • ${c.faces === 0 ? "no faces" : c.faces + (c.faces === 1 ? " face" : " faces")} painted — ` +
+        `${c.where(n)}: ${comma(c.count(n))}`).join("\n") +
+      `\n\nStep 2. This question asks for the ones that ${asked}, which is ` +
+      `${cls.where(n)}.\n\n` +
+      `Step 3. That gives ${comma(ans)}.\n\n` +
+      `Check it by adding all four kinds together: ` +
+      `${counts.map(c => comma(c)).join(" + ")} = ${comma(n * n * n)}, which is ` +
+      `${n} × ${n} × ${n} — every small cube accounted for once. If your four ` +
+      `numbers do not add up to that, one of them is wrong. The trap is answering ` +
+      `with the wrong kind: ${comma(counts[3])} is the hidden inside block and ` +
+      `${comma(counts[2])} is the middle of the faces, and those are easy to swap.`;
+    return q;
+  }
+
+  /* Cubes glued in a row: the join destroys two faces, not one. Counting 6 faces
+     per cube and forgetting the joins altogether is the common mistake, so that
+     answer is offered. */
+  function geoJoinedCubesSurface(i) {
+    const k = 3 + (i % 6);              // how many cubes in the row
+    const s = 2 + ((i * 3) % 5);        // edge of one cube, in cm
+    const faces = 6 * k - 2 * (k - 1);  // two faces are lost at each join
+    const ans = faces * s * s;
+    const wrong = [
+      6 * k * s * s,                    // forgot the joins
+      (6 * k - (k - 1)) * s * s,        // lost one face per join, not two
+      faces * s                         // used the edge instead of the face area
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Geometry",
+      `${k} identical cubes, each measuring ${s} cm along every edge, are glued ` +
+      `together face to face in a single straight row. What is the surface area ` +
+      `of the solid this makes?`,
+      `${comma(ans)} cm²`, wrong.map(w => `${comma(w)} cm²`), 4, i);
+
+    if (q) q.explain =
+      `Step 1. On their own the ${k} cubes have ${k} × 6 = ${6 * k} faces ` +
+      `showing.\n\n` +
+      `Step 2. Gluing them in a row makes ${k - 1} joins, and each join hides ` +
+      `two faces — one on each of the cubes being stuck together. That is ` +
+      `${k - 1} × 2 = ${2 * (k - 1)} faces lost, leaving ${6 * k} − ` +
+      `${2 * (k - 1)} = ${faces}.\n\n` +
+      `Step 3. One face is ${s} × ${s} = ${s * s} cm², so the surface area is ` +
+      `${faces} × ${s * s} = ${comma(ans)} cm².\n\n` +
+      `Losing one face per join instead of two gives ${comma(wrong[1])} cm², and ` +
+      `forgetting the joins altogether gives ${comma(wrong[0])} cm² — both are ` +
+      `offered, so the count of hidden faces is the whole question.`;
+    return q;
+  }
+
+  /* ── Spatial: nets of a cube ──
+
+     Folding the strip of four into a band makes them the side faces, so squares
+     two apart in the strip finish opposite each other; the square above the
+     strip becomes the top and the one below becomes the bottom, so those two are
+     opposite as well. I and O are kept out of the letter sets because they read
+     as 1 and 0 on a diagram. */
+  const NET_LETTER_SETS = [
+    ["P", "Q", "R", "S", "T", "U"],
+    ["A", "B", "C", "D", "E", "F"],
+    ["J", "K", "L", "M", "N", "H"],
+    ["V", "W", "X", "Y", "Z", "G"]
+  ];
+
+  /* Opposite faces in a net: two apart along the strip, or above against below. */
+  const netOpposite = (idx, strip) => (idx < 4 ? (idx + 2) % 4 : idx === 4 ? 5 : 4);
+
+  function geoNetOppositeFace(i) {
+    if (!D) return null;
+    /* Letter set, both attachment points and the face asked about are 4 x 4 x 4
+       x 6 = 384 combinations. Reaching them as i % 4, (i * 3) % 4 and
+       (i * 5 + 2) % 4 looks varied but is not: every one of those is a function
+       of i % 4, so all three turn over together and only 24 questions exist.
+       Walking the whole space with a stride coprime to 384 gives a different
+       combination for every seed instead. */
+    const combo = (i * 97) % 384;
+    const set = NET_LETTER_SETS[combo % 4];
+    const strip = set.slice(0, 4);
+    const above = { label: set[4], at: Math.floor(combo / 4) % 4 };
+    const below = { label: set[5], at: Math.floor(combo / 16) % 4 };
+    const askIdx = Math.floor(combo / 64) % 6;
+    const oppIdx = netOpposite(askIdx, strip);
+    const all = [...strip, above.label, below.label];
+    const asked = all[askIdx], ans = all[oppIdx];
+    /* The faces that merely touch the asked one are the distractors: a child who
+       folds the net wrongly lands on a neighbour, not on a random letter. */
+    const wrong = all.filter((_, k) => k !== askIdx && k !== oppIdx);
+    const q = mkFig("Geometry",
+      `The net below folds up to make a cube. Which face ends up opposite the ` +
+      `face marked ${asked}?`,
+      ans, wrong, 3, i, D.cubeNet({ strip, above, below }));
+    if (q) q.explain =
+      `Fold the row of four — ${strip.join(", ")} — into a band. Those become the ` +
+      `four side faces, and going twice along the band brings you to the face ` +
+      `directly across from where you started, so ${strip[0]} faces ${strip[2]} ` +
+      `and ${strip[1]} faces ${strip[3]}.\n\n` +
+      `${above.label} is attached above the row and ${below.label} below it, so ` +
+      `they fold up to be the top and the bottom, which puts them opposite each ` +
+      `other.\n\n` +
+      `That gives three pairs: ${strip[0]}–${strip[2]}, ${strip[1]}–${strip[3]} ` +
+      `and ${above.label}–${below.label}. ${asked} is in the pair with ${ans}.\n\n` +
+      `The faces next to ${asked} on the net are the tempting wrong answers, ` +
+      `because touching the asked face on the flat net is exactly what a face ` +
+      `opposite it cannot do once the cube is folded.`;
+    return q;
+  }
+
+  /* The same folding, with a number puzzle on top: the pairs are built to add to
+     a stated total, so the net really is a consistent die. */
+  function geoNetOppositeSum(i) {
+    if (!D) return null;
+    /* Scan for totals with at least three usable pairs rather than listing them:
+       every pair must be positive and all six numbers distinct. */
+    const combos = [];
+    for (let T = 7; T <= 15; T += 1) {
+      const lows = [];
+      for (let a = 1; a * 2 < T; a += 1) lows.push(a);
+      for (let x = 0; x < lows.length; x++)
+        for (let y = x + 1; y < lows.length; y++)
+          for (let z = y + 1; z < lows.length; z++) {
+            const six = [lows[x], T - lows[x], lows[y], T - lows[y], lows[z], T - lows[z]];
+            if (new Set(six).size === 6) combos.push({ T, lows: [lows[x], lows[y], lows[z]] });
+          }
+    }
+    if (!combos.length) return null;
+    const { T, lows } = combos[i % combos.length];
+    /* Ordered so the net folds to a real die: strip position 0 pairs with 2 and
+       1 pairs with 3, which is what netOpposite says, and the last two are the
+       top and the bottom. */
+    const faces = [lows[0], lows[1], T - lows[0], T - lows[1], lows[2], T - lows[2]];
+    const hide = Math.floor(i / 7) % 6;
+    const oppIdx = netOpposite(hide, faces);
+    const ans = faces[oppIdx] === undefined ? null : T - faces[oppIdx];
+    if (ans === null || ans !== faces[hide]) return null;   // the net must be consistent
+    const opp = faces[oppIdx];
+    const neighbour = faces[[0, 1, 2, 3].find(k => k !== hide && k !== oppIdx)];
+    const wrong = [opp, T - neighbour, neighbour, T + opp];
+    if (new Set([ans, ...wrong]).size < 4) return null;
+
+    const shown = faces.map((v, k) => (k === hide ? "?" : `${v}`));
+    const q = mkFig("Geometry",
+      `The net below folds up to make a cube. The numbers on each pair of ` +
+      `opposite faces add up to ${T}. What number belongs on the face marked ` +
+      `with a question mark?`,
+      `${ans}`, wrong.map(w => `${w}`), 4, i,
+      D.cubeNet({ strip: shown.slice(0, 4),
+                  /* independent of each other and of the combo index above */
+                  above: { label: shown[4], at: Math.floor(i / 5) % 4 },
+                  below: { label: shown[5], at: Math.floor(i / 11) % 4 } }));
+    if (q) q.explain =
+      `Step 1. Work out the three pairs of opposite faces. Folding the row of ` +
+      `four into a band puts the 1st face opposite the 3rd and the 2nd opposite ` +
+      `the 4th; the square above the row and the square below it become the top ` +
+      `and the bottom, so they are the third pair.\n\n` +
+      `Step 2. Find which face the question mark is paired with. It is ` +
+      `${opp}.\n\n` +
+      `Step 3. Opposite faces add up to ${T}, so the missing number is ` +
+      `${T} − ${opp} = ${ans}.\n\n` +
+      `Writing ${opp} again is the mistake to avoid — opposite faces add to ` +
+      `${T} here, they are not equal.`;
+    return q;
+  }
+
+  /* ── Rounding and estimating to a given accuracy ──
+
+     Decimal places and significant figures are Year 8 rows with nothing behind
+     them: the only rounding left at Hard was numRoundingBoundsGap, which is
+     about bounds rather than rounding to an accuracy. The arithmetic is done on
+     integers throughout - rounding a binary float to a decimal place is exactly
+     the kind of thing that silently produces 4.8299999999999996. */
+  function numRoundDecimalPlaces(i) {
+    const whole = 2 + (i % 38);
+    const d1 = i % 10, d2 = (i * 3 + 1) % 10, d3 = (i * 7 + 3) % 10;
+    const thousandths = whole * 1000 + d1 * 100 + d2 * 10 + d3;
+    const places = 1 + (i % 2);
+    /* Round by integer arithmetic, then print with a fixed number of places so
+       a trailing zero is kept: 4.80 to 2 d.p. must not print as 4.8. */
+    const scale = places === 1 ? 100 : 10;
+    const rounded = Math.round(thousandths / scale) / (places === 1 ? 10 : 100);
+    const ans = rounded.toFixed(places);
+    const truncated = (Math.floor(thousandths / scale) / (places === 1 ? 10 : 100)).toFixed(places);
+    const other = places === 1
+      ? (Math.round(thousandths / 10) / 100).toFixed(2)
+      : (Math.round(thousandths / 100) / 10).toFixed(1);
+    /* Chopping the digits off gives the same answer as rounding whenever the
+       deciding digit is under 5, so that candidate cannot be relied on. mk keeps
+       the first three DISTINCT options, so a longer list is offered and the
+       question survives either way rather than being dropped for half the seeds. */
+    const wrong = [truncated, other, (whole).toFixed(places),
+                   (rounded + (places === 1 ? 0.1 : 0.01)).toFixed(places),
+                   (whole + 1).toFixed(places)];
+    const shown = (thousandths / 1000).toFixed(3);
+    const q = mk("Numbers",
+      `What is ${shown} rounded to ${places} decimal place${places === 1 ? "" : "s"}?`,
+      ans, wrong, 3, i);
+    if (q) q.explain =
+      `To round to ${places} decimal place${places === 1 ? "" : "s"}, look at ` +
+      `the digit in the next place along. ${shown} has ` +
+      `${places === 1 ? `${d2} in the hundredths` : `${d3} in the thousandths`} ` +
+      `place, and ${(places === 1 ? d2 : d3) >= 5 ? "5 or more rounds up" :
+      "less than 5 leaves the digit alone"}, giving ${ans}.\n\n` +
+      `Cutting the extra digits off instead of rounding gives ${truncated}, ` +
+      `which is offered — chopping and rounding are only the same when the next ` +
+      `digit is under 5.`;
+    return q;
+  }
+
+  function numRoundSigFigs(i) {
+    const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9][i % 9];
+    const second = (i * 3) % 10, third = (i * 7 + 1) % 10;
+    const magnitude = [100, 1000, 10000][i % 3];
+    const n = digits * magnitude + second * (magnitude / 10) + third * (magnitude / 100);
+    const sf = 1 + (i % 2);
+    /* Round at the right place by integer arithmetic. */
+    const place = sf === 1 ? magnitude : magnitude / 10;
+    const ans = Math.round(n / place) * place;
+    /* As above: truncation coincides with rounding when the deciding digit is
+       under 5, so more candidates are offered than are needed. */
+    const wrong = [
+      Math.floor(n / place) * place,                   // truncated, not rounded
+      sf === 1 ? Math.round(n / (magnitude / 10)) * (magnitude / 10)
+               : Math.round(n / magnitude) * magnitude, // the other accuracy
+      Math.round(n / 10) * 10,                         // rounded to the nearest 10
+      ans + place,                                     // rounded the wrong way
+      ans - place
+    ].filter(v => Number.isInteger(v) && v > 0);
+    if (!Number.isInteger(ans)) return null;
+    return mk("Numbers",
+      `What is ${comma(n)} rounded to ${sf} significant figure${sf === 1 ? "" : "s"}?`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+  }
+
+  /* Estimating by rounding each number to one significant figure. The exact
+     answer is offered, because working it out exactly is the mistake. */
+  function numEstimateOneSigFig(i) {
+    const a = 1000 + (i * 137) % 9000;
+    const b = 11 + (i * 7) % 88;
+    const round1 = x => {
+      const p = Math.pow(10, String(Math.trunc(x)).length - 1);
+      return Math.round(x / p) * p;
+    };
+    const A = round1(a), B = round1(b);
+    const ans = A * B;
+    const wrong = [a * b, A * b, a * B, A * B * 10, A * B / 10]
+      .filter(v => Number.isInteger(v) && v !== ans);
+    const q = mk("Numbers",
+      `Estimate ${comma(a)} × ${b} by rounding each number to 1 significant figure.`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+    if (q) q.explain =
+      `Round each number to its first digit: ${comma(a)} becomes ${comma(A)} ` +
+      `and ${b} becomes ${B}.\n\n` +
+      `Then ${comma(A)} × ${B} = ${comma(ans)}.\n\n` +
+      `The exact answer, ${comma(a * b)}, is offered as well — an estimate is ` +
+      `meant to be quick, and if you found yourself doing the full ` +
+      `multiplication you answered a different question.`;
+    return q;
+  }
+
+  /* Fraction to percentage: the FDP row was carried by decOrderMixed alone. */
+  function numFractionToPercent(i) {
+    const pool = [[1, 8], [3, 8], [5, 8], [7, 8], [1, 4], [3, 4], [1, 5], [2, 5],
+                  [3, 5], [4, 5], [1, 20], [7, 20], [9, 20], [13, 20], [17, 20],
+                  [1, 25], [6, 25], [1, 40], [7, 40], [1, 50], [3, 50],
+                  [1, 2], [1, 10], [3, 10], [7, 10], [9, 10], [11, 20], [19, 20],
+                  [2, 25], [11, 25], [13, 25], [21, 25], [3, 20], [9, 40],
+                  [11, 40], [7, 50], [9, 50], [21, 50], [1, 16], [3, 16]];
+    const [n, d] = pool[i % pool.length];
+    const pct = n / d * 100;
+    if (!Number.isFinite(pct)) return null;
+    const wrong = [
+      d / n * 100,           // divided the wrong way round
+      n / d,                 // forgot to multiply by 100
+      n * 10 + d             // read the digits off as a number
+    ];
+    if (new Set([pct, ...wrong].map(v => Number(Number(v).toFixed(3)))).size !== 4) return null;
+    return mk("Numbers", `What is ${n}/${d} as a percentage?`,
+      `${fmt(pct)}%`, wrong.map(w => `${fmt(w)}%`), 3, i);
+  }
+
+  /* An LCM word problem that is not a bus timetable: numBusLCM was carrying the
+     whole Multiples and LCM row on its own. */
+  function numLCMShare(i) {
+    const triples = [[4, 6, 9], [4, 6, 8], [6, 8, 9], [3, 4, 10], [4, 5, 6],
+                     [6, 9, 12], [4, 9, 12], [8, 10, 12], [3, 8, 10], [5, 6, 9],
+                     [4, 10, 12], [6, 8, 10], [2, 9, 12], [8, 9, 12], [5, 8, 12],
+                     [3, 5, 8], [4, 7, 10], [6, 10, 15], [5, 9, 12], [8, 12, 15],
+                     [3, 7, 12], [5, 10, 14], [6, 14, 21], [9, 10, 12], [4, 11, 12],
+                     [7, 8, 12], [5, 12, 15], [6, 15, 20], [8, 14, 21], [9, 12, 15]];
+    const [a, b, c] = triples[i % triples.length];
+    const ans = lcmAll([a, b, c]);
+    /* lcm(a, b) is the answer itself whenever c already divides it, so it
+       cannot be relied on; mk takes the first three distinct. */
+    const wrong = [a * b * c, lcm(a, b), a + b + c, ans * 2, lcm(b, c)]
+      .filter(v => v !== ans);
+    const q = mk("Numbers",
+      `A teacher wants to buy a box of pencils that can be shared out equally ` +
+      `between ${a} children, or ${b} children, or ${c} children, with none ` +
+      `left over. What is the smallest number of pencils the box can hold?`,
+      comma(ans), wrong.map(w => comma(w)), 3, i);
+    if (q) q.explain =
+      `A number that divides equally by ${a}, ${b} and ${c} is a common ` +
+      `multiple of all three, and the smallest one is the lowest common ` +
+      `multiple.\n\n` +
+      `Take them two at a time: the LCM of ${a} and ${b} is ${lcm(a, b)}, and ` +
+      `the LCM of ${lcm(a, b)} and ${c} is ${ans}.\n\n` +
+      `Multiplying all three together gives ${comma(a * b * c)}, which does ` +
+      `divide by each of them — but it is not the smallest, and "smallest" is ` +
+      `what the question asks for.`;
+    return q;
+  }
+
+  /* Metric to imperial, which lost its only cover when meaInchConvert - a single
+     multiplication - was moved down to Medium. Priced in whole pence so the
+     money never lands on a binary rounding error. */
+  function meaImperialConvert(i) {
+    const gallons = 8 + (i % 9);
+    const litresPerGallon = 45;            // tenths of a litre: 4.5
+    const pencePerLitre = 130 + (Math.floor(i / 9) % 6) * 5;
+    /* 4.5 litres to the gallon puts every odd number of gallons on a half
+       litre, which is fine - only the money has to come out whole. */
+    const litres = gallons * litresPerGallon / 10;
+    const totalPence = Math.round(litres * pencePerLitre * 100) / 100;
+    if (!Number.isInteger(totalPence)) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    /* Offer spare candidates rather than dropping the seed when two coincide:
+       mk keeps the first three that are genuinely distinct. */
+    const wrong = [
+      gallons * pencePerLitre,              // never converted to litres
+      litres * 100,                         // gave the litres, not the cost
+      litresPerGallon / 10 * pencePerLitre, // priced one gallon only
+      totalPence + pencePerLitre,           // one litre too many
+      gallons * litresPerGallon             // multiplied the tenths straight out
+    ].filter(v => Number.isInteger(v) && v > 0);
+    const q = mk("Measurement",
+      `1 gallon is equal to 4.5 litres. A tank holds ${gallons} gallons. ` +
+      `Petrol costs ${money(pencePerLitre)} per litre. What does it cost to ` +
+      `fill the tank?`,
+      money(totalPence), wrong.map(w => money(w)), 4, i);
+    if (q) q.explain =
+      `Step 1. Turn the gallons into litres, because the price is per litre: ` +
+      `${gallons} × 4.5 = ${fmt(litres)} litres.\n\n` +
+      `Step 2. Multiply by the price: ${fmt(litres)} × ` +
+      `${(pencePerLitre / 100).toFixed(2)} = ${money(totalPence)}.\n\n` +
+      `Pricing the gallons directly gives ${money(gallons * pencePerLitre)} — ` +
+      `the units have to match before you multiply, and that is the whole point ` +
+      `of the question.`;
+    return q;
+  }
+
+  /* ── Reflections, bearings, brackets, comparing two data sets ──
+     Four more KS3 Year 7/8 rows with no cover at Hard or Super Hard. */
+
+  /* Reflecting a point. The mirror is an axis or a line parallel to one, so the
+     rule stays arithmetic: the coordinate across the mirror moves to the same
+     distance the other side, and the one along it does not move at all. */
+  const MIRRORS = [
+    { name: () => "the x-axis", of: (x, y) => [x, -y] },
+    { name: () => "the y-axis", of: (x, y) => [-x, y] },
+    { name: k => `the line x = ${k}`, of: (x, y, k) => [2 * k - x, y] },
+    { name: k => `the line y = ${k}`, of: (x, y, k) => [x, 2 * k - y] }
+  ];
+
+  function geoReflectPoint(i) {
+    const m = MIRRORS[i % MIRRORS.length];
+    const x = -8 + (Math.floor(i / 4) % 17);
+    const y = -7 + (Math.floor(i / 7) % 15);
+    const k = 1 + (Math.floor(i / 11) % 6);
+    if (x === 0 || y === 0) return null;         // keep the point off the axes
+    const [ax, ay] = m.of(x, y, k);
+    const pt = (a, b) => `(${a}, ${b})`;
+    /* The other three mirrors are the distractors: choosing the wrong axis is
+       the mistake, and it lands exactly on one of these. */
+    const others = MIRRORS.filter(o => o !== m).map(o => o.of(x, y, k));
+    const cand = others.map(([a, b]) => pt(a, b)).concat([pt(ay, ax), pt(-x, -y)]);
+    if (cand.includes(pt(ax, ay))) return null;
+    const q = mk("Geometry",
+      `The point ${pt(x, y)} is reflected in ${m.name(k)}. What are the ` +
+      `coordinates of the reflected point?`,
+      pt(ax, ay), cand, 3, i);
+    if (q) q.explain =
+      `A reflection moves a point straight across the mirror line to the same ` +
+      `distance on the other side, and leaves the other coordinate alone.\n\n` +
+      (m.name(k) === "the x-axis"
+        ? `The x-axis is the line y = 0, so x stays at ${x} and y flips sign: ` +
+          `${y} becomes ${ay}.`
+        : m.name(k) === "the y-axis"
+        ? `The y-axis is the line x = 0, so y stays at ${y} and x flips sign: ` +
+          `${x} becomes ${ax}.`
+        : m.name(k).startsWith("the line x")
+        ? `The mirror is vertical, so y stays at ${y}. The point is ` +
+          `${Math.abs(x - k)} across from x = ${k}, so it lands ` +
+          `${Math.abs(x - k)} the other side, at x = ${ax}.`
+        : `The mirror is horizontal, so x stays at ${x}. The point is ` +
+          `${Math.abs(y - k)} away from y = ${k}, so it lands ` +
+          `${Math.abs(y - k)} the other side, at y = ${ay}.`) +
+      `\n\nThe answer is ${pt(ax, ay)}. Reflecting in the wrong line is what ` +
+      `the other options are — each one is the right method applied to a ` +
+      `different mirror.`;
+    return q;
+  }
+
+  /* Scatter graphs and correlation. The points are generated from a rule with a
+     small wobble on top, so the correlation the question asks about is a fact
+     about the data rather than an impression: the sign of the gradient in the
+     rule IS the answer, and the wobble is kept too small to overturn it. */
+  const SCATTER_SUBJECTS = [
+    { x: "Hours of revision", y: "Test score", xMax: 10, yMax: 100, m: 8, c: 20 },
+    { x: "Age of car (years)", y: "Value (£100s)", xMax: 10, yMax: 100, m: -8, c: 95 },
+    { x: "Temperature (°C)", y: "Cups of soup sold", xMax: 25, yMax: 100, m: -3, c: 95 },
+    /* Arm span against height was dropped: with a gradient of 1 and almost
+       no intercept the points sat close enough to a line through the origin
+       that "direct proportion" - offered as a distractor - was arguable, and
+       spacing the points across the whole axis put children 20 cm tall on
+       the graph. */
+    { x: "Hours of TV each evening", y: "Test score", xMax: 8, yMax: 100, m: -10, c: 95 },
+    { x: "Shoe size", y: "Maths score", xMax: 10, yMax: 100, m: 0, c: 55 },
+    { x: "Rainfall (mm)", y: "Visitors to the park", xMax: 20, yMax: 100, m: -4, c: 92 },
+    { x: "Minutes of exercise", y: "Resting heart rate", xMax: 60, yMax: 100, m: -0.5, c: 85 },
+    { x: "Number of pages", y: "Minutes to read", xMax: 100, yMax: 100, m: 0.9, c: 5 }
+  ];
+
+  function statScatterCorrelation(i) {
+    if (!D) return null;
+    const S = SCATTER_SUBJECTS[i % SCATTER_SUBJECTS.length];
+    const n = 8;
+    const points = [];
+    for (let k = 0; k < n; k++) {
+      const x = Math.round(S.xMax * (k + 1) / (n + 1));
+      /* A repeatable wobble, small next to the trend over the whole range. */
+      const wob = ((i * 7 + k * 13) % 11) - 5;
+      const y = Math.round(S.m * x + S.c + wob);
+      if (y < 0 || y > S.yMax) return null;
+      points.push([x, y]);
+    }
+    /* Decide the answer from the points, not from the rule that made them: if a
+       later point is not reliably higher or lower there is no correlation to
+       claim. Guards against a wobble large enough to break the trend. */
+    const first = points[0][1], last = points[n - 1][1];
+    const rise = last - first;
+    const spread = Math.max(...points.map(p => p[1])) - Math.min(...points.map(p => p[1]));
+    let kind;
+    if (Math.abs(rise) < spread * 0.5) kind = "no";
+    else kind = rise > 0 ? "positive" : "negative";
+    if (kind !== "no" && S.m === 0) return null;
+    if (kind === "no" && S.m !== 0) return null;
+    const say = {
+      positive: "Positive correlation: as one goes up, so does the other",
+      negative: "Negative correlation: as one goes up, the other goes down",
+      no: "No correlation: the two are not linked"
+    };
+    const wrong = Object.keys(say).filter(k2 => k2 !== kind).map(k2 => say[k2])
+      .concat(["The two are in direct proportion, so one is a fixed multiple of the other"]);
+    const q = mkFig("Statistics",
+      `The scatter graph shows ${S.y.toLowerCase()} against ` +
+      `${S.x.toLowerCase()} for eight children. Which statement best describes ` +
+      `the relationship?`,
+      say[kind], wrong, 3, i,
+      D.scatter({ points, xLabel: S.x, yLabel: S.y, xMax: S.xMax, yMax: S.yMax }));
+    if (q) q.explain =
+      `Read the points from left to right and watch what happens to the height.\n\n` +
+      `The leftmost point is at ${points[0][0]}, ${points[0][1]} and the ` +
+      `rightmost is at ${points[n - 1][0]}, ${points[n - 1][1]}` +
+      (kind === "no"
+        ? `, and in between the heights go up and down with no pattern, so ` +
+          `there is no correlation. Two things can both be measured without ` +
+          `being connected at all.`
+        : `, so overall the points ${kind === "positive" ? "rise" : "fall"} ` +
+          `as you go right. That is ${kind} correlation.`) +
+      `\n\nCorrelation is not the same as direct proportion: direct proportion ` +
+      `would need the points to sit on a straight line through (0, 0), and ` +
+      `these only follow a trend.`;
+    return q;
+  }
+
+  /* Constructing triangles. The drawing itself cannot be asked for in a multiple
+     choice, but the thing the construction teaches can be: which measurements
+     pin a triangle down to exactly one, and which leave it free. Three angles
+     fix the shape and not the size; two sides on their own fix nothing; and
+     three sides only work if the two shorter ones can reach past the longest. */
+  function geoTriangleUnique(i) {
+    const sides = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [6, 7, 8], [9, 10, 11],
+                   [4, 6, 7], [5, 6, 9], [7, 9, 12]][i % 8];
+    const angles = [[40, 60, 80], [30, 70, 80], [50, 60, 70], [45, 55, 80],
+                    [20, 60, 100], [35, 65, 80]][Math.floor(i / 8) % 6];
+    if (angles.reduce((s, x) => s + x, 0) !== 180) return null;
+    if (sides[0] + sides[1] <= sides[2]) return null;
+    const [p, q2, r] = sides;
+    const sss = `sides of ${p} cm, ${q2} cm and ${r} cm`;
+    const sas = `sides of ${p} cm and ${q2} cm, with an angle of ${angles[0]}° between them`;
+    const asa = `angles of ${angles[0]}° and ${angles[1]}°, with a side of ${r} cm between them`;
+    const aaa = `angles of ${angles[0]}°, ${angles[1]}° and ${angles[2]}°`;
+    /* Two shorter sides that cannot reach past the longest: no triangle at all. */
+    const impossible = `sides of ${p} cm, ${q2} cm and ${p + q2 + 1} cm`;
+    const twoSides = `sides of ${p} cm and ${q2} cm, and nothing else`;
+
+    const askUnique = Math.floor(i / 3) % 2 === 1;
+    const q = askUnique
+      ? mk("Geometry",
+          `Which of these sets of measurements describes exactly one triangle?`,
+          sss, [aaa, impossible, twoSides], 4, i)
+      : mk("Geometry",
+          `Which of these sets of measurements does NOT describe exactly one ` +
+          `triangle?`, aaa, [sss, sas, asa], 4, i);
+    if (q) q.explain = askUnique
+      ? `Three sides fix a triangle completely, as long as the two shorter ones ` +
+        `add up to more than the longest: ${p} + ${q2} = ${p + q2}, which is ` +
+        `more than ${r}, so ${sss} can be built, and only one shape fits.\n\n` +
+        `Of the others: ${aaa} fixes the shape but not the size — you could ` +
+        `draw it any size you liked and the angles would still be right. ` +
+        `${impossible} cannot be built at all, because ${p} + ${q2} = ` +
+        `${p + q2} is less than ${p + q2 + 1}, so those two sides cannot reach ` +
+        `past the longest one. And two sides with nothing else leaves the angle ` +
+        `between them free, so the triangle can be squeezed or opened out.`
+      : `Three angles are not enough. They fix the SHAPE, but nothing in them ` +
+        `says how big the triangle is: ${aaa} describes a whole family of ` +
+        `triangles, every one a different size and all the same shape.\n\n` +
+        `Each of the others pins down exactly one triangle. Three sides do it, ` +
+        `as long as the two shorter reach past the longest. Two sides with the ` +
+        `angle BETWEEN them do it, because the two arms are fixed and so is ` +
+        `how far apart they open. Two angles with the side between them do it, ` +
+        `because the third angle follows from 180° and the two arms can only ` +
+        `meet in one place.`;
+    return q;
+  }
+
+  /* Angles in parallel lines. Every one of the eight angles is either the marked
+     angle or its supplement, and which of the two it is depends only on the
+     position: the four that match sit diagonally opposite each other through the
+     two crossings. Storing that as a set membership, rather than as a list of
+     rules to look up, is what makes the answer derivable for any pair of
+     positions the figure can show. */
+  const ANGLE_SPOTS = [
+    { line: "upper", vert: "above", side: "left",  same: true },
+    { line: "upper", vert: "above", side: "right", same: false },
+    { line: "upper", vert: "below", side: "left",  same: false },
+    { line: "upper", vert: "below", side: "right", same: true },
+    { line: "lower", vert: "above", side: "left",  same: true },
+    { line: "lower", vert: "above", side: "right", same: false },
+    { line: "lower", vert: "below", side: "left",  same: false },
+    { line: "lower", vert: "below", side: "right", same: true }
+  ];
+
+  /* Why the two positions are related, in the language a child is taught. */
+  function parallelReason(g, a) {
+    if (g.line === a.line) {
+      return g.vert !== a.vert && g.side !== a.side
+        ? { name: "vertically opposite", equal: true }
+        : { name: "angles on a straight line", equal: false };
+    }
+    if (g.vert === a.vert && g.side === a.side)
+      return { name: "corresponding angles, in an F shape", equal: true };
+    if (g.vert !== a.vert && g.side !== a.side)
+      return { name: "alternate angles, in a Z shape", equal: true };
+    return { name: "co-interior angles, in a C shape", equal: false };
+  }
+
+  function geoParallelLineAngles(i) {
+    if (!D) return null;
+    /* 8 given positions x 7 others x a set of angles: strides coprime with 8 and
+       7 keep the three from turning over together. */
+    const given = ANGLE_SPOTS[i % 8];
+    const others = ANGLE_SPOTS.filter(p => p !== given);
+    const ask = others[Math.floor(i / 8) % others.length];
+    const theta = 34 + (Math.floor(i / 3) % 9) * 7;      // 34..90, never exactly 90
+    if (theta === 90) return null;
+    const ans = given.same === ask.same ? theta : 180 - theta;
+    const why = parallelReason(given, ask);
+    /* Sanity: the words and the set membership must agree, or the hint would
+       explain a different relationship from the one the answer uses. */
+    if (why.equal !== (given.same === ask.same)) return null;
+    const cand = [180 - ans, 90, ans > 90 ? ans - 90 : ans + 90, 360 - ans]
+      .filter(v => v !== ans && v > 0 && v < 180);
+    const q = mkFig("Geometry",
+      `The diagram shows two parallel lines crossed by a straight line. ` +
+      `What is the size of the angle marked x?`,
+      `${ans}°`, cand.map(v => `${v}°`), 3, i,
+      D.parallelAngles({ given, givenValue: theta, ask, askLabel: "x" }));
+    if (q) q.explain =
+      `The two angles are ${why.name}.\n\n` +
+      (why.equal
+        ? `${why.name.startsWith("vertically")
+            ? "Vertically opposite angles are equal, so x is the same as the " +
+              "angle given."
+            : why.name.startsWith("corresponding")
+            ? "Corresponding angles sit in matching positions at the two " +
+              "crossings, and because the lines are parallel they are equal."
+            : "Alternate angles sit on opposite sides of the slanted line, one " +
+              "at each crossing, and they are equal when the lines are parallel."}` +
+          `\n\nSo x = ${theta}°.`
+        : `${why.name.startsWith("angles on")
+            ? "Angles on a straight line add up to 180°."
+            : "Co-interior angles are between the two parallel lines on the " +
+              "same side of the slanted line, and they add up to 180°."}` +
+          `\n\nSo x = 180 − ${theta} = ${ans}°.`) +
+      `\n\nEvery one of the eight angles in a diagram like this is either ` +
+      `${theta}° or ${180 - theta}°, so the whole question is deciding which of ` +
+      `the two this one is. ${180 - ans}° is offered, and it is the other one.`;
+    return q;
+  }
+
+  /* Three-figure bearings: measured clockwise from north, always three digits. */
+  /* Named BEARING_POINTS, not COMPASS: a COMPASS array of the eight direction
+     names already exists further down this file, and two consts of the same name
+     in one scope is a syntax error that takes the whole bank down. */
+  const BEARING_POINTS = [["north", 0], ["north-east", 45], ["east", 90],
+                   ["south-east", 135], ["south", 180], ["south-west", 225],
+                   ["west", 270], ["north-west", 315]];
+  const bearing3 = b => `${String(((b % 360) + 360) % 360).padStart(3, "0")}°`;
+
+  function geoBearing(i) {
+    const kind = i % 3;
+    const [name, deg] = BEARING_POINTS[Math.floor(i / 3) % BEARING_POINTS.length];
+    if (kind === 0) {
+      /* A compass direction as a three-figure bearing. */
+      const cand = [deg + 45, deg - 45, deg + 180, 360 - deg]
+        .map(d => bearing3(d)).filter(o => o !== bearing3(deg));
+      return mk("Geometry",
+        `Bearings are measured clockwise from north and written with three ` +
+        `figures. What is the bearing of ${name}?`,
+        bearing3(deg), cand, 3, i);
+    }
+    if (kind === 1) {
+      const cand = BEARING_POINTS.filter(([, d]) => d !== deg).map(([n]) => n);
+      return mk("Geometry",
+        `A ship sails on a bearing of ${bearing3(deg)}. In which direction ` +
+        `is it sailing?`, name, cand, 3, i);
+    }
+    /* The way back: turn through half a full turn. */
+    const out = 15 + (Math.floor(i / 3) % 23) * 10;
+    if (out % 180 === 0) return null;
+    const back = (out + 180) % 360;
+    const cand = [360 - out, out, (out + 90) % 360, (out - 90 + 360) % 360]
+      .map(d => bearing3(d)).filter(o => o !== bearing3(back));
+    const q = mk("Geometry",
+      `A walker sets off from her camp on a bearing of ${bearing3(out)}. ` +
+      `What bearing must she walk on to return straight back to the camp?`,
+      bearing3(back), cand, 3, i);
+    if (q) q.explain =
+      `Walking back is walking the opposite way, which is half a full turn ` +
+      `from the way she came: add 180° to the bearing.\n\n` +
+      `${out} + 180 = ${out + 180}${out + 180 >= 360 ?
+        `, and a bearing is never 360° or more, so take a full turn off: ` +
+        `${out + 180} − 360 = ${back}` : ""}. The bearing back is ` +
+      `${bearing3(back)}.\n\n` +
+      `Bearings are always written with three figures, which is why it is ` +
+      `${bearing3(back)} and not ${back}°.`;
+    return q;
+  }
+
+  /* Expanding two brackets and collecting the terms. */
+  function algExpandBrackets(i) {
+    const minus = i % 2 === 1;
+    const a = 3 + (i % 5);                       // 3..7
+    /* When the second bracket is subtracted its multiplier is kept below the
+       first, so the x term stays positive. */
+    const c = minus ? 2 + (Math.floor(i / 5) % (a - 2))
+                    : 2 + (Math.floor(i / 5) % 5);
+    const b = 1 + (Math.floor(i / 6) % 8), d = 1 + (Math.floor(i / 9) % 7);
+    /* BOTH terms of a subtracted bracket change sign - the whole point of the
+       question, and the thing this template originally got wrong. */
+    const xs = minus ? a - c : a + c;
+    const con = minus ? a * b - c * d : a * b + c * d;
+    if (xs < 1) return null;
+    /* One renderer for the answer and every distractor, so a sign or a
+       coefficient of 1 is printed the same way everywhere. */
+    const poly = (k, n) => {
+      const head = k === 1 ? "x" : `${k}x`;
+      return n === 0 ? head : n > 0 ? `${head} + ${n}` : `${head} − ${-n}`;
+    };
+    const ans = poly(xs, con);
+    const cand = [
+      poly(a + c, con),                    // added the x terms whatever the sign
+      poly(xs, minus ? a * b + c * d : a * b - c * d),   // only one sign flipped
+      poly(a + c, minus ? a * b + c * d : a * b - c * d),
+      poly(a * c, con),                    // multiplied the two x terms
+      poly(xs, con + 1)
+    ].filter(o => o !== ans);
+    const q = mk("Algebra",
+      `Expand and simplify: ${a}(x + ${b}) ${minus ? "−" : "+"} ${c}(x + ${d})`,
+      ans, cand, 3, i);
+    if (q) q.explain =
+      `Multiply everything inside each bracket by the number outside it.\n\n`+
+      `${a}(x + ${b}) becomes ${a}x + ${a * b}, and ${c}(x + ${d}) becomes ` +
+      `${c}x + ${c * d}.\n\n`+
+      (minus
+        ? `The second bracket is being SUBTRACTED, so both of its terms change ` +
+          `sign — the x term as well as the number:\n`+
+          `${a}x + ${a * b} − ${c}x − ${c * d}.\n\n`+
+          `Collecting up: ${a}x − ${c}x = ${xs === 1 ? "x" : `${xs}x`}, and ` +
+          `${a * b} − ${c * d} = ${con}.`
+        : `Collecting up: ${a}x + ${c}x = ${xs}x, and ${a * b} + ${c * d} = ` +
+          `${con}.`) +
+      `\n\nSo the answer is ${ans}.` +
+      (minus
+        ? ` Subtracting only the number and still adding the x terms gives ` +
+          `${poly(a + c, con)}, which is offered — it is the commonest slip ` +
+          `there is with a subtracted bracket.`
+        : "");
+    return q;
+  }
+
+  /* Factorising fully: the options include partly-factorised forms, so "fully"
+     has to be in the question or two of them would also be correct. */
+  function algFactoriseSimple(i) {
+    const f = [4, 6, 8, 9, 10, 12, 14, 15][i % 8];
+    const p = 2 + (Math.floor(i / 8) % 7), r = 1 + (Math.floor(i / 5) % 9);
+    if (gcd(p, r) !== 1) return null;          // or f is not the whole factor
+    const A = f * p, B = f * r;
+    const smaller = factorsOf(f).filter(g => g > 1 && g < f);
+    if (!smaller.length) return null;
+    const partial = smaller.map(g => `${g}(${A / g}x + ${B / g})`);
+    const ans = `${f}(${p}x + ${r})`;
+    const cand = partial.concat([`${f}(${p}x + ${B})`, `${f}x(${p} + ${r})`])
+      .filter(o => o !== ans);
+    const q = mk("Algebra", `Factorise fully: ${A}x + ${B}`, ans, cand, 3, i);
+    if (q) q.explain =
+      `Find the largest number that divides both ${A} and ${B}. ` +
+      `${A} = ${f} × ${p} and ${B} = ${f} × ${r}, and ${p} and ${r} share no ` +
+      `factor, so ${f} is as large as it goes.\n\n` +
+      `Take ${f} outside the bracket and divide both terms by it: ` +
+      `${A}x + ${B} = ${ans}.\n\n` +
+      `"Fully" is doing work in this question. ${partial[0]} multiplies back ` +
+      `out correctly too, but ${partial[0].slice(0, partial[0].indexOf("("))} ` +
+      `is not the largest common factor, so the bracket can still be broken ` +
+      `down further.`;
+    return q;
+  }
+
+  /* Comparing two sets with an average AND the range: the Year 8 row is about
+     holding both at once, so the sets are built to differ in only one of them. */
+  function statCompareDistributions(i) {
+    const mid = 8 + (i % 9);
+    const spread = 2 + (Math.floor(i / 9) % 5);
+    const wide = spread + 2 + (Math.floor(i / 5) % 4);
+    /* Same mean by construction, symmetric about mid; the ranges differ. */
+    const A = [mid - wide, mid - 1, mid, mid + 1, mid + wide];
+    const B = [mid - spread, mid - 1, mid, mid + 1, mid + spread];
+    const mean = xs => xs.reduce((s, x) => s + x, 0) / xs.length;
+    const range = xs => Math.max(...xs) - Math.min(...xs);
+    if (mean(A) !== mean(B)) return null;
+    if (range(A) <= range(B)) return null;
+    if (A.some(v => v <= 0) || B.some(v => v <= 0)) return null;
+    const ans = "The two means are equal, but Alex's scores are more spread out";
+    const cand = [
+      "Alex has the higher mean, and his scores are more spread out",
+      "Beth has the higher mean, and her scores are more spread out",
+      "The two means are equal, and the two ranges are equal too",
+      "Beth has the higher mean, but the two ranges are equal"
+    ];
+    const q = mk("Statistics",
+      `Alex scored ${A.join(", ")} in five games. Beth scored ${B.join(", ")} ` +
+      `in her five games. Which statement is true?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Two things have to be checked, not one.\n\n` +
+      `Means: Alex totals ${A.reduce((s, x) => s + x, 0)} over 5 games, so his ` +
+      `mean is ${mean(A)}. Beth totals ${B.reduce((s, x) => s + x, 0)}, so her ` +
+      `mean is ${mean(B)} — the same.\n\n` +
+      `Ranges: Alex spans ${Math.max(...A)} − ${Math.min(...A)} = ` +
+      `${range(A)}. Beth spans ${Math.max(...B)} − ${Math.min(...B)} = ` +
+      `${range(B)}. Alex's is wider.\n\n` +
+      `So the averages say the two are equally good, and the range says Alex ` +
+      `is the less reliable of the two. An average on its own hides that, ` +
+      `which is why the two are always reported together.`;
+    return q;
+  }
+
+  /* ── More Super Hard ──
+
+     Decimals and Probability had no difficulty-4 template at all, and Sequences
+     and Counting Principle had one each. These are written to 4 or more
+     computations so they earn the band rather than being promoted into it.
+     Money is counted in whole pence throughout: 0.2 has no exact binary form,
+     so a bill worked in pounds lands on 15.360000000000001 sooner or later. */
+
+  function decMultiStepBill(i) {
+    /* Both prices are whole multiples of 20p, so the bill is too - and a
+       multiple of 20 divides exactly by 10, by 5 and by 4, which is every
+       discount this template uses. Without that the discount lands on a
+       fraction of a penny and most seeds are thrown away. */
+    const mainP = 240 + (i % 12) * 20;          // pence
+    const sideP = 100 + (Math.floor(i / 12) % 9) * 20;
+    const mains = 2 + (Math.floor(i / 5) % 4);
+    const sides = 2 + (Math.floor(i / 7) % 4);
+    const off = [10, 20, 25][Math.floor(i / 9) % 3];
+    const grossP = mains * mainP + sides * sideP;
+    const discountP = grossP * off / 100;
+    if (!Number.isInteger(discountP)) return null;
+    const netP = grossP - discountP;
+    const noteP = [2000, 3000, 5000].find(n => n > netP);
+    if (!noteP) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [
+      noteP - grossP,   // forgot the discount
+      netP,             // gave the bill, not the change
+      discountP,        // gave the saving
+      grossP
+    ].filter(v => v > 0 && v !== noteP - netP);
+    const q = mk("Decimals",
+      `A café sells jacket potatoes at ${money(mainP)} and side salads at ` +
+      `${money(sideP)}. Nadia buys ${mains} jacket potatoes and ${sides} side ` +
+      `salads. She has a voucher for ${off}% off the whole bill. She pays with ` +
+      /* Notes are whole pounds: "a £20.00 note" is not how anyone says it. */
+      `a £${noteP / 100} note. How much change should she get?`,
+      money(noteP - netP), wrong.map(money), 4, i);
+    if (q) q.explain =
+      `Step 1. The potatoes: ${mains} × ${money(mainP)} = ${money(mains * mainP)}.\n\n` +
+      `Step 2. The salads: ${sides} × ${money(sideP)} = ${money(sides * sideP)}. ` +
+      `So the bill before the voucher is ${money(grossP)}.\n\n` +
+      `Step 3. Take ${off}% off: ${off}% of ${money(grossP)} is ` +
+      `${money(discountP)}, leaving ${money(grossP)} − ${money(discountP)} = ` +
+      `${money(netP)}.\n\n` +
+      `Step 4. Change from ${money(noteP)}: ${money(noteP)} − ${money(netP)} = ` +
+      `${money(noteP - netP)}.\n\n` +
+      `Every step is a place to stop too early. ${money(netP)} is the bill, ` +
+      `${money(discountP)} is the saving, and ${money(noteP - grossP)} is the ` +
+      `change if the voucher is forgotten — all three are offered.`;
+    return q;
+  }
+
+  /* "At least one" is the question that is far easier backwards: count the ways
+     it does NOT happen and take them off 1. */
+  function probAtLeastOneOfColour(i) {
+    const red = 2 + (i % 6);
+    const blue = 3 + (Math.floor(i / 6) % 8);
+    const total = red + blue;
+    if (total < 5 || blue < 2) return null;
+    /* P(no red) = both drawn from the blues. */
+    const noRedNum = blue * (blue - 1), den = total * (total - 1);
+    const ans = simp(den - noRedNum, den);
+    const cand = [
+      simp(noRedNum, den),                  // the complement, not the answer
+      simp(red, total),                     // one draw only
+      simp(red * (red - 1), den),           // both red
+      simp(total - red, total)
+    ].filter(o => o !== ans);
+    const q = mk("Probability",
+      `A bag holds ${red} red counters and ${blue} blue counters. Two counters ` +
+      `are taken out at random, without replacement. What is the probability ` +
+      `that at least one of them is red?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `"At least one" covers one red or two reds, and adding those two cases up ` +
+      `is slow. Turn it round: the only way to get NO red is to draw two blues.\n\n` +
+      `Step 1. First counter blue: ${blue} of the ${total}.\n\n` +
+      `Step 2. Second counter blue: one blue and one counter have gone, so ` +
+      `${blue - 1} of the remaining ${total - 1}.\n\n` +
+      `Step 3. Both blue: ${blue}/${total} × ${blue - 1}/${total - 1} = ` +
+      `${simp(noRedNum, den)}.\n\n` +
+      `Step 4. At least one red is everything else: 1 − ${simp(noRedNum, den)} = ` +
+      `${ans}.\n\n` +
+      `${simp(noRedNum, den)} is offered on its own — it is the probability of ` +
+      `no red at all, which is the step before the answer, not the answer.`;
+    return q;
+  }
+
+  /* Two sequences running towards each other: the rules have to be found before
+     the question can even be started. */
+  function seqTwoSequencesMeet(i) {
+    const aStart = 3 + (i % 9), aStep = 4 + (Math.floor(i / 9) % 5);
+    const bStart = 80 + (Math.floor(i / 4) % 9) * 5, bStep = 3 + (Math.floor(i / 7) % 4);
+    let n = 1;
+    while (n < 200 && aStart + (n - 1) * aStep <= bStart - (n - 1) * bStep) n += 1;
+    if (n >= 200 || n < 3) return null;
+    const term = k => [aStart + (k - 1) * aStep, bStart - (k - 1) * bStep];
+    const cand = [n - 1, n + 1, n - 2, term(n)[0]].filter(v => v !== n && v > 0);
+    const seqA = [0, 1, 2, 3].map(k => aStart + k * aStep).join(", ");
+    const seqB = [0, 1, 2, 3].map(k => bStart - k * bStep).join(", ");
+    const q = mk("Sequences",
+      `Sequence A starts ${seqA} and carries on in the same way. Sequence B ` +
+      `starts ${seqB} and carries on in the same way. At which term number is ` +
+      `sequence A first greater than sequence B?`,
+      `${n}`, cand.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Step 1. Find both rules. A goes up in ${aStep}s, so its nth term is ` +
+      `${aStep}n ${aStart - aStep >= 0 ? "+ " + (aStart - aStep) : "− " + (aStep - aStart)}. ` +
+      `B goes down in ${bStep}s, so its nth term is ` +
+      `${bStart + bStep} − ${bStep}n.\n\n` +
+      `Step 2. A gains on B by ${aStep} + ${bStep} = ${aStep + bStep} each term, ` +
+      `and it starts ${bStart - aStart} behind.\n\n` +
+      `Step 3. Check around where they cross. At term ${n - 1}, A is ` +
+      `${term(n - 1)[0]} and B is ${term(n - 1)[1]}. At term ${n}, A is ` +
+      `${term(n)[0]} and B is ${term(n)[1]}.\n\n` +
+      `So term ${n} is the first where A is greater. The question asks WHICH ` +
+      `TERM, not what the term is — ${term(n)[0]} is the value there, and it is ` +
+      `offered as a trap.`;
+    return q;
+  }
+
+  /* Two restrictions at once. The count is built by listing, because a formula
+     for "even AND above a bound with no repeats" is easy to get wrong and the
+     list is the thing a child is actually taught to organise. */
+  function countTwoRestrictions(i) {
+    const pools = [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [1, 3, 4, 6, 7],
+                   [2, 4, 5, 7, 8], [1, 2, 5, 6, 8], [3, 4, 5, 6, 9],
+                   [1, 4, 6, 7, 8], [2, 3, 6, 7, 9], [1, 2, 4, 7, 9],
+                   [2, 5, 6, 8, 9], [3, 4, 7, 8, 9], [1, 5, 6, 7, 8],
+                   [2, 3, 4, 8, 9], [1, 2, 6, 7, 9], [3, 5, 6, 7, 8],
+                   [1, 4, 5, 8, 9]][i % 16];
+    const bound = pools[1 + (Math.floor(i / 16) % 3)] * 100;
+    let count = 0;
+    for (const a of pools) for (const b of pools) for (const c of pools) {
+      if (a === b || b === c || a === c) continue;
+      const v = a * 100 + b * 10 + c;
+      if (v > bound && c % 2 === 0) count += 1;
+    }
+    if (count < 4) return null;
+    const cand = [count + 4, count - 4, count * 2, count + 8]
+      .filter(v => v > 0 && v !== count);
+    const q = mk("Counting Principle",
+      `Using the digits ${pools.join(", ")}, how many three-digit numbers ` +
+      `greater than ${comma(bound)} can be made that are even, if no digit may ` +
+      `be used more than once?`,
+      `${count}`, cand.map(v => `${v}`), 4, i);
+    return q;
+  }
+
+  /* Two reductions, worked backwards. Each stage has to be undone separately -
+     the two percentages cannot be added together and taken off in one go. */
+  function pctSuccessiveReverse(i) {
+    const first = [10, 20, 25][i % 3];
+    const second = [10, 20, 25][Math.floor(i / 3) % 3];
+    const startP = (60 + (Math.floor(i / 9) % 12) * 10) * 100;   // whole pounds, in pence
+    const afterFirst = startP * (100 - first) / 100;
+    const finalP = afterFirst * (100 - second) / 100;
+    if (!Number.isInteger(afterFirst) || !Number.isInteger(finalP)) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [
+      finalP * (100 + first + second) / 100,   // added the two percentages back
+      afterFirst,                              // stopped one stage early
+      finalP * (100 + second) / 100,
+      startP - finalP
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== startP);
+    const q = mk("Percentages",
+      `A coat is reduced by ${first}% in a sale. In a later sale the new price ` +
+      `is reduced by a further ${second}%. The coat now costs ${money(finalP)}. ` +
+      `What did it cost before either reduction?`,
+      money(startP), wrong.map(money), 4, i);
+    if (q) q.explain =
+      `Work backwards one sale at a time, undoing the later one first.\n\n` +
+      `Step 1. The second sale took ${second}% off, so ${money(finalP)} is ` +
+      `${100 - second}% of the price before it. Divide: ${money(finalP)} ÷ ` +
+      `${(100 - second) / 100} = ${money(afterFirst)}.\n\n` +
+      `Step 2. The first sale took ${first}% off, so ${money(afterFirst)} is ` +
+      `${100 - first}% of the original. Divide again: ${money(afterFirst)} ÷ ` +
+      `${(100 - first) / 100} = ${money(startP)}.\n\n` +
+      `The two percentages cannot be added and taken off in one go, because the ` +
+      `second one is a percentage of an already-reduced price, not of the ` +
+      `original. Adding them gives ${money(finalP * (100 + first + second) / 100)}, ` +
+      `which is offered.`;
+    return q;
+  }
+
+  /* ── More Decimals ──
+
+     The topic was broad at the bottom and thin at the top: eighteen templates,
+     but only one above Hard. All the arithmetic below is done on integers and
+     the decimal point is put in at the end, because 0.8 x 0.8 x 0.8 in binary
+     floating point is 0.5120000000000001. */
+
+  /* A quantity shrinking by the same factor each time - the shape behind bounce
+     heights, depreciation and half-lives. The drop height is chosen so the
+     answer comes out exact rather than rounded. */
+  function decBounceHeight(i) {
+    const FACTORS = [[1, 2, "half"], [3, 5, "three fifths"], [4, 5, "four fifths"],
+                     [3, 4, "three quarters"]];
+    const [p, den, words] = FACTORS[i % FACTORS.length];
+    const bounces = 2 + (Math.floor(i / 4) % 2);
+    const unit = Math.pow(den, bounces);          // makes the answer whole
+    /* Cap k by what the unit allows rather than rejecting the seed afterwards:
+       five cubed is already 125, so a fixed range of six would put most drops
+       past 500 cm and throw them away. */
+    const room = Math.max(1, Math.floor(500 / unit));
+    const k = 1 + (Math.floor(i / 8) % room);
+    const drop = unit * k;
+    if (drop < 20) return null;
+    const ans = Math.pow(p, bounces) * k;
+    const dec = n => `${Number(n.toFixed(3))}`;
+    const one = drop * p / den;
+    const wrong = [
+      one,                                        // stopped after one bounce
+      drop * p * bounces / den,                   // multiplied instead of repeating
+      Math.pow(p, bounces + 1) * k / den * den,   // one bounce too many
+      drop - ans
+    ].filter(v => v > 0 && Math.abs(v - ans) > 1e-9);
+    const q = mk("Decimals",
+      `A ball is dropped from a height of ${drop} cm. After every bounce it ` +
+      `rises to ${words} (${dec(p / den)}) of the height it fell from. How high ` +
+      `does it rise after the ${bounces === 2 ? "second" : "third"} bounce?`,
+      `${dec(ans)} cm`, wrong.map(v => `${dec(v)} cm`), 4, i);
+    if (q) q.explain =
+      `Each bounce takes ${dec(p / den)} of the height before it, so the ` +
+      `multiplying happens ${bounces} times over — it does not add up.\n\n` +
+      `Bounce 1: ${drop} × ${dec(p / den)} = ${dec(one)} cm.\n` +
+      `Bounce 2: ${dec(one)} × ${dec(p / den)} = ${dec(one * p / den)} cm.` +
+      (bounces === 3
+        ? `\nBounce 3: ${dec(one * p / den)} × ${dec(p / den)} = ${dec(ans)} cm.`
+        : "") +
+      `\n\nSo it reaches ${dec(ans)} cm. Multiplying the drop by ` +
+      `${dec(p / den)} × ${bounces} instead gives ${dec(drop * p * bounces / den)} cm, ` +
+      `which is offered — but the ball does not lose the same NUMBER of ` +
+      `centimetres each time, it loses the same FRACTION, and the fraction is of ` +
+      `a smaller height every bounce.`;
+    return q;
+  }
+
+  /* A division handed over, then the place value moved. The digits never change;
+     only where the point sits does. */
+  function decDivideGivenFact(i) {
+    const b = 12 + (i % 38);
+    const c = 3 + (Math.floor(i / 38) % 12);
+    const a = b * c;
+    /* Shift the dividend down by 10 and the divisor stays, so the answer moves
+       down by 10 as well - one clean step from the fact given. */
+    const shown = a / 10, ansV = c / 10;
+    const dec = n => `${Number(n.toFixed(4))}`;
+    const wrong = [c, c / 100, c * 10].filter(v => Math.abs(v - ansV) > 1e-9);
+    const q = mk("Decimals",
+      `Given that ${comma(a)} ÷ ${b} = ${c}, work out ${dec(shown)} ÷ ${b}.`,
+      dec(ansV), wrong.map(dec), 3, i);
+    if (q) q.explain =
+      `Nothing needs dividing again — the digits of the answer are already ` +
+      `known, and only the place value changes.\n\n` +
+      `${dec(shown)} is ${comma(a)} divided by 10, and the number being divided ` +
+      `BY has not moved. Divide something 10 times smaller and the answer is 10 ` +
+      `times smaller too: ${c} ÷ 10 = ${dec(ansV)}.\n\n` +
+      `Answering ${c} is forgetting the shift altogether, and it is offered.`;
+    return q;
+  }
+
+  /* Undoing a multiplication by a decimal below 1, where the answer is BIGGER
+     than the number you started with. */
+  function decReverseMultiply(i) {
+    /* All multiples of 5, so n x hundredths is always a multiple of 5 and the
+       product lands on at most two decimal places for every seed. */
+    const hundredths = [15, 25, 35, 45, 55, 65, 75, 85, 95, 20, 40, 60, 80, 5][i % 14];
+    const n = 12 + (Math.floor(i / 14) % 24);
+    const productH = n * hundredths;                 // in hundredths
+    const dec = v => `${Number(v.toFixed(4))}`;
+    const mult = hundredths / 100, product = productH / 100;
+    const wrong = [product * mult, product + mult, product / hundredths]
+      .filter(v => Math.abs(v - n) > 1e-9);
+    const q = mk("Decimals",
+      `When a number is multiplied by ${dec(mult)}, the answer is ` +
+      `${dec(product)}. What is the number?`,
+      dec(n), wrong.map(dec), 3, i);
+    if (q) q.explain =
+      `Multiplying is undone by dividing, so the number is ${dec(product)} ÷ ` +
+      `${dec(mult)} = ${n}.\n\n` +
+      `Notice the answer is BIGGER than ${dec(product)}. That looks wrong until ` +
+      `you see that multiplying by ${dec(mult)} — a number below 1 — makes ` +
+      `things smaller, so undoing it has to make them bigger again. Multiplying ` +
+      `by ${dec(mult)} a second time gives ${dec(product * mult)}, which is ` +
+      `offered and is the wrong direction.`;
+    return q;
+  }
+
+  /* Place value on its own: what does this have to be multiplied by? */
+  function decPlaceValueChain(i) {
+    const digits = [45, 6, 125, 3, 72, 8, 15, 24, 9, 36][i % 10];
+    const downs = 2 + (i % 3);                        // 10^2 .. 10^4
+    const ups = 1 + (Math.floor(i / 10) % 2);
+    const small = digits / Math.pow(10, downs);
+    const big = digits * Math.pow(10, ups);
+    const factor = Math.pow(10, downs + ups);
+    const dec = v => `${Number(v.toFixed(6))}`;
+    const wrong = [factor / 10, factor * 10, Math.pow(10, downs)]
+      .filter(v => v !== factor);
+    const q = mk("Decimals",
+      `What must ${dec(small)} be multiplied by to give ${comma(big)}?`,
+      comma(factor), wrong.map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `Both numbers are made of the same digits, so this is only about how far ` +
+      `the point has to move.\n\n` +
+      `${dec(small)} → ${comma(big)} moves the digits ${downs + ups} places to ` +
+      `the left, and every place to the left is another × 10. So the factor is ` +
+      `10 multiplied by itself ${downs + ups} times, which is ${comma(factor)}.\n\n` +
+      `Counting the places is the whole job — count one too few and you get ` +
+      `${comma(factor / 10)}, which is offered.`;
+    return q;
+  }
+
+  /* ── More Probability ── */
+
+  /* The probabilities of everything that can happen add to 1, and two of the
+     outcomes are tied together by a ratio - so the leftover has to be shared,
+     not just read off. Worked in whole percentage points. */
+  function probSumToOneUnknown(i) {
+    const RATIOS = [[2, 1], [3, 1], [3, 2], [4, 1], [5, 1], [5, 3]];
+    const [hi, lo] = RATIOS[i % RATIOS.length];
+    const parts = hi + lo;
+    /* Choose what green and yellow share FIRST, as a multiple of both the number
+       of parts and 5, then split the rest between red and blue. Picking red and
+       blue first and hoping the remainder divides threw away most seeds. */
+    const step = lcm(parts, 5);
+    const rest = step * (1 + (Math.floor(i / 6) % Math.max(1, Math.floor(65 / step))));
+    const forRedBlue = 100 - rest;
+    if (forRedBlue < 20) return null;
+    const red = 5 * (1 + (Math.floor(i / 5) % Math.max(1, Math.floor(forRedBlue / 5) - 1)));
+    const blue = forRedBlue - red;
+    if (red <= 0 || blue <= 0) return null;
+    const green = rest / parts * hi, yellow = rest / parts * lo;
+    if (green === yellow) return null;
+    const dec = v => `${Number((v / 100).toFixed(4))}`;
+    const wrong = [yellow, rest, red + blue, green / 2, red, blue,
+                   100 - green]
+      .filter(v => v > 0 && v < 100 && v !== green);
+    const q = mk("Probability",
+      `A spinner has red, blue, green and yellow sections. The probability of ` +
+      `red is ${dec(red)} and the probability of blue is ${dec(blue)}. The ` +
+      `probabilities of green and yellow are in the ratio ${hi} : ${lo}. What ` +
+      `is the probability of green?`,
+      dec(green), wrong.map(dec), 4, i);
+    if (q) q.explain =
+      `Step 1. Everything that can happen adds to 1, so red, blue, green and ` +
+      `yellow together make 1.\n\n` +
+      `Step 2. Red and blue take ${dec(red)} + ${dec(blue)} = ${dec(red + blue)}, ` +
+      `so green and yellow share what is left: 1 − ${dec(red + blue)} = ` +
+      `${dec(rest)}.\n\n` +
+      `Step 3. That ${dec(rest)} is split in the ratio ${hi} : ${lo}, which is ` +
+      `${parts} equal parts. One part is ${dec(rest / parts)}.\n\n` +
+      `Step 4. Green takes ${hi} of them: ${hi} × ${dec(rest / parts)} = ` +
+      `${dec(green)}.\n\n` +
+      `${dec(rest)} on its own is offered — that is green AND yellow together, ` +
+      `which is the step before the answer.`;
+    return q;
+  }
+
+  /* Expected frequency, asked backwards: not "how many would you expect" but
+     "how many goes would it take". */
+  function probExpectedReverse(i) {
+    const sections = [4, 5, 6, 8, 10, 12][i % 6];
+    const wanted = 1 + (Math.floor(i / 6) % (sections - 1));
+    const target = sections * (2 + (Math.floor(i / 4) % 8));
+    const spins = target / (wanted / sections);
+    if (!Number.isInteger(spins) || spins > 2000) return null;
+    const wrong = [target * wanted / sections, target * sections, target + sections,
+                   spins / 2].filter(v => Number.isInteger(v) && v > 0 && v !== spins);
+    const q = mk("Probability",
+      `A fair spinner has ${sections} equal sections, ${wanted} of which are ` +
+      `red. How many times would the spinner have to be spun to expect ` +
+      `${comma(target)} reds?`,
+      comma(spins), wrong.map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `The probability of red is ${wanted}/${sections}, so red is expected on ` +
+      `${wanted} out of every ${sections} spins.\n\n` +
+      `Turn it round: ${comma(target)} reds need ${comma(target)} ÷ ` +
+      `${wanted}/${sections} spins, and dividing by a fraction means ` +
+      `multiplying by it upside down: ${comma(target)} × ${sections}/${wanted} = ` +
+      `${comma(spins)}.\n\n` +
+      `Multiplying by ${wanted}/${sections} instead gives ` +
+      `${comma(target * wanted / sections)}, which is how many reds you would ` +
+      `expect in ${comma(target)} spins — the question the other way round, and ` +
+      `it is offered.`;
+    return q;
+  }
+
+  /* Two bags with unlike denominators: the comparison is the question. */
+  function probCompareChances(i) {
+    const rA = 2 + (i % 6), bA = 3 + (Math.floor(i / 6) % 7);
+    const rB = 2 + (Math.floor(i / 5) % 6), bB = 3 + (Math.floor(i / 9) % 7);
+    const tA = rA + bA, tB = rB + bB;
+    if (rA * tB === rB * tA) return null;             // a tie has no answer
+    const better = rA * tB > rB * tA ? "A" : "B";
+    const ans = `Bag ${better}, with a probability of ${simp(better === "A" ? rA : rB, better === "A" ? tA : tB)}`;
+    const other = `Bag ${better === "A" ? "B" : "A"}, with a probability of ` +
+      `${simp(better === "A" ? rB : rA, better === "A" ? tB : tA)}`;
+    const cand = [other,
+      `Bag ${better}, with a probability of ${simp(better === "A" ? rA : rB, better === "A" ? bA : bB)}`,
+      `The two bags give exactly the same chance`,
+      `Bag ${better === "A" ? "B" : "A"}, with a probability of ${simp(better === "A" ? rB : rA, better === "A" ? bB : bA)}`
+    ].filter(o => o !== ans);
+    const q = mk("Probability",
+      `Bag A holds ${rA} red and ${bA} blue counters. Bag B holds ${rB} red and ` +
+      `${bB} blue counters. One counter is taken at random from each bag. Which ` +
+      `bag gives the better chance of a red, and what is that probability?`,
+      ans, cand, 3, i);
+    if (q) q.explain =
+      `Bag A gives ${rA} reds out of ${tA} counters, so ${simp(rA, tA)}. Bag B ` +
+      `gives ${rB} out of ${tB}, so ${simp(rB, tB)}.\n\n` +
+      `The denominators are different, so compare them across: ${rA} × ${tB} = ` +
+      `${rA * tB} against ${rB} × ${tA} = ${rB * tA}. ` +
+      `${better === "A" ? `${rA * tB} is the larger, so bag A` : `${rB * tA} is the larger, so bag B`} ` +
+      `gives the better chance.\n\n` +
+      `Comparing reds against BLUES rather than against the whole bag is the ` +
+      `trap: the probability is reds out of everything in the bag, not reds for ` +
+      `every blue.`;
+    return q;
+  }
+
+  /* Three independent goes at the same thing. */
+  function probThreeIndependent(i) {
+    /* Every one of these leaves a whole number of tenths after subtracting, so
+       squaring or cubing it stays inside three decimal places. */
+    /* 50 is left out on purpose: at p = 0.5 the probability and its
+       complement are the same number, so several distractors collapse into
+       each other and mk is left short - which is when nudge() starts
+       inventing values like 7.25 for a probability. */
+    const pct = [10, 20, 30, 40, 60, 70][i % 6];
+    const notPct = 100 - pct;
+    const days = 2 + (Math.floor(i / 6) % 2);
+    const askNone = Math.floor(i / 4) % 2 === 0;
+    /* 6 x 2 x 2 is only 24 questions, so the setting varies too. 7 shares no
+       factor with 6, 2 or 4, so it turns over independently of the rest. */
+    const SETTINGS = [
+      { thing: "a bus", bad: "late", verb: "is" },
+      { thing: "a train", bad: "cancelled", verb: "is" },
+      { thing: "a machine at a factory", bad: "faulty", verb: "is" }
+    ];
+    const S = SETTINGS[Math.floor(i / 7) % SETTINGS.length];
+    const none = Math.pow(notPct, days) / Math.pow(100, days);
+    const atLeast = 1 - none;
+    const ans = askNone ? none : atLeast;
+    const dec = v => `${Number(v.toFixed(6))}`;
+    /* Every candidate is between 0 and 1 by construction, and there are enough
+       of them that mk never has to invent one: nudge() knows nothing about
+       probabilities and was offering 7.064 as an answer. */
+    const wrong = [askNone ? atLeast : none,
+                   Math.pow(pct / 100, days),          // the bad day every day
+                   1 - Math.pow(pct / 100, days),      // its complement
+                   days * pct / 100,                   // added, not multiplied
+                   1 - days * pct / 100,
+                   pct / 100,                          // just one day
+                   notPct / 100]
+      .filter(v => v > 0 && v < 1 && Math.abs(v - ans) > 1e-9);
+    const q = mk("Probability",
+      `The probability that ${S.thing} ${S.verb} ${S.bad} on any given day is ` +
+      `${dec(pct / 100)}, and each day is independent of the others. What is ` +
+      `the probability that it ${askNone
+        ? `${S.verb} not ${S.bad} on any of the next ${days === 2 ? "two" : "three"} days`
+        : `${S.verb} ${S.bad} on at least one of the next ${days === 2 ? "two" : "three"} days`}?`,
+      dec(ans), wrong.map(dec), 4, i);
+    if (q) q.explain =
+      `Step 1. Not ${S.bad} on one day has probability 1 − ${dec(pct / 100)} = ` +
+      `${dec(notPct / 100)}.\n\n` +
+      `Step 2. Independent days multiply, so not ${S.bad} on any of them is ` +
+      `${Array(days).fill(dec(notPct / 100)).join(" × ")} = ${dec(none)}.\n\n` +
+      (askNone
+        ? `That is what was asked, so the answer is ${dec(none)}.`
+        : `Step 3. "At least one" is everything else: 1 − ${dec(none)} = ` +
+          `${dec(atLeast)}.`) +
+      `\n\nAdding ${dec(pct / 100)} ${days === 2 ? "twice" : "three times"} ` +
+      `would give ${dec(days * pct / 100)}, ` +
+      `and it is offered — but probabilities of separate days are multiplied, ` +
+      `not added, and adding them can even take you past 1, which no ` +
+      `probability can be.`;
+    return q;
+  }
+
+  /* ── Super Hard for the five thinnest topics ──
+
+     Algebra, BIDMAS, Decimals, Fractions and Sequences each had two templates
+     above Hard, against eight to fifteen at Hard. At 60% Super Hard a paper
+     wants about 2.4 from every topic, so two templates meant the same shape
+     coming round three times in one paper with different numbers. */
+
+  /* Ages: the whole difficulty is turning two sentences into two expressions
+     before any arithmetic starts. Built from the answer backwards so the ages
+     always come out whole. */
+  function algAgeProblem(i) {
+    const gap = 4 + (i % 9);                 // how much younger the sibling is
+    const years = 2 + (Math.floor(i / 9) % 7);
+    /* now + years = 2 x (now - gap) solves to now = 2 x gap + years. */
+    const now = 2 * gap + years;
+    const sibling = now - gap;
+    if (sibling < 4 || now > 60) return null;
+    const NAMES = [["Priya", "her brother", "her"], ["Marcus", "his sister", "his"],
+                   ["Leah", "her cousin", "her"], ["Daniel", "his brother", "his"]];
+    const [who, rel, poss] = NAMES[Math.floor(i / 5) % NAMES.length];
+    const wrong = [sibling, now + years, 2 * gap, now - years, gap + years]
+      .filter(v => v > 0 && v !== now);
+    const q = mk("Algebra",
+      `${who} is ${gap} years older than ${rel}. In ${years} years' time ` +
+      `${who} will be twice as old as ${rel} is now. How old is ${who} now?`,
+      `${now}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Step 1. Give the unknown a name. Let ${who}'s age now be a. Then ` +
+      `${rel} is ${gap} years younger, so ${rel} is a − ${gap}.\n\n` +
+      `Step 2. In ${years} years ${who} will be a + ${years}.\n\n` +
+      `Step 3. That is twice ${rel}'s age NOW — not in ${years} years — so ` +
+      `a + ${years} = 2(a − ${gap}).\n\n` +
+      `Step 4. Multiply out and solve: a + ${years} = 2a − ${2 * gap}, so ` +
+      `a = ${2 * gap} + ${years} = ${now}.\n\n` +
+      `${sibling} is ${rel}'s age and is offered. Reading "as old as ${rel} is ` +
+      `now" as "as old as ${rel} will be then" is the mistake the question is ` +
+      `built around.`;
+    return q;
+  }
+
+  /* Two purchases with the same number of one item, so subtracting the two
+     removes it. Priced in pence so nothing lands between the coins. */
+  function algTwoItemElimination(i) {
+    const pencil = 12 + (i % 24);             // pence
+    const pen = 30 + (Math.floor(i / 24) % 40);
+    const many = 4 + (i % 3), few = 2 + (Math.floor(i / 7) % 2);
+    const same = 2 + (Math.floor(i / 5) % 4);
+    if (many <= few) return null;
+    const billA = many * pencil + same * pen;
+    const billB = few * pencil + same * pen;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const wrong = [pen, billA - billB, pencil + pen, Math.round(billA / many)]
+      .filter(v => v > 0 && v !== pencil);
+    const q = mk("Algebra",
+      `${many} pencils and ${same} pens cost ${money(billA)}. ${few} pencils ` +
+      `and ${same} pens cost ${money(billB)}. How much does one pencil cost?`,
+      `${pencil}p`, wrong.map(v => `${v}p`), 4, i);
+    if (q) q.explain =
+      `Step 1. Both baskets hold ${same} pens, so the pens are the same in each ` +
+      `and the difference between the two bills must be down to the pencils ` +
+      `alone.\n\n` +
+      `Step 2. The difference in cost: ${money(billA)} − ${money(billB)} = ` +
+      `${money(billA - billB)}.\n\n` +
+      `Step 3. The difference in pencils: ${many} − ${few} = ${many - few}.\n\n` +
+      `Step 4. So ${many - few} pencils cost ${money(billA - billB)}, and one ` +
+      `pencil costs ${billA - billB} ÷ ${many - few} = ${pencil}p.\n\n` +
+      `Nothing has to be worked out about the pens at all. Matching the number ` +
+      `of pens is what makes them cancel, and spotting that is the question.`;
+    return q;
+  }
+
+  /* Two facts about a balance. The ratio alone does not give a weight, and the
+     total alone does not either - they have to be used together. */
+  function algBalanceWeights(i) {
+    const RATIOS = [[3, 5], [2, 3], [3, 4], [4, 5], [2, 5], [5, 6], [3, 7], [4, 7]];
+    const [p, r] = RATIOS[i % RATIOS.length];
+    const unit = 4 + (Math.floor(i / 8) % 12);
+    const total = (p + r) * unit;              // keeps both weights whole
+    const cube = r * unit, sphere = p * unit;
+    if (cube === sphere) return null;
+    const wrong = [sphere, total / 2, total - sphere, Math.round(total * p / r)]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== cube);
+    const q = mk("Algebra",
+      `On a balance, ${p} identical cubes weigh exactly the same as ${r} ` +
+      `identical spheres. One cube and one sphere together weigh ${total} g. ` +
+      `How heavy is one cube?`,
+      `${cube} g`, wrong.map(v => `${v} g`), 4, i);
+    if (q) q.explain =
+      `Step 1. ${p} cubes balance ${r} spheres, so a cube is heavier than a ` +
+      `sphere in the ratio ${r} : ${p} — the FEWER of something you need, the ` +
+      `heavier each one is.\n\n` +
+      `Step 2. So think of a cube as ${r} parts and a sphere as ${p} parts.\n\n` +
+      `Step 3. Together they are ${r} + ${p} = ${p + r} parts, and that weighs ` +
+      `${total} g, so one part is ${total} ÷ ${p + r} = ${unit} g.\n\n` +
+      `Step 4. A cube is ${r} parts: ${r} × ${unit} = ${cube} g.\n\n` +
+      `Getting the ratio the wrong way round gives ${sphere} g, which is the ` +
+      `sphere and is offered. Halving the total gives ${total / 2} g, which ` +
+      `would only be right if the two weighed the same.`;
+    return q;
+  }
+
+  /* BIDMAS worked backwards: the operations have to be undone in reverse order,
+     which is where the order of operations really bites. */
+  function bidMissingNumberInChain(i) {
+    const a = 2 + (i % 8), b = 1 + (Math.floor(i / 8) % 12);
+    const c = 3 + (Math.floor(i / 5) % 15);
+    const x = 2 + (Math.floor(i / 11) % 14);
+    const result = a * (x + b) - c;
+    if (result < 10 || result > 400) return null;
+    const wrong = [
+      (result - c) / a - b,            // subtracted c again instead of adding
+      (result + c) / a + b,            // added b instead of subtracting
+      result / a - b,                  // ignored c altogether
+      x + b
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== x);
+    const q = mk("BIDMAS",
+      `${a} × (□ + ${b}) − ${c} = ${result}. What number goes in the box?`,
+      `${x}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Work backwards, undoing the operations in the OPPOSITE order to the one ` +
+      `they were done in. The last thing done was subtracting ${c}, so that is ` +
+      `the first thing to undo.\n\n` +
+      `Step 1. Undo the − ${c}: ${result} + ${c} = ${result + c}.\n` +
+      `Step 2. Undo the × ${a}: ${result + c} ÷ ${a} = ${(result + c) / a}.\n` +
+      `Step 3. Undo the + ${b}: ${(result + c) / a} − ${b} = ${x}.\n\n` +
+      `Check it forwards: ${a} × (${x} + ${b}) − ${c} = ${a} × ${x + b} − ${c} ` +
+      `= ${result}. ✓\n\n` +
+      `Undoing them in the order they appear rather than in reverse is the trap ` +
+      `— the bracket was worked out FIRST going forwards, so it is undone LAST ` +
+      `coming back.`;
+    return q;
+  }
+
+  /* A chain with a root, a power, a bracket and a division all in one. */
+  function bidPowersRootsChain(i) {
+    const root = 4 + (i % 9);                  // sqrt(root^2)
+    const base = 2 + (Math.floor(i / 9) % 5);  // base^2
+    const inner = 2 + (Math.floor(i / 5) % 8);
+    const div = [1, 2, 4][Math.floor(i / 7) % 3];
+    const product = base * base * inner;
+    if (product % div !== 0) return null;
+    const ans = root + product / div;
+    const wrong = [
+      root * root + product / div,             // did not take the root
+      (root + base * base) * inner / div,      // worked left to right
+      root + base * 2 * inner / div,           // doubled instead of squaring
+      root + product
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== ans);
+    const q = mk("BIDMAS",
+      `What is √${root * root} + ${base}² × ${inner} ÷ ${div}?`,
+      `${ans}`, wrong.map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Roots and powers are worked out first, then × and ÷ from left to right, ` +
+      `and only then + and −.\n\n` +
+      `Step 1. √${root * root} = ${root} and ${base}² = ${base * base}.\n` +
+      `Step 2. Now the × and ÷, left to right: ${base * base} × ${inner} = ` +
+      `${base * base * inner}, then ÷ ${div} = ${product / div}.\n` +
+      `Step 3. Finally the addition: ${root} + ${product / div} = ${ans}.\n\n` +
+      `Adding first — ${root} + ${base * base} before multiplying — gives ` +
+      `${(root + base * base) * inner / div}, which is offered. The + is the ` +
+      `LAST thing to do here, not the first, however far left it sits.`;
+    return q;
+  }
+
+  /* Three pack sizes: two comparisons are not enough, all three have to be put
+     on the same footing. */
+  function decBestOfThreePacks(i) {
+    /* Even pence only: the 750 g pack costs 7.5 times the per-100 g price, so
+       an odd price would land on half a penny and the seed would be thrown out. */
+    const per100 = [24, 26, 28, 30, 32, 36, 38, 40, 42, 44][i % 10];
+    const gapA = 2 + (Math.floor(i / 8) % 4), gapB = 2 + (Math.floor(i / 5) % 5);
+    const sizes = [400, 750, 1000];
+    /* The middle pack is the best value; the others are dearer per 100 g. */
+    const rates = [per100 + gapA, per100, per100 + gapB];
+    if (new Set(rates).size !== 3) return null;
+    const costs = sizes.map((g, k) => g / 100 * rates[k]);
+    if (!costs.every(c => Number.isInteger(c))) return null;
+    const money = p => `£${(p / 100).toFixed(2)}`;
+    const name = g => (g === 1000 ? "1 kg" : `${g} g`);
+    const ans = `The ${name(sizes[1])} pack, at ${rates[1]}p per 100 g`;
+    const cand = [
+      `The ${name(sizes[0])} pack, at ${rates[0]}p per 100 g`,
+      `The ${name(sizes[2])} pack, at ${rates[2]}p per 100 g`,
+      `The ${name(sizes[2])} pack, at ${rates[1]}p per 100 g`,
+      `The ${name(sizes[0])} pack, at ${rates[2]}p per 100 g`
+    ].filter(o => o !== ans);
+    const q = mk("Decimals",
+      `Rice is sold in three sizes: ${name(sizes[0])} for ${money(costs[0])}, ` +
+      `${name(sizes[1])} for ${money(costs[1])}, and ${name(sizes[2])} for ` +
+      `${money(costs[2])}. Which is the best value, and what does 100 g cost ` +
+      `in that pack?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Three different sizes and three different prices cannot be compared as ` +
+      `they stand, so put all three on the same footing — the cost of 100 g.\n\n` +
+      /* In pence on both sides: "£1.56 ÷ 4 = 39p" is true as a sentence about
+         money and false as an equation, and the working has to balance. */
+      `${name(sizes[0])}: ${costs[0]}p ÷ ${sizes[0] / 100} = ${rates[0]}p per 100 g.\n` +
+      `${name(sizes[1])}: ${costs[1]}p ÷ ${sizes[1] / 100} = ${rates[1]}p per 100 g.\n` +
+      `${name(sizes[2])}: ${costs[2]}p ÷ ${sizes[2] / 100} = ${rates[2]}p per 100 g.\n\n` +
+      `The lowest is ${rates[1]}p, so the ${name(sizes[1])} pack is the best ` +
+      `value.\n\n` +
+      `The biggest pack costs the most money and is the cheapest per 100 g only ` +
+      `sometimes — here it is not, which is why every pack has to be worked out ` +
+      `rather than assumed.`;
+    return q;
+  }
+
+  /* A price in another currency, converted back and compared. */
+  function decCurrencyCompare(i) {
+    const RATES = [[115, 100], [120, 100], [125, 100], [110, 100], [140, 100]];
+    const [euroPer, poundPer] = RATES[i % RATES.length];
+    const k = 12 + (Math.floor(i / 5) % 30);
+    const abroadEuros = euroPer * k / 100 * 100;   // keeps the conversion exact
+    const abroadPounds = poundPer * k;
+    const saving = 5 * (1 + (Math.floor(i / 7) % 8));
+    const homePounds = abroadPounds + saving;
+    const money = p => `£${p}`;
+    const rate = `€${(euroPer / 100).toFixed(2)}`;
+    const wrong = [abroadPounds, homePounds, Math.round(abroadEuros - homePounds),
+                   saving * 2].filter(v => Number.isInteger(v) && v > 0 && v !== saving);
+    const q = mk("Decimals",
+      `£1 is worth ${rate}. A camera costs €${comma(abroadEuros)} in Paris and ` +
+      `${money(comma(homePounds))} in London. How much cheaper is the Paris ` +
+      `price, in pounds?`,
+      money(saving), wrong.map(v => money(comma(v))), 4, i);
+    if (q) q.explain =
+      `The two prices are in different currencies, so one has to be turned into ` +
+      `the other before they can be compared at all.\n\n` +
+      `Step 1. £1 buys ${rate}, so to go from euros back to pounds, divide: ` +
+      `€${comma(abroadEuros)} ÷ ${(euroPer / 100).toFixed(2)} = ` +
+      `${money(comma(abroadPounds))}.\n\n` +
+      `Step 2. Now both are in pounds, so compare: ` +
+      `${money(comma(homePounds))} − ${money(comma(abroadPounds))} = ` +
+      `${money(saving)}.\n\n` +
+      `Multiplying by the rate instead of dividing is the usual slip — it turns ` +
+      `pounds into euros, which is the wrong way for this question.`;
+    return q;
+  }
+
+  /* Three mixed numbers, unlike denominators, added and subtracted. */
+  function fracThreeMixedChain(i) {
+    const dens = [[2, 3, 4], [3, 4, 6], [2, 5, 10], [4, 6, 8], [3, 5, 6],
+                  [2, 3, 6], [4, 5, 10], [3, 8, 12]][i % 8];
+    const [d1, d2, d3] = dens;
+    /* Only numerators already in lowest terms, so the question never prints
+       something like "3 2/10" that a child would cancel before starting. */
+    const coprime = d => { const out = []; for (let k = 1; k < d; k++) if (gcd(k, d) === 1) out.push(k); return out; };
+    const c1 = coprime(d1), c2 = coprime(d2), c3 = coprime(d3);
+    if (!c1.length || !c2.length || !c3.length) return null;
+    const n1 = c1[i % c1.length];
+    const n2 = c2[Math.floor(i / 8) % c2.length];
+    const n3 = c3[Math.floor(i / 5) % c3.length];
+    const w1 = 1 + (i % 4), w2 = 1 + (Math.floor(i / 6) % 3), w3 = 1 + (Math.floor(i / 9) % 3);
+    const L = lcmAll(dens);
+    const total = (w1 * L + n1 * L / d1) + (w2 * L + n2 * L / d2) - (w3 * L + n3 * L / d3);
+    if (total <= 0) return null;
+    const whole = Math.floor(total / L), rem = total - whole * L;
+    if (rem === 0) return null;                       // keep a fraction in the answer
+    const mixed = (wn, num) => (wn ? `${wn} ` : "") + simp(num, L);
+    const ans = mixed(whole, rem);
+    const cand = [
+      mixed(whole + 1, rem), mixed(whole - 1, rem),
+      mixed(whole, L - rem),
+      `${w1 + w2 - w3} ${simp(n1 + n2 - n3 > 0 ? n1 + n2 - n3 : 1, d1 + d2 - d3 > 0 ? d1 + d2 - d3 : 2)}`
+    ].filter(o => o !== ans && !/-/.test(o));
+    const mx = (w, n, d) => `${w} ${n}/${d}`;
+    const q = mk("Fractions",
+      `What is ${mx(w1, n1, d1)} + ${mx(w2, n2, d2)} − ${mx(w3, n3, d3)}?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Step 1. The denominators ${d1}, ${d2} and ${d3} all divide into ${L}, so ` +
+      `${L} is the one to use for all three.\n\n` +
+      `Step 2. Deal with the whole numbers on their own: ${w1} + ${w2} − ${w3} ` +
+      `= ${w1 + w2 - w3}.\n\n` +
+      `Step 3. Now the fraction parts over ${L}: ${n1 * L / d1}/${L} + ` +
+      `${n2 * L / d2}/${L} − ${n3 * L / d3}/${L} = ` +
+      `${n1 * L / d1 + n2 * L / d2 - n3 * L / d3}/${L}.\n\n` +
+      `Step 4. Put the two back together and tidy up: the answer is ${ans}.\n\n` +
+      `Adding the denominators as well as the numerators is the commonest ` +
+      `mistake with a question like this — thirds and quarters are different ` +
+      `sizes, and they cannot be counted together until they are both ${L}ths.`;
+    return q;
+  }
+
+  /* Scaling a recipe by a fraction that is not a whole number of times. */
+  function fracRecipeScale(i) {
+    /* 12 divides by 2, 3 and 4, so it survives far more of the scale fractions
+       below than 6 or 8 do. */
+    const BASE = [[6, 3, 4], [4, 2, 3], [8, 3, 4], [6, 5, 6], [4, 3, 4],
+                  [10, 2, 5], [6, 1, 2], [8, 5, 8], [12, 3, 4], [12, 2, 3],
+                  [12, 5, 6], [12, 1, 2], [8, 1, 4], [6, 2, 3]][i % 14];
+    const [serves, num, den] = BASE;
+    /* The scale is deliberately not a whole number of times - that is what the
+       template is for - and picking it from a list of fractions gives far more
+       combinations than stepping the batch size did. */
+    const SCALES = [[3, 2], [5, 2], [7, 2], [4, 3], [5, 3], [7, 3], [5, 4], [7, 4], [9, 4]];
+    const [sp, sq] = SCALES[Math.floor(i / 8) % SCALES.length];
+    if (serves % sq !== 0) return null;
+    const wanted = serves * sp / sq;
+    if (wanted <= serves || wanted > 60) return null;
+    const scaleN = wanted, scaleD = serves;
+    const topN = num * scaleN, topD = den * scaleD;
+    const g = gcd(topN, topD);
+    const n = topN / g, d = topD / g;
+    if (d === 1) return null;                        // keep a fraction in the answer
+    const whole = Math.floor(n / d), rem = n - whole * d;
+    const ans = rem ? `${whole ? whole + " " : ""}${simp(rem, d)}` : `${whole}`;
+    const cand = [
+      `${num}/${den}`,                                // never scaled at all
+      simp(num * scaleD, den * scaleN),               // scaled the wrong way up
+      `${whole + 1}`,
+      `${whole ? whole + 1 + " " : "1 "}${simp(rem || 1, d)}`
+    ].filter(o => o !== ans);
+    const q = mk("Fractions",
+      `A recipe for ${serves} pancakes uses ${num}/${den} of a cup of flour. ` +
+      `How much flour is needed to make ${wanted} pancakes?`,
+      `${ans} cups`, cand.map(o => `${o} cups`), 4, i);
+    if (q) q.explain =
+      `Step 1. Work out how many times bigger the new batch is: ${wanted} ÷ ` +
+      `${serves} = ${simp(scaleN, scaleD)}.\n\n` +
+      `Step 2. Multiply the flour by that: ${num}/${den} × ${simp(scaleN, scaleD)} ` +
+      `= ${topN}/${topD}.\n\n` +
+      `Step 3. Cancel it down: ${topN}/${topD} = ${simp(n, d)}.\n\n` +
+      `Step 4. Written as a mixed number that is ${ans} cups.\n\n` +
+      `The scale is not a whole number here, which is the point — you cannot ` +
+      `just double or treble, you have to multiply by the fraction.`;
+    return q;
+  }
+
+  /* Given the nth term, find WHICH term takes a stated value. */
+  function seqWhichTermEquals(i) {
+    const a = 1 + (i % 3), b = 1 + (Math.floor(i / 3) % 6);
+    const c = Math.floor(i / 7) % 8;
+    const n = 4 + (Math.floor(i / 5) % 9);
+    const value = a * n * n + b * n + c;
+    if (value > 900) return null;
+    const term = k => a * k * k + b * k + c;
+    const wrong = [n + 1, n - 1, n + 2, value % 100]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== n);
+    const q = mk("Sequences",
+      `The nth term of a sequence is ${a === 1 ? "" : a}n² ${b === 1 ? "+ n" : "+ " + b + "n"}` +
+      `${c ? " + " + c : ""}. Which term of the sequence is equal to ${comma(value)}?`,
+      `the ${n}th term`, wrong.map(v => `the ${v}th term`), 4, i);
+    if (q) q.explain =
+      `The rule turns a term NUMBER into a term VALUE, and here the value is ` +
+      `known and the number is wanted, so the rule has to be run the other way.\n\n` +
+      `Trying values is the quickest route in, because the terms grow fast. ` +
+      `Term ${n - 1} gives ${comma(term(n - 1))}, and term ${n} gives ` +
+      `${comma(term(n))}.\n\n` +
+      `So it is the ${n}th term. Check it: ${a === 1 ? "" : a + " × "}${n}² ` +
+      `${b === 1 ? "+ " + n : "+ " + b + " × " + n}${c ? " + " + c : ""} = ` +
+      `${comma(value)}. ✓\n\n` +
+      `Answering ${comma(value)} is answering a different question — that is ` +
+      `the value, and the question asks which term.`;
+    return q;
+  }
+
+  /* A doubling or trebling sequence, and the first term past a bound. */
+  function seqGeometricExceeds(i) {
+    const start = 2 + (i % 7);
+    const ratio = [2, 3][Math.floor(i / 7) % 2];
+    const bound = [100, 500, 1000, 2000, 5000][Math.floor(i / 5) % 5];
+    let value = start, n = 1;
+    while (value <= bound && n < 40) { value *= ratio; n += 1; }
+    if (n < 3 || n > 15) return null;
+    const first4 = [0, 1, 2, 3].map(k => comma(start * Math.pow(ratio, k))).join(", ");
+    const wrong = [n - 1, n + 1, n - 2, value].filter(v => v > 0 && v !== n);
+    const q = mk("Sequences",
+      `A sequence starts ${first4} and carries on in the same way. Which is the ` +
+      `first term greater than ${comma(bound)}?`,
+      `the ${n}th term`, wrong.map(v => `the ${v}th term`), 4, i);
+    if (q) q.explain =
+      `Each term is ${ratio === 2 ? "double" : "three times"} the one before, so ` +
+      `the sequence grows quickly and there is no adding rule to find.\n\n` +
+      `Keep multiplying until it passes ${comma(bound)}: the ${n - 1}th term is ` +
+      `${comma(start * Math.pow(ratio, n - 2))}, which is not past it, and the ` +
+      `${n}th term is ${comma(value)}, which is.\n\n` +
+      `So the ${n}th term is the first one greater than ${comma(bound)}. ` +
+      `${comma(value)} itself is offered — that is the term's value, not its ` +
+      `position, and the question asks which term.`;
+    return q;
+  }
+
+  /* ── Circles ──
+
+     KS3 Year 8, and a gap the bank had no cover for at all: not one question
+     mentioned a circumference. QE Mock Paper 9 asked two circle questions and
+     printed the formula in the question both times, so it is printed here too.
+     At 11+ the thing being tested is whether the child works from the radius
+     rather than the diameter, not whether they have memorised pi, and 3.14 is
+     the value that paper used. */
+  const PI = 3.14;
+  /* Radii that keep both the area and the circumference tidy. */
+  const tidyRadius = i => [5, 10, 15, 20, 25, 50][i % 6];
+
+  function geoCircleArea(i) {
+    /* 19 radii x 2 ways of stating them; the form must not be i % 2 or it would
+       turn over in step with the radius and halve the variety. */
+    const r = 2 + (i % 19);
+    const asDiameter = Math.floor(i / 19) % 2 === 1;
+    const ans = PI * r * r;
+    const wrong = [
+      PI * (2 * r) * (2 * r),   // squared the diameter instead of the radius
+      2 * PI * r,               // gave the circumference
+      PI * r                    // forgot to square at all
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    return mk("Geometry",
+      `A circle has a ${asDiameter ? "diameter" : "radius"} of ` +
+      `${asDiameter ? 2 * r : r} cm. What is its area? ` +
+      `(Area of a circle = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 3, i);
+  }
+
+  function geoCircleCircumference(i) {
+    const r = 2 + (i % 19);
+    const asDiameter = Math.floor(i / 19) % 2 === 0;
+    const ans = 2 * PI * r;
+    const wrong = [
+      PI * r,                   // forgot to double
+      PI * r * r,               // gave the area
+      2 * PI * (2 * r)          // doubled the diameter as well
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    return mk("Geometry",
+      `A circle has a ${asDiameter ? "diameter" : "radius"} of ` +
+      `${asDiameter ? 2 * r : r} cm. What is its circumference? ` +
+      `(Circumference = 2 × 3.14 × radius)`,
+      `${fmt(ans)} cm`, wrong.map(w => `${fmt(w)} cm`), 3, i);
+  }
+
+  /* Mock Paper 9 Q39: the circumference is given and the area is wanted, so the
+     radius has to be recovered first. */
+  function geoCircleAreaFromCircumference(i) {
+    const r = 3 + (i % 23);
+    const C = 2 * PI * r;
+    const ans = PI * r * r;
+    /* Using the circumference itself as a radius gives numbers in the tens of
+       thousands with a third decimal place - implausible as an answer, so it
+       teaches nothing and only clutters the options. These are the mistakes a
+       child actually makes. */
+    const wrong = [
+      r * r,             // dropped pi
+      2 * PI * r * r,    // doubled, mixing the two formulas
+      PI * r,            // used the radius once, not twice
+      C                  // restated the circumference
+    ];
+    const q = mk("Geometry",
+      `The circumference of a circle is ${fmt(C)} cm. What is its area? ` +
+      `(Circumference = 2 × 3.14 × radius, Area = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 4, i);
+    if (q) q.explain =
+      `Step 1. The circumference is 2 × 3.14 × radius, which is ` +
+      `6.28 × radius. So work backwards to the radius: ` +
+      `${fmt(C)} ÷ 6.28 = ${r} cm.\n\n` +
+      `Step 2. Now use the radius in the area formula: ` +
+      `3.14 × ${r} × ${r} = ${fmt(ans)} cm².\n\n` +
+      `The radius is the bridge between the two formulas — there is no way ` +
+      `from a circumference straight to an area, and putting ${fmt(C)} into ` +
+      `the area formula gives ${fmt(PI * C * C)} cm², which is one of the ` +
+      `options offered.`;
+    return q;
+  }
+
+  /* Mock Paper 9 Q31: a circle cut out of a square, so the shaded part is what
+     is left. Choosing the side as twice the radius makes the circle touch all
+     four sides, which is what makes the side length knowable. */
+  function geoCircleInSquare(i) {
+    const r = 3 + (i % 12);
+    const s = 2 * r;
+    const bySide = Math.floor(i / 12) % 2 === 1;
+    const ans = s * s - PI * r * r;
+    const wrong = [
+      PI * r * r,               // gave the circle, not what is left
+      s * s,                    // forgot to take the circle away
+      s * s - 2 * PI * r        // took away the circumference instead of the area
+    ];
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Geometry",
+      `A circle is drawn inside a square so that it just touches all four ` +
+      `sides. The ${bySide ? `square has a side of ${s} cm` :
+        `circle has a radius of ${r} cm`}. What area of the square is ` +
+      `left uncovered? (Area of a circle = 3.14 × radius × radius)`,
+      `${fmt(ans)} cm²`, wrong.map(w => `${fmt(w)} cm²`), 4, i);
+    if (q) q.explain =
+      (bySide
+        ? `Step 1. The circle touches all four sides, so the circle is as wide ` +
+          `as the square: its diameter is ${s} cm, and its radius is half of ` +
+          `that, ${r} cm.\n\n`
+        : `Step 1. The circle touches all four sides, so the square's side is ` +
+          `two radiuses across: 2 × ${r} = ${s} cm.\n\n`) +
+      `Step 2. Area of the square: ${s} × ${s} = ${s * s} cm².\n\n` +
+      `Step 3. Area of the circle: 3.14 × ${r} × ${r} = ${fmt(PI * r * r)} cm².\n\n` +
+      `Step 4. What is left is the square minus the circle: ` +
+      `${s * s} − ${fmt(PI * r * r)} = ${fmt(ans)} cm².\n\n` +
+      (bySide
+        ? `Halving is the step that is easy to miss. The side is given, not the ` +
+          `radius, and putting ${s} into the area formula instead of ${r} would ` +
+          `make the circle four times too big.`
+        : `Finding the side length is the step that is easy to miss. The radius ` +
+          `is given, not the side, and the circle touching all four sides is ` +
+          `what tells you the side must be ${s} cm.`);
+    return q;
+  }
+
+  /* ── Areas the bank had no cover for: trapezium, and working an area back ── */
+  function meaTrapeziumArea(i) {
+    const a = 4 + (i % 9);
+    const b = a + 2 + ((i * 3) % 8);        // the longer parallel side
+    const h = 2 * (2 + ((i * 5) % 6));      // even, so halving stays whole
+    const ans = (a + b) / 2 * h;
+    const wrong = [
+      (a + b) * h,          // forgot to halve
+      a * b,                // multiplied the parallel sides
+      (a + b) / 2 + h       // added the height instead of multiplying
+    ];
+    if (!Number.isInteger(ans)) return null;
+    if (new Set([ans, ...wrong]).size !== 4) return null;
+    const q = mk("Measurement",
+      `A trapezium has two parallel sides of ${a} cm and ${b} cm, and a ` +
+      `perpendicular height of ${h} cm. What is its area?`,
+      `${comma(ans)} cm²`, wrong.map(w => `${comma(w)} cm²`), 3, i);
+    if (q) q.explain =
+      `Add the two parallel sides, halve the total, then multiply by the ` +
+      `height: (${a} + ${b}) ÷ 2 × ${h} = ${(a + b) / 2} × ${h} = ` +
+      `${comma(ans)} cm².\n\n` +
+      `Halving is the step that gets dropped — leaving it out gives ` +
+      `${comma((a + b) * h)} cm², which is offered. Averaging the two parallel ` +
+      `sides is what turns the trapezium into a rectangle of the same area, ` +
+      `which is why the formula works.`;
+    return q;
+  }
+
+  /* An area is given and a length is wanted, which is the half that gets
+     practised least. The triangle's halving has to be undone, not applied. */
+  function meaAreaFindMissingSide(i) {
+    /* Base and height must not both turn on i % 8, or they move together and
+       only eight questions exist. */
+    const base = 2 * (3 + (i % 8));
+    const height = 4 + (Math.floor(i / 8) % 12);
+    /* A parallelogram as well as a triangle: "Area - parallelograms,
+       trapeziums" is its own Year 8 row, and the pair makes the halving the
+       thing that tells them apart rather than a rule to be recalled. */
+    const triangle = i % 2 === 0;
+    const area = triangle ? base * height / 2 : base * height;
+    if (!Number.isInteger(area)) return null;
+    const wrong = triangle
+      ? [area / base, area * 2 * base, area - base, height + 2]
+      : [2 * area / base, area - base, area / (2 * base), height + 2];
+    const q = mk("Measurement",
+      `A ${triangle ? "triangle" : "parallelogram"} has an area of ` +
+      `${comma(area)} cm² and a base of ${base} cm. What is its ` +
+      `perpendicular height?`,
+      `${fmt(height)} cm`, wrong.map(w => `${fmt(w)} cm`), 3, i);
+    if (q) q.explain = triangle
+      ? `The area of a triangle is base × height ÷ 2, so going backwards the ` +
+        `÷ 2 has to be undone first: double the area, then divide by the base.\n\n` +
+        `${comma(area)} × 2 = ${comma(area * 2)}, and ${comma(area * 2)} ÷ ` +
+        `${base} = ${fmt(height)} cm.\n\n` +
+        `Dividing the area by the base without doubling gives ` +
+        `${fmt(area / base)} cm — exactly half the right answer, and offered here.`
+      : `The area of a parallelogram is base × height, with no halving, so ` +
+        `going backwards is a single division: ${comma(area)} ÷ ${base} = ` +
+        `${fmt(height)} cm.\n\n` +
+        `A triangle would need the area doubled first, which here would give ` +
+        `${fmt(2 * area / base)} cm — twice the right answer, and offered. A ` +
+        `parallelogram is two of that triangle put together, which is why its ` +
+        `formula has no half in it.`;
+    return q;
   }
 
   /* ── Statistics ── */
@@ -7338,7 +9222,14 @@ const QUESTIONS = [];
       [numDistinctPrimeFactors, 2, 3],    // different primes, not counting repeats
       [numSupplyDuration, 3, 3],          // complete days, or the day it runs out
       [numExtremeDivisible, 4, 4],        // step inwards from each end
-      [numRoundingBoundsGap, 3, 3]        // the gap is one less than the step
+      [numRoundingBoundsGap, 3, 3],       // the gap is one less than the step
+      /* KS3 Year 7/8 rows the bank had no cover for. Bands follow the step
+         count, as documented at the top of this registry. */
+      [numRoundDecimalPlaces, 2, 3],      // chopping is not rounding
+      [numRoundSigFigs, 2, 3],            // significant figures, not places
+      [numEstimateOneSigFig, 3, 3],       // round both, then multiply
+      [numFractionToPercent, 2, 3],       // divide, then x 100
+      [numLCMShare, 3, 3]                 // smallest, not just any common multiple
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -7353,7 +9244,16 @@ const QUESTIONS = [];
       [decOrderMixed, 2, 3],              // decimals against percentages
       [decUnitPrice, 3, 3],               // better value, per 100 g
       [decMultiplyGivenFact, 2, 3],       // a whole-number product handed over
-      [decMoneySplit, 3, 3]               // shared out, with pence left over
+      [decMoneySplit, 3, 3],              // shared out, with pence left over
+      /* Decimals had no Super Hard template at all. */
+      [decMultiStepBill, 4, 4],           // two prices, a discount, then change
+      [decBounceHeight, 4, 4],            // the same fraction of a smaller number
+      [decDivideGivenFact, 2, 3],         // the digits are known, the point moves
+      [decReverseMultiply, 3, 3],         // undoing x0.35 makes it bigger
+      [decPlaceValueChain, 2, 3],         // how many places, and which way
+      /* Super Hard: Decimals had only two above Hard. */
+      [decBestOfThreePacks, 4, 4],        // three sizes on the same footing
+      [decCurrencyCompare, 4, 4]          // convert before comparing
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -7368,7 +9268,10 @@ const QUESTIONS = [];
       [fracMixedAddSubtract, 3, 3],       // mixed numbers, unlike denominators
       [fracDivideMixed, 3, 3],            // improper first, then flip
       [fracReverseOf, 2, 3],              // given the part, find the whole
-      [figShadedTriangles, 2, 3]          // a shape cut into equal triangles
+      [figShadedTriangles, 2, 3],         // a shape cut into equal triangles
+      /* Super Hard: Fractions had only two above Hard. */
+      [fracThreeMixedChain, 4, 4],        // three mixed numbers, unlike bottoms
+      [fracRecipeScale, 4, 4]             // the scale is itself a fraction
     ],
     Percentages: [
       [pctDecreaseToTarget, 2, 3],        // the percentage is of the ORIGINAL
@@ -7382,7 +9285,8 @@ const QUESTIONS = [];
       /* harder percentages */
       [pctReverseAfterChange, 2, 3],      // back through a rise or a fall
       [pctSingleEquivalent, 3, 3],        // two changes as one
-      [pctProfitPercent, 2, 3]            // profit as a percentage of cost
+      [pctProfitPercent, 2, 3],           // profit as a percentage of cost
+      [pctSuccessiveReverse, 4, 4]        // undo two sales, later one first
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
@@ -7395,7 +9299,10 @@ const QUESTIONS = [];
       [bidNegativePower, 2, 3],           // -3 squared is not (-3) squared
       [bidRootsAndPowers, 3, 3],          // a root and a power together
       [bidNotEqual, 4, 4],                // three are equal, one is not
-      [bidBracketsFourTerms, 3, 3]        // place brackets in four terms           // place the brackets
+      [bidBracketsFourTerms, 3, 3],       // place brackets in four terms
+      /* Super Hard: BIDMAS had only two above Hard. */
+      [bidMissingNumberInChain, 4, 4],    // undo the operations in reverse
+      [bidPowersRootsChain, 4, 4]         // a root, a power, a bracket, a divide
     ],
     Algebra: [
       [algExpressionProperty, 3, 3],      // a property of the expression, not a value
@@ -7413,7 +9320,14 @@ const QUESTIONS = [];
       [algRemainderDivisor, 2, 3],        // 40 / N = 3 remainder 4
       [algInequalityInteger, 2, 3],       // 41 < 3y < 43
       [algPerimeterEquation, 3, 3],       // form the equation from a perimeter
-      [algInequalityCount, 2, 3]          // how many whole numbers fit
+      [algInequalityCount, 2, 3],         // how many whole numbers fit
+      /* Year 8 brackets, which the bank could not pose at all. */
+      [algExpandBrackets, 3, 3],          // a subtracted bracket flips both signs
+      [algFactoriseSimple, 2, 3],         // fully means the largest common factor
+      /* Super Hard: Algebra had only two above Hard. */
+      [algAgeProblem, 4, 4],              // two sentences, two expressions
+      [algTwoItemElimination, 4, 4],      // the matching item cancels itself out
+      [algBalanceWeights, 4, 4]           // a ratio and a total, used together
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -7429,7 +9343,10 @@ const QUESTIONS = [];
       [seqRecurrenceMissing, 2, 2],       // a rule using the term before
       [seqQuadraticNth, 4, 4],            // nth term with a constant 2nd difference
       [seqArithSum, 3, 3],                // total of the first n terms
-      [seqInterleaved, 3, 3]              // two sequences laid alternately      // falling terms, growing gaps
+      [seqInterleaved, 3, 3],             // two sequences laid alternately
+      [seqTwoSequencesMeet, 4, 4],        // find both rules, then the crossing
+      [seqWhichTermEquals, 4, 4],         // the rule run backwards
+      [seqGeometricExceeds, 4, 4]         // multiply until it passes the bound
     ],
     Ratio: [
       [ratInventedScale, 2, 3],           // two invented units and a rate
@@ -7489,7 +9406,13 @@ const QUESTIONS = [];
       [meaEstimateSize, 2, 2],            // a sensible length, height or capacity
       [meaEstimateCombine, 2, 3],         // estimate two things, then combine
       [meaTriangularPrismVolume, 2, 3],   // halve the cross-section first
-      [meaPaintTins, 3, 3]                // tins come whole, so round up
+      [meaPaintTins, 3, 3],               // tins come whole, so round up
+      /* KS3 Year 8: trapezium area, an area worked backwards, and the
+         metric-imperial row, which lost its only cover when meaInchConvert
+         went down to Medium. */
+      [meaTrapeziumArea, 3, 3],           // halving is the step that gets dropped
+      [meaAreaFindMissingSide, 3, 3],     // undo the triangle's half
+      [meaImperialConvert, 3, 3]          // match the units before multiplying
     ],
     Geometry: [
       [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
@@ -7517,7 +9440,25 @@ const QUESTIONS = [];
       [geoParallelogramVertex, 2, 3],     // fourth vertex from three
       [geoTriangleInequality, 3, 3],      // can these lengths make a triangle
       [geoPolygonMissingAngle, 2, 3],     // angle sum with a reflex angle
-      [geoTransformCompose, 3, 3]         // translate, then rotate
+      [geoTransformCompose, 3, 3],        // translate, then rotate
+      /* Spatial work, appended so no earlier entry's gIdx — and so no earlier
+         template's seeds — moves. QE Mock Paper 9 Q50 is the painted cube. */
+      [geoPaintedCube, 4, 4],             // where each kind of small cube sits
+      [geoJoinedCubesSurface, 4, 4],      // a join hides two faces, not one
+      [geoNetOppositeFace, 3, 3],         // fold the net, find the far face
+      [geoNetOppositeSum, 4, 4],          // the same fold, then a total to hit
+      /* Circles: a Year 8 row with nothing behind it at all, and two of
+         Mock Paper 9's questions. The formula is given in the question,
+         as that paper gave it. */
+      [geoCircleArea, 2, 3],              // radius or diameter, then square it
+      [geoCircleCircumference, 2, 3],     // 2 x pi x r, not pi x r
+      [geoCircleAreaFromCircumference, 4, 4],  // back to the radius first
+      [geoCircleInSquare, 4, 4],          // the side comes from the radius
+      /* Reflections and bearings: two more Year 7/8 rows with no cover. */
+      [geoReflectPoint, 2, 3],            // across the mirror, same distance
+      [geoBearing, 3, 3],                 // clockwise from north, three figures
+      [geoParallelLineAngles, 3, 3],      // F, Z and C shapes on parallel lines
+      [geoTriangleUnique, 4, 4]           // what pins a triangle down to one
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -7540,7 +9481,10 @@ const QUESTIONS = [];
       [figPieChart, 2, 3], [figVennOnly, 2, 3],
       [statMedianAngleTriangle, 3, 3],    // which value could be the median
       [figBarChartMode, 2, 2],            // the modal height on a bar chart
-      [statMeanAfterChange, 3, 3]         // the count changes as well as the mean
+      [statMeanAfterChange, 3, 3],        // the count changes as well as the mean
+      /* Comparing distributions: an average and a range, held at once. */
+      [statCompareDistributions, 4, 4],
+      [statScatterCorrelation, 3, 3]      // read the trend, left to right
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements
@@ -7557,7 +9501,8 @@ const QUESTIONS = [];
       [countCircular, 3, 3],                  // no first seat round a table
       [countGridPaths, 3, 3],                 // choose which moves go sideways
       [countCircularReflect, 3, 3],           // a bracelet can be turned over
-      [countChooseFromTwoGroups, 3, 3]        // two selections multiplied
+      [countChooseFromTwoGroups, 3, 3],       // two selections multiplied
+      [countTwoRestrictions, 4, 4]            // even AND above a bound
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
@@ -7575,7 +9520,13 @@ const QUESTIONS = [];
       [probTwoSpinnersSum, 3, 3],         // count the pairs making the total
       [probAddToTarget, 3, 3],            // backwards from the probability
       [probNotAllSame, 2, 3],             // 1 minus the two matching ways
-      [probThreeDrawsAllSame, 3, 3]       // three shrinking denominators
+      [probThreeDrawsAllSame, 3, 3],      // three shrinking denominators
+      /* Probability had no Super Hard template at all. */
+      [probAtLeastOneOfColour, 4, 4],     // easier backwards, from 1
+      [probSumToOneUnknown, 4, 4],        // the leftover is shared, not read off
+      [probExpectedReverse, 3, 3],        // how many goes, not how many hits
+      [probCompareChances, 3, 3],         // unlike denominators, compared across
+      [probThreeIndependent, 4, 4]        // multiplied, never added
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
@@ -7598,13 +9549,46 @@ const QUESTIONS = [];
     ]
   };
 
+  /* ── Pool sizes ──
+
+     These templates are still producing a different question on every seed
+     when the default 50 run out, so they are given more. Each number is the
+     seed at which that template first repeats itself, measured with an
+     oversized probe pool, capped at 150.
+
+     Only templates already in the Super Hard band are listed. Adding seeds
+     here grows Super Hard without lowering it: every extra question comes
+     from a template that was scored at 4 or more computations against QE
+     Mock Paper 9. */
+  algThreeItemPricing.poolSize = 126;
+  bidNestedBrackets.poolSize = 150;  // clean to 183
+  fracReverseTwoStage.poolSize = 60;
+  geoNetOppositeSum.poolSize = 150;  // clean to 260
+  logClockDigits.poolSize = 84;
+  meaCompoundVolume.poolSize = 150;  // clean to 168
+  numCompareExpressions.poolSize = 57;
+  pctProfitAfterLoss.poolSize = 81;
+  pctVennNeither.poolSize = 150;  // clean to 260
+  ratAfterChange.poolSize = 60;
+  spdAverageTwoLegs.poolSize = 65;
+  statCompareDistributions.poolSize = 150;  // clean to 160
+  statMeanOfRemaining.poolSize = 55;
+  statRequiredAverage.poolSize = 150;  // clean to 236
+
   // Single scale knob — produces ~140 generators × N variations questions.
   const VARIATIONS_PER_TEMPLATE = 50;
 
   Object.values(generators).forEach(gens => {
     gens.forEach(([gen, lo, hi], gIdx) => {
       const span = hi - lo + 1;
-      for (let v = 0; v < VARIATIONS_PER_TEMPLATE; v++) {
+      /* A template whose combinations are far from exhausted at 50 seeds can ask
+         for more, by setting `poolSize` on itself. Only ever more, never fewer:
+         the loop starts at v = 0 either way, so the questions already in the
+         bank are unchanged and a longer pool simply appends. Worth doing only
+         where the extra seeds give DIFFERENT questions - past a template's
+         ceiling they repeat, which is worse than nothing. */
+      const variations = Math.max(VARIATIONS_PER_TEMPLATE, gen.poolSize || 0);
+      for (let v = 0; v < variations; v++) {
         try {
           const q = gen(v + gIdx * 13);
           if (!q) continue;

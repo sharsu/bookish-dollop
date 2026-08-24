@@ -574,6 +574,132 @@
      Each label position is chosen so it sits inside exactly the circles that
      region belongs to; the assertion below is what keeps that true if the
      geometry is ever adjusted. */
+  /* ── Scatter graph ──
+
+     The alt text lists every plotted pair, because the pairs ARE the data and a
+     question about the correlation cannot be answered from "there is a scatter
+     graph here". */
+  function scatter({ points, xLabel, yLabel, xMax, yMax }) {
+    /* padT has to leave room for the vertical-axis title ABOVE the plot: at
+       16 the title sat on top of the highest tick number, the same fault the
+       bar chart and the distance-time graph both carry a note about. */
+    const padL = 44, padB = 38, padT = 30, plotW = 224, plotH = 168;
+    const w = padL + plotW + 18, h = padT + plotH + padB;
+    const px = v => padL + (v / xMax) * plotW;
+    const py = v => padT + plotH - (v / yMax) * plotH;
+
+    let body =
+      `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>` +
+      `<line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>`;
+    for (let k = 0; k <= 5; k++) {
+      const xv = Math.round(xMax * k / 5), yv = Math.round(yMax * k / 5);
+      body += text(px(xv), padT + plotH + 15, xv, { size: 10 });
+      body += text(padL - 7, py(yv) + 4, yv, { anchor: "end", size: 10 });
+    }
+    points.forEach(([x, y]) => {
+      body += `<circle cx="${px(x).toFixed(1)}" cy="${py(y).toFixed(1)}" r="3.4" ` +
+              `fill="${FILL}" stroke="${INK}" stroke-width="0.8"/>`;
+    });
+    body += text(padL + plotW / 2, h - 6, xLabel, { size: 11, fill: "#475569" });
+    body += text(4, 11, yLabel, { anchor: "start", size: 11, fill: "#475569" });
+
+    return {
+      image: wrap(w, h, body),
+      alt: `A scatter graph of ${yLabel} against ${xLabel}. The plotted points ` +
+        `are ` + points.map(([x, y]) => `(${x}, ${y})`).join(", ") + `.`
+    };
+  }
+
+  /* ── Two parallel lines crossed by a straight line ──
+
+     Eight angles, and every one of them is either the marked angle or its
+     supplement. Positions are given as {line, vert, side} - which crossing,
+     above or below the parallel line, left or right of the slanted line - and a
+     label is placed by asking the slanted line where it is at that height and
+     stepping sideways from there. Offsetting from a fixed x instead would put a
+     label on the wrong side of the slanted line as soon as the slant changed,
+     and the label would then be describing a different angle from the one it
+     names.
+
+     The alt text spells each position out in the same words, because a child
+     reading it aloud has to know WHICH angle is 70° and which one is being
+     asked for - "one of the angles is 70°" would not be answerable. */
+  function parallelAngles({ given, givenValue, ask, askLabel = "x" }) {
+    const w = 320, h = 214;
+    const yUpper = 62, yLower = 152, xFrom = 26, xTo = 292;
+    const tTop = { x: 214, y: 18 }, tBot = { x: 112, y: 196 };
+    const tx = y => tTop.x + (y - tTop.y) * (tBot.x - tTop.x) / (tBot.y - tTop.y);
+    const OFF_Y = 24, OFF_X = 31;
+
+    const place = p => {
+      const yLine = p.line === "upper" ? yUpper : yLower;
+      const y = yLine + (p.vert === "above" ? -OFF_Y : OFF_Y);
+      return { x: tx(y) + (p.side === "left" ? -OFF_X : OFF_X), y: y + 4 };
+    };
+
+    let body =
+      `<line x1="${xFrom}" y1="${yUpper}" x2="${xTo}" y2="${yUpper}" stroke="${INK}" stroke-width="2"/>` +
+      `<line x1="${xFrom}" y1="${yLower}" x2="${xTo}" y2="${yLower}" stroke="${INK}" stroke-width="2"/>` +
+      `<line x1="${tTop.x}" y1="${tTop.y}" x2="${tBot.x}" y2="${tBot.y}" stroke="${INK}" stroke-width="2"/>`;
+    /* The arrowheads that mark the two lines as parallel. */
+    [yUpper, yLower].forEach(y => {
+      const cx = 60;
+      body += `<path d="M ${cx} ${y - 6} L ${cx + 9} ${y} L ${cx} ${y + 6}" ` +
+              `fill="none" stroke="${INK}" stroke-width="2"/>`;
+    });
+    const g = place(given), a = place(ask);
+    body += text(g.x, g.y, `${givenValue}°`, { size: 15, weight: 700 });
+    body += text(a.x, a.y, askLabel, { size: 16, weight: 700, fill: FILL });
+
+    const say = p => `${p.vert} the ${p.line} parallel line and to the ` +
+                     `${p.side} of the slanted line`;
+    return {
+      image: wrap(w, h, body),
+      alt: `Two parallel horizontal lines, marked with arrows, are both crossed ` +
+        `by one slanted straight line. The angle ${say(given)} is ` +
+        `${givenValue}°. The angle ${say(ask)} is marked ${askLabel}.`
+    };
+  }
+
+  /* ── A net of a cube ──
+
+     Only one family of net is drawn: a horizontal strip of four squares with one
+     square attached above the strip and one below it. That restriction is what
+     makes the figure safe to ask questions about, because the folding is then
+     certain. Fold the strip into a band and it becomes the four side faces, so
+     two squares standing two apart in the strip end up facing each other;
+     whatever hangs above the strip becomes the top and whatever hangs below
+     becomes the bottom, so those two face each other as well. That holds
+     wherever along the strip they are attached, which is what lets the
+     attachment points vary without the answer needing a special case.
+
+     The alt text spells the layout out, because the layout IS the question:
+     a child reading it aloud has to be able to rebuild the net from the words. */
+  function cubeNet({ strip, above, below, cell = 46 }) {
+    const pad = 16, cols = strip.length, rows = 3;
+    const w = pad * 2 + cols * cell, h = pad * 2 + rows * cell;
+    const square = (col, row, label) => {
+      const x = pad + col * cell, y = pad + row * cell;
+      return `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" ` +
+             `fill="${FILL_SOFT}" stroke="${INK}" stroke-width="1.5"/>` +
+             text(x + cell / 2, y + cell / 2 + 6, label, { size: 18, weight: 700 });
+    };
+    let body = "";
+    strip.forEach((label, col) => { body += square(col, 1, label); });
+    body += square(above.at, 0, above.label);
+    body += square(below.at, 2, below.label);
+
+    const ord = ["first", "second", "third", "fourth"];
+    return {
+      image: wrap(w, h, body),
+      alt: `A net of a cube. Four squares sit in a row, labelled ` +
+        `${strip.join(", ")} from left to right. A square labelled ${above.label} ` +
+        `is attached above the ${ord[above.at]} square of the row, ` +
+        `${strip[above.at]}. A square labelled ${below.label} is attached below ` +
+        `the ${ord[below.at]} square of the row, ${strip[below.at]}.`
+    };
+  }
+
   function vennThree({ labelA, labelB, labelC, letters, outside }) {
     const w = 320, h = 268;
     const R = 64;
@@ -677,7 +803,7 @@
     };
   }
 
-  root.DIAGRAMS = { maze, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+  root.DIAGRAMS = { maze, cubeNet, parallelAngles, scatter, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };

@@ -98,6 +98,28 @@ const CONFIG = {
     // english: [3, 4]
   },
 
+  /* ── How much of a paper sits at each level ──────────────────────────
+     Shares per difficulty. They do not have to add up to 1: whatever is
+     listed is rescaled across the levels `allowedDifficulties` permits, so
+     { 3: 0.4, 4: 0.6 } means 40% Hard and 60% Super Hard, which on a
+     60-question maths paper is 24 and 36.
+
+     A level that is allowed but not listed here gets NO questions - the mix
+     is a statement about what the paper should contain, not a hint. Remove
+     the block entirely (or set it to null) to go back to the old behaviour:
+     an even split across the allowed levels, tilted by the child's recent
+     average.
+
+     Setting this turns OFF that score-based tilt for the band split. The
+     tilt eases a struggling child down the levels, so if papers start
+     feeling punishing this is the first thing to relax - try
+     { 3: 0.5, 4: 0.5 }, or delete it. Topic choice stays adaptive either
+     way: the weakest topics still get the most questions. */
+  difficultyMix: {
+    3: 0.4,                  // Hard
+    4: 0.6                   // Super Hard
+  },
+
   /* Grade boundaries (%) */
   grades: [
     { min: 90, label: "Outstanding! 🌟", trophy: "🏆" },

@@ -714,7 +714,7 @@ function chooseQuestionGroups(pool, count, shuffleArray) {
 /* Take the next question from a bucket, preferring the chosen passage that has
    contributed fewest questions so far, so the comprehension quota is spread
    evenly across the passages instead of exhausting one before starting another. */
-function takeQuestionFromBucket(bucket, groupCounts) {
+function takeQuestionFromBucket(bucket, groupCounts, templateCounts) {
   let bestIndex = -1;
   let fewestUsed = Infinity;
   for (let i = bucket.length - 1; i >= 0; i -= 1) {
@@ -723,7 +723,32 @@ function takeQuestionFromBucket(bucket, groupCounts) {
     const used = groupCounts[group] || 0;
     if (used < fewestUsed) { fewestUsed = used; bestIndex = i; }
   }
-  return bestIndex === -1 ? bucket.pop() : bucket.splice(bestIndex, 1)[0];
+  if (bestIndex !== -1) return bucket.splice(bestIndex, 1)[0];
+
+  /* Nothing grouped here, so spread across TEMPLATES the same way. Without
+     this the pick is weighted by how many questions each template happens to
+     hold, so a template with 150 of them crowds out one with 50 in the same
+     topic, and the child meets the same shape three times in one paper with
+     only the numbers changed.
+
+     The bucket was shuffled before any of this, so stepping from the end and
+     stopping at the first template not yet used takes a random one of the
+     unused - it is not a preference for whatever sorts last. */
+  if (templateCounts) {
+    let pick = -1;
+    let fewest = Infinity;
+    for (let i = bucket.length - 1; i >= 0; i -= 1) {
+      const template = bucket[i] && bucket[i].template;
+      const used = template ? (templateCounts[template] || 0) : 0;
+      if (used < fewest) {
+        fewest = used;
+        pick = i;
+        if (used === 0) break;              // cannot do better than unused
+      }
+    }
+    if (pick !== -1) return bucket.splice(pick, 1)[0];
+  }
+  return bucket.pop();
 }
 
 /* Pull grouped questions together so they run consecutively. A group takes the
@@ -747,7 +772,21 @@ function orderGroupsTogether(questions) {
   return ordered;
 }
 
+/* A mix set in config wins over both the even split and the score-based tilt.
+   Returns null when nothing usable is configured, so a typo cannot leave a
+   paper with no levels to draw on - the same rule allowedDifficulties follows. */
+function configuredDifficultyMix(allowed) {
+  const raw = CONFIG.difficultyMix;
+  if (!raw || typeof raw !== "object") return null;
+  const usable = allowed.filter(level => Number(raw[level]) > 0);
+  if (!usable.length) return null;
+  return restrictWeights(raw, allowed);
+}
+
 function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES) {
+  const configured = configuredDifficultyMix(allowed);
+  if (configured) return buildWeightedTargets(allowed, configured, totalQuestions);
+
   const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
   if (recent.length < 2) return buildDifficultyTargets(totalQuestions, allowed);
 
@@ -813,6 +852,7 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const topicDifficultyPreferences = buildTopicDifficultyPreferences(topics, studentResults, difficultyOrder);
   const selected = [];
   const groupCounts = {};
+  const templateCounts = {};
   const difficultyCounts = Object.fromEntries(difficultyOrder.map(level => [level, 0]));
   const topicCounts = Object.fromEntries(topics.map(topic => [topic, 0]));
   const topicDifficultyCounts = Object.fromEntries(
@@ -875,11 +915,15 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
     });
 
     const chosenDifficulty = difficultyPool[0];
-    const nextQuestion = takeQuestionFromBucket(buckets[chosenDifficulty][chosenTopic], groupCounts);
+    const nextQuestion = takeQuestionFromBucket(buckets[chosenDifficulty][chosenTopic],
+      groupCounts, templateCounts);
     if (!nextQuestion) break;
 
     selected.push(nextQuestion);
     if (nextQuestion.group) groupCounts[nextQuestion.group] = (groupCounts[nextQuestion.group] || 0) + 1;
+    if (nextQuestion.template) {
+      templateCounts[nextQuestion.template] = (templateCounts[nextQuestion.template] || 0) + 1;
+    }
     difficultyCounts[chosenDifficulty] += 1;
     topicCounts[chosenTopic] += 1;
     topicDifficultyCounts[chosenTopic][chosenDifficulty] += 1;
