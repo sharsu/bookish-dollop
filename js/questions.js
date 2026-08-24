@@ -2990,6 +2990,225 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── Reflections, bearings, brackets, comparing two data sets ──
+     Four more KS3 Year 7/8 rows with no cover at Hard or Super Hard. */
+
+  /* Reflecting a point. The mirror is an axis or a line parallel to one, so the
+     rule stays arithmetic: the coordinate across the mirror moves to the same
+     distance the other side, and the one along it does not move at all. */
+  const MIRRORS = [
+    { name: () => "the x-axis", of: (x, y) => [x, -y] },
+    { name: () => "the y-axis", of: (x, y) => [-x, y] },
+    { name: k => `the line x = ${k}`, of: (x, y, k) => [2 * k - x, y] },
+    { name: k => `the line y = ${k}`, of: (x, y, k) => [x, 2 * k - y] }
+  ];
+
+  function geoReflectPoint(i) {
+    const m = MIRRORS[i % MIRRORS.length];
+    const x = -8 + (Math.floor(i / 4) % 17);
+    const y = -7 + (Math.floor(i / 7) % 15);
+    const k = 1 + (Math.floor(i / 11) % 6);
+    if (x === 0 || y === 0) return null;         // keep the point off the axes
+    const [ax, ay] = m.of(x, y, k);
+    const pt = (a, b) => `(${a}, ${b})`;
+    /* The other three mirrors are the distractors: choosing the wrong axis is
+       the mistake, and it lands exactly on one of these. */
+    const others = MIRRORS.filter(o => o !== m).map(o => o.of(x, y, k));
+    const cand = others.map(([a, b]) => pt(a, b)).concat([pt(ay, ax), pt(-x, -y)]);
+    if (cand.includes(pt(ax, ay))) return null;
+    const q = mk("Geometry",
+      `The point ${pt(x, y)} is reflected in ${m.name(k)}. What are the ` +
+      `coordinates of the reflected point?`,
+      pt(ax, ay), cand, 3, i);
+    if (q) q.explain =
+      `A reflection moves a point straight across the mirror line to the same ` +
+      `distance on the other side, and leaves the other coordinate alone.\n\n` +
+      (m.name(k) === "the x-axis"
+        ? `The x-axis is the line y = 0, so x stays at ${x} and y flips sign: ` +
+          `${y} becomes ${ay}.`
+        : m.name(k) === "the y-axis"
+        ? `The y-axis is the line x = 0, so y stays at ${y} and x flips sign: ` +
+          `${x} becomes ${ax}.`
+        : m.name(k).startsWith("the line x")
+        ? `The mirror is vertical, so y stays at ${y}. The point is ` +
+          `${Math.abs(x - k)} across from x = ${k}, so it lands ` +
+          `${Math.abs(x - k)} the other side, at x = ${ax}.`
+        : `The mirror is horizontal, so x stays at ${x}. The point is ` +
+          `${Math.abs(y - k)} away from y = ${k}, so it lands ` +
+          `${Math.abs(y - k)} the other side, at y = ${ay}.`) +
+      `\n\nThe answer is ${pt(ax, ay)}. Reflecting in the wrong line is what ` +
+      `the other options are — each one is the right method applied to a ` +
+      `different mirror.`;
+    return q;
+  }
+
+  /* Three-figure bearings: measured clockwise from north, always three digits. */
+  /* Named BEARING_POINTS, not COMPASS: a COMPASS array of the eight direction
+     names already exists further down this file, and two consts of the same name
+     in one scope is a syntax error that takes the whole bank down. */
+  const BEARING_POINTS = [["north", 0], ["north-east", 45], ["east", 90],
+                   ["south-east", 135], ["south", 180], ["south-west", 225],
+                   ["west", 270], ["north-west", 315]];
+  const bearing3 = b => `${String(((b % 360) + 360) % 360).padStart(3, "0")}°`;
+
+  function geoBearing(i) {
+    const kind = i % 3;
+    const [name, deg] = BEARING_POINTS[Math.floor(i / 3) % BEARING_POINTS.length];
+    if (kind === 0) {
+      /* A compass direction as a three-figure bearing. */
+      const cand = [deg + 45, deg - 45, deg + 180, 360 - deg]
+        .map(d => bearing3(d)).filter(o => o !== bearing3(deg));
+      return mk("Geometry",
+        `Bearings are measured clockwise from north and written with three ` +
+        `figures. What is the bearing of ${name}?`,
+        bearing3(deg), cand, 3, i);
+    }
+    if (kind === 1) {
+      const cand = BEARING_POINTS.filter(([, d]) => d !== deg).map(([n]) => n);
+      return mk("Geometry",
+        `A ship sails on a bearing of ${bearing3(deg)}. In which direction ` +
+        `is it sailing?`, name, cand, 3, i);
+    }
+    /* The way back: turn through half a full turn. */
+    const out = 15 + (Math.floor(i / 3) % 23) * 10;
+    if (out % 180 === 0) return null;
+    const back = (out + 180) % 360;
+    const cand = [360 - out, out, (out + 90) % 360, (out - 90 + 360) % 360]
+      .map(d => bearing3(d)).filter(o => o !== bearing3(back));
+    const q = mk("Geometry",
+      `A walker sets off from her camp on a bearing of ${bearing3(out)}. ` +
+      `What bearing must she walk on to return straight back to the camp?`,
+      bearing3(back), cand, 3, i);
+    if (q) q.explain =
+      `Walking back is walking the opposite way, which is half a full turn ` +
+      `from the way she came: add 180° to the bearing.\n\n` +
+      `${out} + 180 = ${out + 180}${out + 180 >= 360 ?
+        `, and a bearing is never 360° or more, so take a full turn off: ` +
+        `${out + 180} − 360 = ${back}` : ""}. The bearing back is ` +
+      `${bearing3(back)}.\n\n` +
+      `Bearings are always written with three figures, which is why it is ` +
+      `${bearing3(back)} and not ${back}°.`;
+    return q;
+  }
+
+  /* Expanding two brackets and collecting the terms. */
+  function algExpandBrackets(i) {
+    const minus = i % 2 === 1;
+    const a = 3 + (i % 5);                       // 3..7
+    /* When the second bracket is subtracted its multiplier is kept below the
+       first, so the x term stays positive. */
+    const c = minus ? 2 + (Math.floor(i / 5) % (a - 2))
+                    : 2 + (Math.floor(i / 5) % 5);
+    const b = 1 + (Math.floor(i / 6) % 8), d = 1 + (Math.floor(i / 9) % 7);
+    /* BOTH terms of a subtracted bracket change sign - the whole point of the
+       question, and the thing this template originally got wrong. */
+    const xs = minus ? a - c : a + c;
+    const con = minus ? a * b - c * d : a * b + c * d;
+    if (xs < 1) return null;
+    /* One renderer for the answer and every distractor, so a sign or a
+       coefficient of 1 is printed the same way everywhere. */
+    const poly = (k, n) => {
+      const head = k === 1 ? "x" : `${k}x`;
+      return n === 0 ? head : n > 0 ? `${head} + ${n}` : `${head} − ${-n}`;
+    };
+    const ans = poly(xs, con);
+    const cand = [
+      poly(a + c, con),                    // added the x terms whatever the sign
+      poly(xs, minus ? a * b + c * d : a * b - c * d),   // only one sign flipped
+      poly(a + c, minus ? a * b + c * d : a * b - c * d),
+      poly(a * c, con),                    // multiplied the two x terms
+      poly(xs, con + 1)
+    ].filter(o => o !== ans);
+    const q = mk("Algebra",
+      `Expand and simplify: ${a}(x + ${b}) ${minus ? "−" : "+"} ${c}(x + ${d})`,
+      ans, cand, 3, i);
+    if (q) q.explain =
+      `Multiply everything inside each bracket by the number outside it.\n\n`+
+      `${a}(x + ${b}) becomes ${a}x + ${a * b}, and ${c}(x + ${d}) becomes ` +
+      `${c}x + ${c * d}.\n\n`+
+      (minus
+        ? `The second bracket is being SUBTRACTED, so both of its terms change ` +
+          `sign — the x term as well as the number:\n`+
+          `${a}x + ${a * b} − ${c}x − ${c * d}.\n\n`+
+          `Collecting up: ${a}x − ${c}x = ${xs === 1 ? "x" : `${xs}x`}, and ` +
+          `${a * b} − ${c * d} = ${con}.`
+        : `Collecting up: ${a}x + ${c}x = ${xs}x, and ${a * b} + ${c * d} = ` +
+          `${con}.`) +
+      `\n\nSo the answer is ${ans}.` +
+      (minus
+        ? ` Subtracting only the number and still adding the x terms gives ` +
+          `${poly(a + c, con)}, which is offered — it is the commonest slip ` +
+          `there is with a subtracted bracket.`
+        : "");
+    return q;
+  }
+
+  /* Factorising fully: the options include partly-factorised forms, so "fully"
+     has to be in the question or two of them would also be correct. */
+  function algFactoriseSimple(i) {
+    const f = [4, 6, 8, 9, 10, 12, 14, 15][i % 8];
+    const p = 2 + (Math.floor(i / 8) % 7), r = 1 + (Math.floor(i / 5) % 9);
+    if (gcd(p, r) !== 1) return null;          // or f is not the whole factor
+    const A = f * p, B = f * r;
+    const smaller = factorsOf(f).filter(g => g > 1 && g < f);
+    if (!smaller.length) return null;
+    const partial = smaller.map(g => `${g}(${A / g}x + ${B / g})`);
+    const ans = `${f}(${p}x + ${r})`;
+    const cand = partial.concat([`${f}(${p}x + ${B})`, `${f}x(${p} + ${r})`])
+      .filter(o => o !== ans);
+    const q = mk("Algebra", `Factorise fully: ${A}x + ${B}`, ans, cand, 3, i);
+    if (q) q.explain =
+      `Find the largest number that divides both ${A} and ${B}. ` +
+      `${A} = ${f} × ${p} and ${B} = ${f} × ${r}, and ${p} and ${r} share no ` +
+      `factor, so ${f} is as large as it goes.\n\n` +
+      `Take ${f} outside the bracket and divide both terms by it: ` +
+      `${A}x + ${B} = ${ans}.\n\n` +
+      `"Fully" is doing work in this question. ${partial[0]} multiplies back ` +
+      `out correctly too, but ${partial[0].slice(0, partial[0].indexOf("("))} ` +
+      `is not the largest common factor, so the bracket can still be broken ` +
+      `down further.`;
+    return q;
+  }
+
+  /* Comparing two sets with an average AND the range: the Year 8 row is about
+     holding both at once, so the sets are built to differ in only one of them. */
+  function statCompareDistributions(i) {
+    const mid = 8 + (i % 9);
+    const spread = 2 + (Math.floor(i / 9) % 5);
+    const wide = spread + 2 + (Math.floor(i / 5) % 4);
+    /* Same mean by construction, symmetric about mid; the ranges differ. */
+    const A = [mid - wide, mid - 1, mid, mid + 1, mid + wide];
+    const B = [mid - spread, mid - 1, mid, mid + 1, mid + spread];
+    const mean = xs => xs.reduce((s, x) => s + x, 0) / xs.length;
+    const range = xs => Math.max(...xs) - Math.min(...xs);
+    if (mean(A) !== mean(B)) return null;
+    if (range(A) <= range(B)) return null;
+    if (A.some(v => v <= 0) || B.some(v => v <= 0)) return null;
+    const ans = "The two means are equal, but Alex's scores are more spread out";
+    const cand = [
+      "Alex has the higher mean, and his scores are more spread out",
+      "Beth has the higher mean, and her scores are more spread out",
+      "The two means are equal, and the two ranges are equal too",
+      "Beth has the higher mean, but the two ranges are equal"
+    ];
+    const q = mk("Statistics",
+      `Alex scored ${A.join(", ")} in five games. Beth scored ${B.join(", ")} ` +
+      `in her five games. Which statement is true?`,
+      ans, cand, 4, i);
+    if (q) q.explain =
+      `Two things have to be checked, not one.\n\n` +
+      `Means: Alex totals ${A.reduce((s, x) => s + x, 0)} over 5 games, so his ` +
+      `mean is ${mean(A)}. Beth totals ${B.reduce((s, x) => s + x, 0)}, so her ` +
+      `mean is ${mean(B)} — the same.\n\n` +
+      `Ranges: Alex spans ${Math.max(...A)} − ${Math.min(...A)} = ` +
+      `${range(A)}. Beth spans ${Math.max(...B)} − ${Math.min(...B)} = ` +
+      `${range(B)}. Alex's is wider.\n\n` +
+      `So the averages say the two are equally good, and the range says Alex ` +
+      `is the less reliable of the two. An average on its own hides that, ` +
+      `which is why the two are always reported together.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -8014,7 +8233,10 @@ const QUESTIONS = [];
       [algRemainderDivisor, 2, 3],        // 40 / N = 3 remainder 4
       [algInequalityInteger, 2, 3],       // 41 < 3y < 43
       [algPerimeterEquation, 3, 3],       // form the equation from a perimeter
-      [algInequalityCount, 2, 3]          // how many whole numbers fit
+      [algInequalityCount, 2, 3],         // how many whole numbers fit
+      /* Year 8 brackets, which the bank could not pose at all. */
+      [algExpandBrackets, 3, 3],          // a subtracted bracket flips both signs
+      [algFactoriseSimple, 2, 3]          // fully means the largest common factor
     ],
     Sequences: [
       [seqArithNext, 1, 1], [seqArithNth, 2, 2], [seqArithNthFormula, 2, 3],
@@ -8137,7 +8359,10 @@ const QUESTIONS = [];
       [geoCircleArea, 2, 3],              // radius or diameter, then square it
       [geoCircleCircumference, 2, 3],     // 2 x pi x r, not pi x r
       [geoCircleAreaFromCircumference, 4, 4],  // back to the radius first
-      [geoCircleInSquare, 4, 4]           // the side comes from the radius
+      [geoCircleInSquare, 4, 4],          // the side comes from the radius
+      /* Reflections and bearings: two more Year 7/8 rows with no cover. */
+      [geoReflectPoint, 2, 3],            // across the mirror, same distance
+      [geoBearing, 3, 3]                  // clockwise from north, three figures
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -8160,7 +8385,9 @@ const QUESTIONS = [];
       [figPieChart, 2, 3], [figVennOnly, 2, 3],
       [statMedianAngleTriangle, 3, 3],    // which value could be the median
       [figBarChartMode, 2, 2],            // the modal height on a bar chart
-      [statMeanAfterChange, 3, 3]         // the count changes as well as the mean
+      [statMeanAfterChange, 3, 3],        // the count changes as well as the mean
+      /* Comparing distributions: an average and a range, held at once. */
+      [statCompareDistributions, 4, 4]
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements
