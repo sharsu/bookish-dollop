@@ -574,6 +574,45 @@
      Each label position is chosen so it sits inside exactly the circles that
      region belongs to; the assertion below is what keeps that true if the
      geometry is ever adjusted. */
+  /* ── A net of a cube ──
+
+     Only one family of net is drawn: a horizontal strip of four squares with one
+     square attached above the strip and one below it. That restriction is what
+     makes the figure safe to ask questions about, because the folding is then
+     certain. Fold the strip into a band and it becomes the four side faces, so
+     two squares standing two apart in the strip end up facing each other;
+     whatever hangs above the strip becomes the top and whatever hangs below
+     becomes the bottom, so those two face each other as well. That holds
+     wherever along the strip they are attached, which is what lets the
+     attachment points vary without the answer needing a special case.
+
+     The alt text spells the layout out, because the layout IS the question:
+     a child reading it aloud has to be able to rebuild the net from the words. */
+  function cubeNet({ strip, above, below, cell = 46 }) {
+    const pad = 16, cols = strip.length, rows = 3;
+    const w = pad * 2 + cols * cell, h = pad * 2 + rows * cell;
+    const square = (col, row, label) => {
+      const x = pad + col * cell, y = pad + row * cell;
+      return `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" ` +
+             `fill="${FILL_SOFT}" stroke="${INK}" stroke-width="1.5"/>` +
+             text(x + cell / 2, y + cell / 2 + 6, label, { size: 18, weight: 700 });
+    };
+    let body = "";
+    strip.forEach((label, col) => { body += square(col, 1, label); });
+    body += square(above.at, 0, above.label);
+    body += square(below.at, 2, below.label);
+
+    const ord = ["first", "second", "third", "fourth"];
+    return {
+      image: wrap(w, h, body),
+      alt: `A net of a cube. Four squares sit in a row, labelled ` +
+        `${strip.join(", ")} from left to right. A square labelled ${above.label} ` +
+        `is attached above the ${ord[above.at]} square of the row, ` +
+        `${strip[above.at]}. A square labelled ${below.label} is attached below ` +
+        `the ${ord[below.at]} square of the row, ${strip[below.at]}.`
+    };
+  }
+
   function vennThree({ labelA, labelB, labelC, letters, outside }) {
     const w = 320, h = 268;
     const R = 64;
@@ -677,7 +716,7 @@
     };
   }
 
-  root.DIAGRAMS = { maze, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+  root.DIAGRAMS = { maze, cubeNet, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };

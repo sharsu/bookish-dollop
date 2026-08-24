@@ -2691,6 +2691,119 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── Spatial: nets of a cube ──
+
+     Folding the strip of four into a band makes them the side faces, so squares
+     two apart in the strip finish opposite each other; the square above the
+     strip becomes the top and the one below becomes the bottom, so those two are
+     opposite as well. I and O are kept out of the letter sets because they read
+     as 1 and 0 on a diagram. */
+  const NET_LETTER_SETS = [
+    ["P", "Q", "R", "S", "T", "U"],
+    ["A", "B", "C", "D", "E", "F"],
+    ["J", "K", "L", "M", "N", "H"],
+    ["V", "W", "X", "Y", "Z", "G"]
+  ];
+
+  /* Opposite faces in a net: two apart along the strip, or above against below. */
+  const netOpposite = (idx, strip) => (idx < 4 ? (idx + 2) % 4 : idx === 4 ? 5 : 4);
+
+  function geoNetOppositeFace(i) {
+    if (!D) return null;
+    /* Letter set, both attachment points and the face asked about are 4 x 4 x 4
+       x 6 = 384 combinations. Reaching them as i % 4, (i * 3) % 4 and
+       (i * 5 + 2) % 4 looks varied but is not: every one of those is a function
+       of i % 4, so all three turn over together and only 24 questions exist.
+       Walking the whole space with a stride coprime to 384 gives a different
+       combination for every seed instead. */
+    const combo = (i * 97) % 384;
+    const set = NET_LETTER_SETS[combo % 4];
+    const strip = set.slice(0, 4);
+    const above = { label: set[4], at: Math.floor(combo / 4) % 4 };
+    const below = { label: set[5], at: Math.floor(combo / 16) % 4 };
+    const askIdx = Math.floor(combo / 64) % 6;
+    const oppIdx = netOpposite(askIdx, strip);
+    const all = [...strip, above.label, below.label];
+    const asked = all[askIdx], ans = all[oppIdx];
+    /* The faces that merely touch the asked one are the distractors: a child who
+       folds the net wrongly lands on a neighbour, not on a random letter. */
+    const wrong = all.filter((_, k) => k !== askIdx && k !== oppIdx);
+    const q = mkFig("Geometry",
+      `The net below folds up to make a cube. Which face ends up opposite the ` +
+      `face marked ${asked}?`,
+      ans, wrong, 3, i, D.cubeNet({ strip, above, below }));
+    if (q) q.explain =
+      `Fold the row of four — ${strip.join(", ")} — into a band. Those become the ` +
+      `four side faces, and going twice along the band brings you to the face ` +
+      `directly across from where you started, so ${strip[0]} faces ${strip[2]} ` +
+      `and ${strip[1]} faces ${strip[3]}.\n\n` +
+      `${above.label} is attached above the row and ${below.label} below it, so ` +
+      `they fold up to be the top and the bottom, which puts them opposite each ` +
+      `other.\n\n` +
+      `That gives three pairs: ${strip[0]}–${strip[2]}, ${strip[1]}–${strip[3]} ` +
+      `and ${above.label}–${below.label}. ${asked} is in the pair with ${ans}.\n\n` +
+      `The faces next to ${asked} on the net are the tempting wrong answers, ` +
+      `because touching the asked face on the flat net is exactly what a face ` +
+      `opposite it cannot do once the cube is folded.`;
+    return q;
+  }
+
+  /* The same folding, with a number puzzle on top: the pairs are built to add to
+     a stated total, so the net really is a consistent die. */
+  function geoNetOppositeSum(i) {
+    if (!D) return null;
+    /* Scan for totals with at least three usable pairs rather than listing them:
+       every pair must be positive and all six numbers distinct. */
+    const combos = [];
+    for (let T = 7; T <= 15; T += 1) {
+      const lows = [];
+      for (let a = 1; a * 2 < T; a += 1) lows.push(a);
+      for (let x = 0; x < lows.length; x++)
+        for (let y = x + 1; y < lows.length; y++)
+          for (let z = y + 1; z < lows.length; z++) {
+            const six = [lows[x], T - lows[x], lows[y], T - lows[y], lows[z], T - lows[z]];
+            if (new Set(six).size === 6) combos.push({ T, lows: [lows[x], lows[y], lows[z]] });
+          }
+    }
+    if (!combos.length) return null;
+    const { T, lows } = combos[i % combos.length];
+    /* Ordered so the net folds to a real die: strip position 0 pairs with 2 and
+       1 pairs with 3, which is what netOpposite says, and the last two are the
+       top and the bottom. */
+    const faces = [lows[0], lows[1], T - lows[0], T - lows[1], lows[2], T - lows[2]];
+    const hide = Math.floor(i / 7) % 6;
+    const oppIdx = netOpposite(hide, faces);
+    const ans = faces[oppIdx] === undefined ? null : T - faces[oppIdx];
+    if (ans === null || ans !== faces[hide]) return null;   // the net must be consistent
+    const opp = faces[oppIdx];
+    const neighbour = faces[[0, 1, 2, 3].find(k => k !== hide && k !== oppIdx)];
+    const wrong = [opp, T - neighbour, neighbour, T + opp];
+    if (new Set([ans, ...wrong]).size < 4) return null;
+
+    const shown = faces.map((v, k) => (k === hide ? "?" : `${v}`));
+    const q = mkFig("Geometry",
+      `The net below folds up to make a cube. The numbers on each pair of ` +
+      `opposite faces add up to ${T}. What number belongs on the face marked ` +
+      `with a question mark?`,
+      `${ans}`, wrong.map(w => `${w}`), 4, i,
+      D.cubeNet({ strip: shown.slice(0, 4),
+                  /* independent of each other and of the combo index above */
+                  above: { label: shown[4], at: Math.floor(i / 5) % 4 },
+                  below: { label: shown[5], at: Math.floor(i / 11) % 4 } }));
+    if (q) q.explain =
+      `Step 1. Work out the three pairs of opposite faces. Folding the row of ` +
+      `four into a band puts the 1st face opposite the 3rd and the 2nd opposite ` +
+      `the 4th; the square above the row and the square below it become the top ` +
+      `and the bottom, so they are the third pair.\n\n` +
+      `Step 2. Find which face the question mark is paired with. It is ` +
+      `${opp}.\n\n` +
+      `Step 3. Opposite faces add up to ${T}, so the missing number is ` +
+      `${T} − ${opp} = ${ans}.\n\n` +
+      `Writing ${opp} again is the mistake to avoid — opposite faces add to ` +
+      `${T} here, they are not equal.`;
+    return q;
+  }
+
   /* ── Statistics ── */
 
   /* Combining two group means: the answer is weighted, not the halfway point. */
@@ -7628,7 +7741,9 @@ const QUESTIONS = [];
       /* Spatial work, appended so no earlier entry's gIdx — and so no earlier
          template's seeds — moves. QE Mock Paper 9 Q50 is the painted cube. */
       [geoPaintedCube, 4, 4],             // where each kind of small cube sits
-      [geoJoinedCubesSurface, 4, 4]       // a join hides two faces, not one
+      [geoJoinedCubesSurface, 4, 4],      // a join hides two faces, not one
+      [geoNetOppositeFace, 3, 3],         // fold the net, find the far face
+      [geoNetOppositeSum, 4, 4]           // the same fold, then a total to hit
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
