@@ -68,9 +68,13 @@ Rebuilt after the originals were lost, so it is not a restoration. Known gaps:
 
 - Only about 40 of the 376 maths templates have an independent answer check.
   The rest are covered for shape and formatting but not for correctness.
-- English is checked for shape only. There is no equivalent of `answers.js` for
+- English is checked for shape only, plus two consistency checks on the newer
+  Literary Devices templates. There is no equivalent of `answers.js` for
   comprehension, spelling or grammar, and no check that quoted fragments appear
-  in their passage.
+  in their passage. "Which technique is this" has no independent recomputation —
+  the answer is a judgment, and a second judgment written into a test would only
+  be the same opinion twice — so those checks confirm the questions are well
+  formed and that no single answer dominates the set.
 - NVRT is checked for shape only, and cannot take part in the template-spread
   check at all: its questions carry no `template` field, and its images carry no
   alt text.

@@ -4608,6 +4608,288 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── From the August 2026 papers (Mock Paper 8, Mock Paper 10) ── */
+
+  /* Number cards again, but now the largest arrangement meeting a divisibility
+     rule. Sibling of numSmallestEvenFromDigits, which shipped wrong for two
+     years by assuming which digit belonged at the end - so this one does not
+     assume anything and tries every arrangement. */
+  function numDigitCardsDivisible(i) {
+    const POOLS = [
+      [3, 6, 8, 1, 4], [2, 5, 7, 3, 6], [1, 4, 9, 2, 8], [5, 3, 8, 6, 2],
+      [7, 2, 4, 9, 6], [1, 6, 3, 8, 5], [4, 7, 2, 5, 8], [9, 3, 6, 1, 2],
+      [8, 5, 2, 7, 4], [3, 9, 4, 6, 8], [2, 8, 5, 1, 6], [6, 4, 7, 3, 2]
+    ];
+    const digits = POOLS[i % POOLS.length];
+    const divisor = [4, 5, 4, 25][Math.floor(i / 12) % 4];
+    const wantLargest = Math.floor(i / 6) % 2 === 0;
+
+    /* Every arrangement, so nothing has to be assumed about which digit goes
+       where. Five cards is 120 orderings, which costs nothing. */
+    const all = [];
+    const walk = (left, sofar) => {
+      if (!left.length) { all.push(Number(sofar.join(""))); return; }
+      left.forEach((d, k) => walk([...left.slice(0, k), ...left.slice(k + 1)], [...sofar, d]));
+    };
+    walk(digits, []);
+    const fits = all.filter(v => v % divisor === 0);
+    if (fits.length < 4) return null;
+    const answer = wantLargest ? Math.max(...fits) : Math.min(...fits);
+
+    /* Every option is a real arrangement of the cards, so a child who checks the
+       digits cannot rule one out without doing the question. */
+    const sorted = [...new Set(fits)].sort((a, b) => (wantLargest ? b - a : a - b));
+    const extreme = wantLargest ? Math.max(...all) : Math.min(...all);
+    const cand = [sorted[1], sorted[2], extreme, sorted[3]]
+      .filter(v => v !== undefined && v !== answer);
+    if (cand.length < 3) return null;
+
+    const q = mk("Numbers",
+      `Here are five number cards: ${digits.join(", ")}. Using each card once, ` +
+      `what is the ${wantLargest ? "largest" : "smallest"} five-digit number ` +
+      `that can be made which is divisible by ${divisor}?`,
+      comma(answer), cand.map(v => comma(v)), 4, i);
+
+    const rule = divisor === 4
+      ? "a number divides by 4 when its LAST TWO digits do"
+      : divisor === 5
+      ? "a number divides by 5 when it ends in 0 or 5"
+      : "a number divides by 25 when its last two digits are 00, 25, 50 or 75";
+    if (q) q.explain =
+      `Two things pull against each other: making the number as ` +
+      `${wantLargest ? "big" : "small"} as possible wants the ` +
+      `${wantLargest ? "biggest" : "smallest"} digits at the FRONT, and the ` +
+      `divisibility rule controls the END.\n\n` +
+      `Step 1. ${rule[0].toUpperCase() + rule.slice(1)}.\n\n` +
+      `Step 2. So fix the ending first — find the endings the cards allow that ` +
+      `satisfy the rule — and only then arrange what is left in ` +
+      `${wantLargest ? "descending" : "ascending"} order in front of it.\n\n` +
+      `Step 3. That gives ${comma(answer)}.\n\n` +
+      `${comma(extreme)} is the ${wantLargest ? "largest" : "smallest"} number ` +
+      `these cards make at all, and it is offered — but it does not divide by ` +
+      `${divisor}, so it does not answer the question. Sorting the digits and ` +
+      `stopping there is the mistake.`;
+    return q;
+  }
+
+  /* Square numbers have an ODD number of factors, because one factor pairs with
+     itself. Everything else has an even number. Knowing that turns a long
+     counting job into a glance. */
+  function numEvenFactorCount(i) {
+    const SQUARES = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+    const PLAIN = [12, 18, 20, 24, 30, 40, 45, 50, 60, 72, 80, 90, 96, 108, 120];
+    const wantEven = i % 2 === 0;
+    const pick = (list, start, count) =>
+      Array.from({ length: count }, (unused, k) => list[(start + k * 3) % list.length]);
+    const squares = pick(SQUARES, Math.floor(i / 2) % SQUARES.length, wantEven ? 3 : 1);
+    const plains = pick(PLAIN, Math.floor(i / 5) % PLAIN.length, wantEven ? 1 : 3);
+    if (new Set([...squares, ...plains]).size !== 4) return null;
+    const answer = wantEven ? plains[0] : squares[0];
+    const others = wantEven ? squares : plains;
+    const factorCount = n => factorsOf(n).length;
+    /* The whole question rests on this, so it is asserted rather than assumed. */
+    if (factorCount(answer) % 2 !== (wantEven ? 0 : 1)) return null;
+    if (others.some(v => factorCount(v) % 2 === (wantEven ? 0 : 1))) return null;
+
+    const q = mk("Numbers",
+      `Which one of these numbers has an ${wantEven ? "even" : "odd"} number of ` +
+      `factors?`,
+      comma(answer), others.map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `Counting the factors of all four would work, but there is a much faster ` +
+      `way in.\n\n` +
+      `Factors come in PAIRS: for every factor below the square root there is ` +
+      `one above it. So the count is even — unless the number is a SQUARE, ` +
+      `where the square root pairs with itself and is only counted once, ` +
+      `leaving an odd number.\n\n` +
+      `${others.map(v => `${comma(v)} is ${Number.isInteger(Math.sqrt(v)) ?
+        `${Math.sqrt(v)} × ${Math.sqrt(v)}, a square` : "not a square"}`).join("; ")}. ` +
+      `${comma(answer)} is ${Number.isInteger(Math.sqrt(answer)) ?
+        `${Math.sqrt(answer)} × ${Math.sqrt(answer)}, a square` : "not a square"}.\n\n` +
+      `So ${comma(answer)} is the one with an ${wantEven ? "even" : "odd"} ` +
+      `number of factors — it has ${factorCount(answer)}.`;
+    return q;
+  }
+
+  /* Decimal to an improper fraction, kept as a top-heavy fraction rather than a
+     mixed number, which is what the question asks for and what gets forgotten. */
+  function decToImproperFraction(i) {
+    const POOL = [[1.125, 9, 8], [1.25, 5, 4], [1.75, 7, 4], [2.5, 5, 2], [1.4, 7, 5],
+                  [1.6, 8, 5], [2.25, 9, 4], [1.2, 6, 5], [3.5, 7, 2], [1.375, 11, 8],
+                  [1.625, 13, 8], [2.75, 11, 4], [2.2, 11, 5], [1.8, 9, 5],
+                  [3.25, 13, 4], [2.125, 17, 8]];
+    const [value, n, d] = POOL[i % POOL.length];
+    if (Math.abs(n / d - value) > 1e-9) return null;
+    const cand = [`${d}/${n}`, `${n + 1}/${d}`, `${n}/${d + 1}`, `${n - 1}/${d}`]
+      .filter(o => o !== `${n}/${d}`);
+    const q = mk("Decimals", `What is ${value} as an improper fraction?`,
+      `${n}/${d}`, cand, 3, i);
+    const whole = Math.floor(value);
+    if (q) q.explain =
+      `Step 1. Split it up: ${value} is ${whole} whole and ` +
+      `${Number((value - whole).toFixed(6))} left over.\n\n` +
+      `Step 2. The decimal part is ${simp(n - whole * d, d)}, so as a mixed ` +
+      `number ${value} is ${whole} ${simp(n - whole * d, d)}.\n\n` +
+      `Step 3. "Improper" means top-heavy — all of it over one denominator, no ` +
+      `whole number in front. Each whole is ${d}/${d}, so ${whole} wholes are ` +
+      `${whole * d}/${d}, and adding the ${simp(n - whole * d, d)} gives ` +
+      `${n}/${d}.\n\n` +
+      `Turning it upside down gives ${d}/${n}, which is offered and is less ` +
+      `than 1 — a quick check that catches it, since ${value} is more than 1.`;
+    return q;
+  }
+
+  /* Percentage to a fraction in its simplest form. */
+  function pctToFraction(i) {
+    const POOL = [[37.5, 3, 8], [62.5, 5, 8], [12.5, 1, 8], [87.5, 7, 8],
+                  [45, 9, 20], [65, 13, 20], [24, 6, 25], [35, 7, 20], [5, 1, 20],
+                  [15, 3, 20], [4, 1, 25], [32, 8, 25], [55, 11, 20], [16, 4, 25],
+                  [85, 17, 20], [44, 11, 25]];
+    const [pct, n, d] = POOL[i % POOL.length];
+    if (Math.abs(n / d - pct / 100) > 1e-9) return null;
+    if (gcd(n, d) !== 1) return null;
+    const cand = [`${d}/${n}`, `${n + 1}/${d}`, `${n}/${d + 5}`, `${n + 2}/${d}`]
+      .filter(o => o !== `${n}/${d}`);
+    const q = mk("Percentages",
+      `What is ${pct}% as a fraction in its simplest form?`, `${n}/${d}`, cand, 3, i);
+    if (q) q.explain =
+      `Per cent means "out of a hundred", so ${pct}% is ${pct}/100 to start ` +
+      `with.\n\n` +
+      (Number.isInteger(pct)
+        ? `Now cancel: ${pct} and 100 share ${gcd(pct, 100)}, and dividing both ` +
+          `by it gives ${n}/${d}.`
+        : `${pct} is not whole, so multiply top and bottom by 2 first: ` +
+          `${pct}/100 = ${pct * 2}/200. Now cancel — ${pct * 2} and 200 share ` +
+          `${gcd(pct * 2, 200)} — which gives ${n}/${d}.`) +
+      `\n\nSimplest form means there is nothing left to cancel: ${n} and ${d} ` +
+      `share no factor but 1.`;
+    return q;
+  }
+
+  /* Compound growth: each year's rise is worked out on the NEW value, so the
+     increases cannot be added together. */
+  function pctCompoundGrowth(i) {
+    const RATES = [[10, 3], [20, 3], [10, 2], [20, 2], [25, 2], [50, 2], [25, 3]];
+    const [rate, years] = RATES[i % RATES.length];
+    const START = [100000, 200000, 80000, 40000, 160000, 120000];
+    const start = START[Math.floor(i / 7) % START.length];
+    const grow = v => v * (100 + rate) / 100;
+    let value = start;
+    for (let y = 0; y < years; y += 1) value = grow(value);
+    if (!Number.isInteger(value)) return null;
+    const simple = start + start * rate / 100 * years;      // added them instead
+    const oneYear = grow(start);
+    const money = v => `£${comma(v)}`;
+    const cand = [simple, oneYear, value - start, start * (100 + rate * years) / 100]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== value);
+    const year0 = 2000 + (Math.floor(i / 3) % 15);
+    const q = mk("Percentages",
+      `A house was worth ${money(start)} in ${year0}. Its value increased by ` +
+      `${rate}% every year after that. What was it worth in ${year0 + years}?`,
+      money(value), cand.map(money), 4, i);
+    if (q) q.explain =
+      `Each year's increase is worked out on the value at the START of that ` +
+      `year, not on the original — so the rises cannot be added up.\n\n` +
+      (() => {
+        let running = start, lines = "";
+        for (let y = 1; y <= years; y += 1) {
+          const next = grow(running);
+          lines += `Year ${y}: ${money(running)} + ${rate}% = ${money(next)}\n`;
+          running = next;
+        }
+        return lines;
+      })() +
+      `\nSo by ${year0 + years} it is worth ${money(value)}.\n\n` +
+      `Adding ${rate}% ${years} times over — ${rate * years}% of the original — ` +
+      `gives ${money(simple)}, which is offered and is too small. Growth on ` +
+      `growth always beats it.`;
+    return q;
+  }
+
+  /* Given a mean and a range, which set of numbers fits? Both have to be
+     checked: a set matching only one of them is the trap. */
+  function statSetFromSummary(i) {
+    const size = 4;
+    const mean = 9 + (i % 12);
+    const spread = 4 + (Math.floor(i / 12) % 8);
+    const low = mean - Math.ceil(spread / 2);
+    const high = low + spread;
+    const middleTotal = mean * size - low - high;
+    const a = Math.floor(middleTotal / 2), b = middleTotal - a;
+    if (a < low || b > high || a > b) return null;
+    const set = [low, a, b, high].sort((x, y) => x - y);
+    const meanOf = xs => xs.reduce((s, x) => s + x, 0) / xs.length;
+    const rangeOf = xs => Math.max(...xs) - Math.min(...xs);
+    if (meanOf(set) !== mean || rangeOf(set) !== spread) return null;
+
+    /* One wrong set has the right mean and the wrong range, one the other way
+       round, and one gets both wrong - so no single check can settle it. */
+    const rightMeanWrongRange = [low + 1, a, b, high - 1].sort((x, y) => x - y);
+    const rightRangeWrongMean = [low + 1, a + 1, b + 1, high + 1].sort((x, y) => x - y);
+    const bothWrong = [low, a, b, high + 2].sort((x, y) => x - y);
+    const show = xs => xs.join(", ");
+    const wrong = [rightMeanWrongRange, rightRangeWrongMean, bothWrong];
+    if (meanOf(rightMeanWrongRange) !== mean || rangeOf(rightMeanWrongRange) === spread) return null;
+    if (rangeOf(rightRangeWrongMean) !== spread || meanOf(rightRangeWrongMean) === mean) return null;
+    if (wrong.some(w => show(w) === show(set))) return null;
+
+    const q = mk("Statistics",
+      `Which of these sets of four numbers has a mean of ${mean} and a range of ` +
+      `${spread}?`,
+      show(set), wrong.map(show), 4, i);
+    if (q) q.explain =
+      `Two conditions have to hold at once, so check both on every set — one ` +
+      `of the wrong answers gets each of them right on its own.\n\n` +
+      `Mean: the four numbers must total ${mean} × 4 = ${mean * size}.\n` +
+      `Range: the biggest minus the smallest must be ${spread}.\n\n` +
+      `For ${show(set)}: the total is ${set.reduce((s, x) => s + x, 0)}, so the ` +
+      `mean is ${mean} ✓, and ${high} − ${low} = ${spread} ✓.\n\n` +
+      `${show(rightMeanWrongRange)} has the right mean but a range of ` +
+      `${rangeOf(rightMeanWrongRange)}, and ${show(rightRangeWrongMean)} has the ` +
+      `right range but a mean of ${meanOf(rightRangeWrongMean)}. Checking only ` +
+      `one of the two lets a wrong set through.`;
+    return q;
+  }
+
+  /* A duration built from a rate, then rounded to a coarse unit. */
+  function spdDurationRounded(i) {
+    const pages = 120 + (i % 24) * 20;
+    const SECONDS = [45, 60, 75, 90, 105, 120, 135, 150];
+    const each = SECONDS[Math.floor(i / 24) % SECONDS.length];
+    const totalSeconds = pages * each;
+    const totalMinutes = totalSeconds / 60;
+    if (!Number.isInteger(totalMinutes)) return null;
+    const halfHours = Math.round(totalMinutes / 30);
+    const answerMinutes = halfHours * 30;
+    if (answerMinutes === 0) return null;
+    const show = mins => {
+      const h = Math.floor(mins / 60), m = mins % 60;
+      if (!h) return `${m} minutes`;
+      return `${h} hour${h === 1 ? "" : "s"}${m ? ` ${m} minutes` : ""}`;
+    };
+    const cand = [answerMinutes + 30, answerMinutes - 30, totalMinutes,
+                  Math.floor(totalMinutes / 30) * 30]
+      .filter(v => v > 0 && v !== answerMinutes);
+    const mmss = `${Math.floor(each / 60)} minute${Math.floor(each / 60) === 1 ? "" : "s"}` +
+      (each % 60 ? ` and ${each % 60} seconds` : "");
+    const q = mk("Speed",
+      `There are ${comma(pages)} pages in Sasha's book. She works out that it ` +
+      `takes her about ${mmss} to read each page. To the nearest half hour, how ` +
+      `long will the whole book take?`,
+      show(answerMinutes), cand.map(show), 3, i);
+    if (q) q.explain =
+      `Step 1. Work in seconds first, so nothing has to be converted twice: ` +
+      `${comma(pages)} × ${each} = ${comma(totalSeconds)} seconds.\n\n` +
+      `Step 2. Into minutes: ${comma(totalSeconds)} ÷ 60 = ` +
+      `${comma(totalMinutes)} minutes, which is ${show(totalMinutes)}.\n\n` +
+      `Step 3. Now round to the nearest HALF HOUR — that is the nearest 30 ` +
+      `minutes, not the nearest hour. ${show(totalMinutes)} is closest to ` +
+      `${show(answerMinutes)}.\n\n` +
+      `Rounding to the nearest hour instead is the trap, and both neighbouring ` +
+      `half hours are offered.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -9559,7 +9841,10 @@ const QUESTIONS = [];
       [numFractionToPercent, 2, 3],       // divide, then x 100
       [numLCMShare, 3, 3],                // smallest, not just any common multiple
       /* From a paper Milan sat: reasoning about a result, not calculating it. */
-      [numParityResult, 4, 4]             // must be true means true every time
+      [numParityResult, 4, 4],            // must be true means true every time
+      /* question-bank/20260824-Onwards */
+      [numDigitCardsDivisible, 4, 4],     // fix the ending, then fill the front
+      [numEvenFactorCount, 3, 3]          // only squares have an odd count
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -9583,7 +9868,8 @@ const QUESTIONS = [];
       [decPlaceValueChain, 2, 3],         // how many places, and which way
       /* Super Hard: Decimals had only two above Hard. */
       [decBestOfThreePacks, 4, 4],        // three sizes on the same footing
-      [decCurrencyCompare, 4, 4]          // convert before comparing
+      [decCurrencyCompare, 4, 4],         // convert before comparing
+      [decToImproperFraction, 2, 3]       // top-heavy, not a mixed number
     ],
     Fractions: [
       [fracAdd, 2, 2], [fracSubtract, 2, 3], [fracMultiply, 1, 2], [fracDivide, 2, 2],
@@ -9616,7 +9902,9 @@ const QUESTIONS = [];
       [pctReverseAfterChange, 2, 3],      // back through a rise or a fall
       [pctSingleEquivalent, 3, 3],        // two changes as one
       [pctProfitPercent, 2, 3],           // profit as a percentage of cost
-      [pctSuccessiveReverse, 4, 4]        // undo two sales, later one first
+      [pctSuccessiveReverse, 4, 4],       // undo two sales, later one first
+      [pctToFraction, 2, 3],              // out of a hundred, then cancel
+      [pctCompoundGrowth, 4, 4]           // growth on growth, never added
     ],
     BIDMAS: [
       [bidSimple, 1, 1], [bidBrackets, 1, 1], [bidPowers, 2, 2],
@@ -9715,7 +10003,8 @@ const QUESTIONS = [];
       [spdUnitConvert, 2, 3],             // km/h into m/s
       [spdAverageThreeLegs, 4, 4],        // three legs, not two
       [spdTimetable, 2, 2],               // minutes crossing the hour
-      [spdReturnUnknownDistance, 4, 4]    // out and back, total time known
+      [spdReturnUnknownDistance, 4, 4],   // out and back, total time known
+      [spdDurationRounded, 3, 3]          // nearest half hour, not nearest hour
     ],
     Measurement: [
       [meaUnitConvert, 1, 1], [meaAreaPerim, 1, 2], [meaVolumeCube, 2, 2],
@@ -9817,7 +10106,8 @@ const QUESTIONS = [];
       [statMeanAfterChange, 3, 3],        // the count changes as well as the mean
       /* Comparing distributions: an average and a range, held at once. */
       [statCompareDistributions, 4, 4],
-      [statScatterCorrelation, 3, 3]      // read the trend, left to right
+      [statScatterCorrelation, 3, 3],     // read the trend, left to right
+      [statSetFromSummary, 4, 4]          // mean AND range, both at once
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements

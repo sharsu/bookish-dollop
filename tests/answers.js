@@ -621,6 +621,128 @@ report.check("numParityResult: the answer always holds and every distractor brea
   return true;
 });
 
+/* ── from the August 2026 papers ── */
+report.check("numDigitCardsDivisible: brute force over every arrangement", () => {
+  /* Sibling of numSmallestEvenFromDigits, which shipped wrong for two years by
+     assuming which digit belonged at the end. Nothing is assumed here either. */
+  const rows = byTemplate(app.maths, "numDigitCardsDivisible");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /number cards: ([\d, ]+)\. Using each card once, what is the (largest|smallest) five-digit number that can be made which is divisible by (\d+)\?/.exec(q.question);
+    if (!m) return "cannot read: " + q.question.slice(0, 90);
+    const digits = m[1].split(",").map(d => Number(d.trim()));
+    const divisor = Number(m[3]);
+    const fits = permutations(digits)
+      .map(p => Number(p.join("")))
+      .filter(v => v % divisor === 0);
+    const want = m[2] === "largest" ? Math.max(...fits) : Math.min(...fits);
+    const got = num(q.options[q.answer]);
+    if (got !== want) return `cards ${m[1]}: marked ${got}, ${m[2]} divisible by ${divisor} is ${want}`;
+    for (const option of q.options) {
+      if (digitSignature(num(option)) !== digitSignature(digits.join(""))) {
+        return `cards ${m[1]}: option ${option} is not an arrangement of them`;
+      }
+    }
+    /* No distractor may also be a better answer than the marked one. */
+    for (const option of q.options) {
+      const v = num(option);
+      if (v === got || v % divisor !== 0) continue;
+      if (m[2] === "largest" ? v > got : v < got) {
+        return `cards ${m[1]}: option ${option} beats the marked answer`;
+      }
+    }
+  }
+  return true;
+});
+
+report.check("numEvenFactorCount: factor counts done by trial division", () => {
+  const rows = byTemplate(app.maths, "numEvenFactorCount");
+  if (!rows.length) return "the template generates nothing";
+  const count = n => { let c = 0; for (let k = 1; k <= n; k += 1) if (n % k === 0) c += 1; return c; };
+  for (const q of rows) {
+    const wantEven = /an even number of factors/.test(q.question);
+    for (let k = 0; k < q.options.length; k += 1) {
+      const isEven = count(num(q.options[k])) % 2 === 0;
+      if (k === q.answer && isEven !== wantEven) {
+        return `${q.options[k]} is marked but has an ${isEven ? "even" : "odd"} count`;
+      }
+      if (k !== q.answer && isEven === wantEven) {
+        return `${q.options[k]} is a distractor but ALSO has an ${isEven ? "even" : "odd"} count`;
+      }
+    }
+  }
+  return true;
+});
+
+verify("decToImproperFraction", question => {
+  const m = /What is (\d+(?:\.\d+)?) as an improper fraction\?/.exec(question);
+  if (!m) return null;
+  /* Build the fraction from the digits of the decimal, not by dividing. */
+  const [whole, frac = ""] = m[1].split(".");
+  const den = Math.pow(10, frac.length);
+  return ratio(Number(whole) * den + Number(frac || 0), den);
+}, ([n, d]) => `${n}/${d}`);
+
+verify("pctToFraction", question => {
+  const m = /What is (\d+(?:\.\d+)?)% as a fraction in its simplest form\?/.exec(question);
+  if (!m) return null;
+  const [whole, frac = ""] = m[1].split(".");
+  const scale = Math.pow(10, frac.length);
+  return ratio(Number(whole) * scale + Number(frac || 0), 100 * scale);
+}, ([n, d]) => `${n}/${d}`);
+
+verify("pctCompoundGrowth", question => {
+  const m = /worth £([\d,]+) in (\d{4})\. Its value increased by (\d+)% every year.*?worth in (\d{4})\?/.exec(question);
+  if (!m) return null;
+  const start = Number(m[1].replace(/,/g, ""));
+  const years = Number(m[4]) - Number(m[2]);
+  let value = start;
+  for (let y = 0; y < years; y += 1) value = value * (100 + Number(m[3])) / 100;
+  return Math.round(value);
+}, v => `£${v.toLocaleString("en-GB")}`);
+
+report.check("statSetFromSummary: exactly one set has both the mean and the range", () => {
+  const rows = byTemplate(app.maths, "statSetFromSummary");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /mean of (\d+) and a range of (\d+)\?/.exec(q.question);
+    if (!m) return "cannot read the summary";
+    const mean = Number(m[1]), spread = Number(m[2]);
+    const fits = q.options.filter(option => {
+      const xs = String(option).split(",").map(x => Number(x.trim()));
+      if (xs.some(Number.isNaN)) return false;
+      const avg = xs.reduce((s, x) => s + x, 0) / xs.length;
+      return avg === mean && Math.max(...xs) - Math.min(...xs) === spread;
+    });
+    if (fits.length !== 1) return `${fits.length} sets fit mean ${mean} and range ${spread}`;
+    if (String(q.options[q.answer]) !== String(fits[0])) {
+      return `marked "${q.options[q.answer]}" but "${fits[0]}" is the one that fits`;
+    }
+  }
+  return true;
+});
+
+report.check("spdDurationRounded: the duration and its rounding both check out", () => {
+  const rows = byTemplate(app.maths, "spdDurationRounded");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /There are ([\d,]+) pages.*?about (\d+) minutes?(?: and (\d+) seconds)? to read each page/.exec(q.question);
+    if (!m) return "cannot read: " + q.question.slice(0, 90);
+    const pages = Number(m[1].replace(/,/g, ""));
+    const each = Number(m[2]) * 60 + (m[3] ? Number(m[3]) : 0);
+    const minutes = pages * each / 60;
+    const want = Math.round(minutes / 30) * 30;
+    const got = String(q.options[q.answer]);
+    const hm = /^(?:(\d+) hours?)?\s*(?:(\d+) minutes)?$/.exec(got.trim());
+    if (!hm) return `cannot read the marked answer "${got}"`;
+    const gotMinutes = (Number(hm[1] || 0)) * 60 + Number(hm[2] || 0);
+    if (gotMinutes !== want) {
+      return `${pages} pages at ${each}s: marked ${got} (${gotMinutes} min), expected ${want} min`;
+    }
+  }
+  return true;
+});
+
 report.check("geoBackElevation: the marked shape is the front mirrored, and only it", () => {
   /* Rebuilt from the alt text, which gives every corner. A back elevation is
      the front flipped left to right, so mirroring the front and looking for the
@@ -693,6 +815,54 @@ verify("ratCoinValueSplit", question => {
   }
   return null;
 }, v => v.toLocaleString("en-GB"));
+
+/* ── English ──
+   There is no independent way to recompute "which technique is this", the way
+   there is for a sum: the answer is a judgment, and a second judgment made here
+   would only be my own opinion twice. What CAN be checked is that each question
+   is well formed and that the set as a whole is not giveable-away, so that is
+   what these do - and they are labelled as such rather than as answer checks. */
+report.check("litTensionTechnique: options are real techniques, and no one answer dominates", () => {
+  const rows = app.english.filter(q => q.template === "litTensionTechnique");
+  if (!rows.length) return "the template generates nothing";
+  const KNOWN = new Set([
+    "Setting a time limit", "Foreshadowing", "Withholding a key fact",
+    "Delaying the reveal", "Escalating in stages", "A false release",
+    "Building a dilemma", "Giving the character something to lose"
+  ]);
+  const answers = {};
+  for (const q of rows) {
+    for (const option of q.options) {
+      if (!KNOWN.has(String(option))) return `unknown technique offered: "${option}"`;
+    }
+    if (new Set(q.options).size !== q.options.length) return "a question repeats an option";
+    answers[q.options[q.answer]] = (answers[q.options[q.answer]] || 0) + 1;
+  }
+  /* If one technique were the answer most of the time, a child could pick it
+     blind and score well without reading anything. */
+  const most = Math.max(...Object.values(answers));
+  if (most > rows.length / 2) {
+    return `one technique is the answer ${most} times out of ${rows.length}`;
+  }
+  if (Object.keys(answers).length < 4) {
+    return `only ${Object.keys(answers).length} different techniques are ever the answer`;
+  }
+  return true;
+});
+
+report.check("litReportingClause: the answer is never also offered as a distractor", () => {
+  const rows = app.english.filter(q => q.template === "litReportingClause");
+  if (!rows.length) return "the template generates nothing";
+  const answers = {};
+  for (const q of rows) {
+    if (new Set(q.options).size !== q.options.length) return "a question repeats an option";
+    if (!/__________/.test(q.question)) return "the gap is missing from the sentence";
+    answers[q.options[q.answer]] = (answers[q.options[q.answer]] || 0) + 1;
+  }
+  const repeated = Object.entries(answers).filter(([, n]) => n > 2);
+  return repeated.length === 0 ||
+    `${repeated[0][0]} is the answer ${repeated[0][1]} times`;
+});
 
 report.note(`${byTemplate(app.maths, "numSmallestEvenFromDigits").length} arrangements brute-forced; ` +
   `${new Set(app.maths.map(q => q.template)).size} templates in the bank`);

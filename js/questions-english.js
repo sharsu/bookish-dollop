@@ -3738,6 +3738,169 @@
       why: "the reader is instructed throughout and named as “you”" }
   ];
 
+  /* ── From MKT's emotive language, suspense and reporting-clause pack ── */
+
+  /* A reporting clause is the "he said" half of a line of speech. Swapping the
+     verb changes what the reader is told about HOW it was said, and the papers
+     ask which one fits the situation rather than which sounds most dramatic -
+     so the distractors here are all vivid, and wrong because they contradict
+     something the sentence already says. */
+  const REPORTING_ITEMS = [
+    { speech: "“Don’t move,”", after: "he __________, his eyes fixed on the sleeping dog.",
+      right: "whispered", wrong: ["bellowed", "chuckled", "announced"],
+      why: "the dog is asleep and he does not want it woken, so the one thing he cannot do is raise his voice" },
+    { speech: "“I’ve found it!”", after: "she __________, waving the key above her head.",
+      right: "cried", wrong: ["murmured", "sighed", "muttered"],
+      why: "waving something above your head is not a quiet act, so the quiet verbs all pull against it" },
+    { speech: "“I suppose it will do,”", after: "he __________, barely looking up from the page.",
+      right: "muttered", wrong: ["exclaimed", "cheered", "gasped"],
+      why: "“I suppose” and not looking up are both half-hearted, and the others are all excited" },
+    { speech: "“Everyone out, now!”", after: "the officer __________ over the sound of the alarm.",
+      right: "shouted", wrong: ["whispered", "mumbled", "yawned"],
+      why: "an alarm is loud and the order is urgent, so a quiet verb would not carry" },
+    { speech: "“Are you quite sure?”", after: "she __________, one eyebrow raised.",
+      right: "asked", wrong: ["ordered", "insisted", "declared"],
+      why: "there is a question mark, so it is a question - the others all state rather than ask" },
+    { speech: "“We lost,”", after: "he __________, staring at his boots.",
+      right: "admitted", wrong: ["boasted", "laughed", "sang"],
+      why: "staring at your boots is what someone does when the news is bad, and the others are all pleased" },
+    { speech: "“It was me,”", after: "she __________ at last, after a long silence.",
+      right: "confessed", wrong: ["demanded", "queried", "joked"],
+      why: "“at last, after a long silence” says the words were hard to get out" },
+    { speech: "“Keep going, you’re nearly there,”", after: "he __________ from the side of the track.",
+      right: "encouraged", wrong: ["scolded", "complained", "warned"],
+      why: "the words themselves are on the runner’s side, so the verb has to be too" },
+    { speech: "“Mind the step,”", after: "she __________ as he reached the doorway.",
+      right: "warned", wrong: ["congratulated", "apologised", "agreed"],
+      why: "she is telling him about something that could go wrong before it does" },
+    { speech: "“But that isn’t what you told me yesterday,”", after: "he __________.",
+      right: "objected", wrong: ["agreed", "conceded", "repeated"],
+      why: "he is pointing out a contradiction, which is the opposite of agreeing" },
+    { speech: "“Fine. You were right,”", after: "she __________ with a small shrug.",
+      right: "conceded", wrong: ["insisted", "protested", "boasted"],
+      why: "she is giving in, and a shrug is what giving in looks like" },
+    { speech: "“And then — and then it just vanished,”", after: "he __________, still out of breath.",
+      right: "stammered", wrong: ["drawled", "recited", "hummed"],
+      why: "the repeated words and the dash show the speech coming out in pieces" },
+    { speech: "“Under no circumstances are you to open that door,”", after: "she __________.",
+      right: "instructed", wrong: ["wondered", "suggested", "guessed"],
+      why: "“under no circumstances” leaves no room for choice, so it is an order" },
+    { speech: "“Perhaps we could try the other path?”", after: "he __________ quietly.",
+      right: "suggested", wrong: ["demanded", "ordered", "snapped"],
+      why: "“perhaps” and the question mark make it an offer, not an instruction" },
+    { speech: "“Not again,”", after: "she __________, letting the bag drop to the floor.",
+      right: "groaned", wrong: ["giggled", "beamed", "celebrated"],
+      why: "“not again” and a dropped bag are both signs of being fed up" },
+    { speech: "“You came all this way for me?”", after: "he __________.",
+      right: "marvelled", wrong: ["grumbled", "sneered", "scolded"],
+      why: "the question is a delighted one, so the verb cannot be sour" }
+  ];
+
+  function litReportingClause(i) {
+    const item = pick(REPORTING_ITEMS, i);
+    const q = mkE("Literary Devices",
+      `Choose the best word to complete the reporting clause.\n\n` +
+      `${item.speech} ${item.after}`,
+      item.right, item.wrong, 3, i);
+    if (q) q.explain =
+      `The reporting clause is the part outside the speech marks, and its job is ` +
+      `to tell the reader HOW the words were said.\n\n` +
+      `The rest of the sentence has already given that away: ${item.why}. So ` +
+      `“${item.right}” is the one that agrees with it.\n\n` +
+      `A livelier verb is not automatically a better one. If it contradicts what ` +
+      `the sentence has already told you, it is simply wrong — which is why ` +
+      `the other three here are all vivid and all impossible.`;
+    return q;
+  }
+  litReportingClause.poolSize = REPORTING_ITEMS.length;
+
+  /* Naming the technique a sentence uses to build tension. The techniques are
+     close cousins, so each item says why it is the one it is. */
+  const TENSION_ITEMS = [
+    { text: "Three minutes remained before the bridge lifted.",
+      right: "Setting a time limit",
+      wrong: ["Foreshadowing", "Withholding a key fact", "Delaying the reveal"],
+      why: "a countdown is running, and the reader can feel it shortening" },
+    { text: "On the windowsill, the candle bent although there was no wind.",
+      right: "Foreshadowing",
+      wrong: ["Setting a time limit", "A false release", "Escalating in stages"],
+      why: "a small odd detail is planted now that will matter later" },
+    { text: "The footprints entered the shed. None came back out.",
+      right: "Withholding a key fact",
+      wrong: ["Foreshadowing", "Setting a time limit", "A false release"],
+      why: "the reader is shown a gap and left to notice the question it raises" },
+    { text: "The handle dipped. Slowly. Deliberately. Then the door opened.",
+      right: "Delaying the reveal",
+      wrong: ["Escalating in stages", "Setting a time limit", "Foreshadowing"],
+      why: "the sentence pauses on the movement before naming what caused it" },
+    { text: "First the signal flickered. Then the screen went black. Then the lights died.",
+      right: "Escalating in stages",
+      wrong: ["Delaying the reveal", "A false release", "Withholding a key fact"],
+      why: "each thing that goes wrong is worse than the one before it" },
+    { text: "She let out a breath. It was only the cat. Then, behind her, the latch clicked.",
+      right: "A false release",
+      wrong: ["Escalating in stages", "Foreshadowing", "Withholding a key fact"],
+      why: "the tension is let go on purpose so that it can be snapped back" },
+    { text: "The flooded tunnel was faster. The cliff road was safer. He had to choose.",
+      right: "Building a dilemma",
+      wrong: ["A false release", "Delaying the reveal", "Setting a time limit"],
+      why: "two options are set against each other and neither one is easy" },
+    { text: "If she missed the last boat, Grandad would face the storm alone.",
+      right: "Giving the character something to lose",
+      wrong: ["Building a dilemma", "Delaying the reveal", "Escalating in stages"],
+      why: "the reader is told what is at stake before the danger arrives" },
+    { text: "The tide had covered the first step. Then the second. Then the third.",
+      right: "Escalating in stages",
+      wrong: ["A false release", "Foreshadowing", "Building a dilemma"],
+      why: "the same thing happens again and again, and each time it is closer" },
+    { text: "He could save the dog or save the photographs. There was time for one.",
+      right: "Building a dilemma",
+      wrong: ["Setting a time limit", "Withholding a key fact", "A false release"],
+      why: "two things are set against each other and only one of them can be had" },
+    { text: "The lock had been opened from the inside. Nobody mentioned it.",
+      right: "Withholding a key fact",
+      wrong: ["Escalating in stages", "Delaying the reveal", "A false release"],
+      why: "something important is stated and then deliberately left unexplained" },
+    { text: "The train left in eleven minutes and the platform was on the far side.",
+      right: "Setting a time limit",
+      wrong: ["Building a dilemma", "Foreshadowing", "Withholding a key fact"],
+      why: "there is a clock running and a distance that has to beat it" },
+    { text: "The footsteps stopped. A long pause. Then laughter — her sister’s.",
+      right: "A false release",
+      wrong: ["Delaying the reveal", "Escalating in stages", "Setting a time limit"],
+      why: "the fright turns out to be harmless, which lets the reader breathe out" },
+    { text: "Something shifted in the dark. It was tall. It was breathing. It was not the horse.",
+      right: "Delaying the reveal",
+      wrong: ["Escalating in stages", "Foreshadowing", "Building a dilemma"],
+      why: "the thing is described piece by piece before it is identified" },
+    { text: "Her grandmother’s ring was the only thing she had left of her.",
+      right: "Giving the character something to lose",
+      wrong: ["Foreshadowing", "A false release", "Setting a time limit"],
+      why: "the reader is shown how much one object matters before it is in danger" },
+    { text: "The gate had been oiled recently, though nobody had used it for years.",
+      right: "Foreshadowing",
+      wrong: ["Withholding a key fact", "Delaying the reveal", "Escalating in stages"],
+      why: "a small detail is left in plain sight now because it will matter later" }
+  ];
+
+  function litTensionTechnique(i) {
+    const item = pick(TENSION_ITEMS, i);
+    const q = mkE("Literary Devices",
+      `Read this sentence from a story.\n\n“${item.text}”\n\n` +
+      `Which technique is the writer using to build tension?`,
+      item.right, item.wrong, 4, i);
+    if (q) q.explain =
+      `Here ${item.why}, which is what “${item.right.toLowerCase()}” ` +
+      `means.\n\n` +
+      `These techniques sit close together, so it helps to ask what the sentence ` +
+      `DOES to the reader rather than what it describes. A time limit makes you ` +
+      `count; foreshadowing plants something for later; withholding leaves a ` +
+      `question hanging; delaying makes you wait for a name; escalating makes ` +
+      `each step worse; a false release lets you relax before snatching it back.`;
+    return q;
+  }
+  litTensionTechnique.poolSize = TENSION_ITEMS.length;
+
   function litNarrativeVoice(i) {
     const item = pick(NARRATIVE_VOICE_ITEMS, i);
     const q = mkE("Literary Devices",
@@ -3892,7 +4055,10 @@
       [litWhichLine, 3, 4],            // which line of the verse carries it
       [litVerseForm, 4, 4],            // couplet, refrain, enjambment
       [litDeviceInProse, 4, 4],        // a device inside a paragraph
-      [litNarrativeVoice, 4, 4]        // pronouns, and how much the teller knows
+      [litNarrativeVoice, 4, 4],       // pronouns, and how much the teller knows
+      /* question-bank/20260824-Onwards: MKT emotive language pack */
+      [litReportingClause, 3, 3],      // the verb outside the speech marks
+      [litTensionTechnique, 4, 4]      // name what builds the tension
     ]
   };
 
