@@ -52,7 +52,11 @@ const FLOORS = {
   seqWhichTermEquals: 45, seqGeometricExceeds: 37, numSmallestEvenFromDigits: 21,
   /* Built from questions Milan got wrong, August 2026. */
   numParityResult: 32, geoIsoscelesAngleType: 45, ratCoinValueSplit: 45,
-  geoBackElevation: 21
+  geoBackElevation: 21,
+  /* question-bank/20260824-Onwards: Mock Papers 8 and 10. */
+  numDigitCardsDivisible: 20, numEvenFactorCount: 45, decToImproperFraction: 14,
+  pctToFraction: 14, pctCompoundGrowth: 44, statSetFromSummary: 45,
+  spdDurationRounded: 45
 };
 
 report.check("every pinned template still meets its distinct-question floor", () => {
