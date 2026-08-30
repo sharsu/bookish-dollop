@@ -49,7 +49,10 @@ const FLOORS = {
   algAgeProblem: 45, algTwoItemElimination: 45, algBalanceWeights: 45,
   bidMissingNumberInChain: 39, bidPowersRootsChain: 38, decBestOfThreePacks: 31,
   decCurrencyCompare: 45, fracThreeMixedChain: 40, fracRecipeScale: 27,
-  seqWhichTermEquals: 45, seqGeometricExceeds: 37, numSmallestEvenFromDigits: 21
+  seqWhichTermEquals: 45, seqGeometricExceeds: 37, numSmallestEvenFromDigits: 21,
+  /* Built from questions Milan got wrong, August 2026. */
+  numParityResult: 32, geoIsoscelesAngleType: 45, ratCoinValueSplit: 45,
+  geoBackElevation: 21
 };
 
 report.check("every pinned template still meets its distinct-question floor", () => {

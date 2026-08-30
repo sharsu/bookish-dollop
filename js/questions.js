@@ -4328,6 +4328,286 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── From questions Milan got wrong, August 2026 ──
+
+     All three turn on reasoning rather than arithmetic, which is why they were
+     missed: nothing here is hard to calculate once you see what is being asked. */
+
+  /* "Four different odd numbers are added. What MUST be true of the result?"
+     A property question, not a sum. The danger is offering a second statement
+     that also happens to always hold - the paper this came from offered "it has
+     at least two digits" against four different odd numbers, and the smallest
+     such sum is 1 + 3 + 5 + 7 = 16, so that is always true as well. Every
+     candidate statement is therefore tested against real instances here, and
+     only ones that genuinely fail somewhere are offered. */
+  const PARITY_SHAPES = [
+    { count: 3, kind: "odd", op: "added together",
+      combine: xs => xs.reduce((a, b) => a + b, 0), always: "It is an odd number" },
+    { count: 4, kind: "odd", op: "added together",
+      combine: xs => xs.reduce((a, b) => a + b, 0), always: "It is an even number" },
+    { count: 5, kind: "odd", op: "added together",
+      combine: xs => xs.reduce((a, b) => a + b, 0), always: "It is an odd number" },
+    { count: 3, kind: "even", op: "added together",
+      combine: xs => xs.reduce((a, b) => a + b, 0), always: "It is an even number" },
+    { count: 2, kind: "odd", op: "multiplied together",
+      combine: xs => xs.reduce((a, b) => a * b, 1), always: "It is an odd number" },
+    { count: 3, kind: "odd", op: "multiplied together",
+      combine: xs => xs.reduce((a, b) => a * b, 1), always: "It is an odd number" }
+  ];
+
+  function numParityResult(i) {
+    const shape = PARITY_SHAPES[i % PARITY_SHAPES.length];
+    const pool = [];
+    for (let n = 1; n <= 21; n += 1) {
+      if (shape.kind === "odd" ? n % 2 === 1 : n % 2 === 0) pool.push(n);
+    }
+    /* Every choice of `count` different numbers from the pool. Enough of them to
+       decide whether a statement can be broken. */
+    const combos = [];
+    const walk = (start, picked) => {
+      if (picked.length === shape.count) { combos.push([...picked]); return; }
+      for (let k = start; k < pool.length; k += 1) {
+        picked.push(pool[k]); walk(k + 1, picked); picked.pop();
+      }
+    };
+    walk(0, []);
+    if (combos.length < 20) return null;
+    const results = combos.map(shape.combine);
+    const smallest = Math.min(...results);
+
+    const CANDIDATES = [
+      { text: "It is an odd number", holds: v => v % 2 === 1 },
+      { text: "It is an even number", holds: v => v % 2 === 0 },
+      { text: `It is greater than ${smallest + 4}`, holds: v => v > smallest + 4 },
+      { text: "It has at least two digits", holds: v => v >= 10 },
+      { text: "It is divisible by 4", holds: v => v % 4 === 0 },
+      { text: "It is divisible by 3", holds: v => v % 3 === 0 },
+      { text: "It is a multiple of 5", holds: v => v % 5 === 0 }
+    ];
+    const answer = CANDIDATES.find(c => c.text === shape.always);
+    if (!answer || !results.every(v => answer.holds(v))) return null;
+    /* A distractor has to be breakable, or the question has two right answers. */
+    const wrong = CANDIDATES
+      .filter(c => c.text !== answer.text && results.some(v => !c.holds(v)))
+      .map(c => c.text);
+    if (wrong.length < 3) return null;
+
+    const NAMES = ["Whitney", "Marcus", "Priya", "Daniel", "Leah", "Omar"];
+    const who = NAMES[Math.floor(i / 6) % NAMES.length];
+    const counts = ["two", "three", "four", "five", "six"][shape.count - 2];
+    const q = mk("Numbers",
+      `${who} ${shape.op === "added together" ? "adds together" : "multiplies together"} ` +
+      `${counts} different ${shape.kind} numbers. What must be true of the result?`,
+      answer.text, wrong, 4, i);
+
+    /* Find a statement among the offered wrong ones and an instance that
+       actually breaks it, so the hint can point at a single concrete failure
+       rather than restating the example it has already given. */
+    const symbol = shape.op === "added together" ? " + " : " × ";
+    let broken = null;
+    for (const text of wrong) {
+      const statement = CANDIDATES.find(c => c.text === text);
+      const instance = combos.find(cb => !statement.holds(shape.combine(cb)));
+      if (instance) { broken = { text, instance }; break; }
+    }
+    if (q) q.explain =
+      `"Must be true" means true for EVERY choice, not just for the one you try ` +
+      `first — so one counter-example is enough to rule a statement out.\n\n` +
+      (shape.op === "added together"
+        ? `Two ${shape.kind} numbers added together give an even total` +
+          (shape.kind === "odd"
+            ? `, so the ${shape.count} numbers pair up: ` +
+              (shape.count % 2 === 0
+                ? `${shape.count / 2} even totals added together stay even.`
+                : `${(shape.count - 1) / 2} pairs make an even total, and the odd one left over makes it odd again.`)
+            : `, and adding more even numbers keeps it even.`)
+        : `An odd number times an odd number is always odd` +
+          (shape.count > 2 ? `, and multiplying by another odd number keeps it odd.` : `.`)) +
+      `\n\nSo the answer is: ${answer.text.toLowerCase().replace("it is ", "it is ")}.\n\n` +
+      (broken
+        ? `Now break one of the others. "${broken.text}" looks reasonable, but ` +
+          `${broken.instance.join(symbol)} = ${comma(shape.combine(broken.instance))}` +
+          `, and that is a case where it does not hold. A statement that fails ` +
+          `even once is not something that MUST be true.`
+        : "");
+    return q;
+  }
+
+  /* Front elevation to back elevation. The outline mirrors left to right; the
+     lines inside are edges that happen to face you and can differ completely.
+     Both halves of that matter: a child who ignores the mirroring picks the
+     identical shape, and one who thinks the inside lines must match rules out
+     the right answer. */
+  const ELEVATION_OUTLINES = [
+    /* a rectangle with a slope off its top-right corner */
+    [[0, 1], [0, 0.45], [0.55, 0.1], [1, 0.45], [1, 1]],
+    /* a step */
+    [[0, 1], [0, 0.2], [0.5, 0.2], [0.5, 0.6], [1, 0.6], [1, 1]],
+    /* a lean-to: tall on the left, sloping down to the right */
+    [[0, 1], [0, 0.1], [1, 0.55], [1, 1]],
+    /* a house with an off-centre ridge */
+    [[0, 1], [0, 0.5], [0.35, 0.12], [1, 0.5], [1, 1]],
+    /* a wide L */
+    [[0, 1], [0, 0.3], [0.4, 0.3], [0.4, 0.7], [1, 0.7], [1, 1]],
+    /* a ramp with a notch */
+    [[0, 1], [0, 0.6], [0.3, 0.6], [0.3, 0.25], [1, 0.6], [1, 1]]
+  ];
+
+  const mirrorOutline = outline => outline.map(([x, y]) => [1 - x, y]);
+  const flipOutline = outline => outline.map(([x, y]) => [x, 1 - y]);
+  const sameOutline = (a, b) => a.length === b.length &&
+    a.every(([x, y], k) => Math.abs(x - b[k][0]) < 1e-9 && Math.abs(y - b[k][1]) < 1e-9);
+  /* Two outlines are the same shape if one is a cyclic rotation of the other's
+     corner list - the polygon does not care where the list starts. */
+  const sameShape = (a, b) => {
+    if (a.length !== b.length) return false;
+    for (let shift = 0; shift < a.length; shift += 1) {
+      const rotated = a.map((unused, k) => a[(k + shift) % a.length]);
+      if (sameOutline(rotated, b)) return true;
+    }
+    return false;
+  };
+
+  function geoBackElevation(i) {
+    if (!D) return null;
+    const front = ELEVATION_OUTLINES[i % ELEVATION_OUTLINES.length];
+    const answerOutline = mirrorOutline(front);
+    /* A shape that mirrors onto itself makes the question unanswerable: the
+       right answer and the do-nothing trap become the same picture. */
+    if (sameShape(front, answerOutline)) return null;
+
+    const other = ELEVATION_OUTLINES[(i + 1 + (Math.floor(i / 6) % 4)) % ELEVATION_OUTLINES.length];
+    if (sameShape(other, front) || sameShape(other, answerOutline)) return null;
+
+    /* Inside lines are deliberately different from the front's, because they are
+       allowed to be - a candidate is right or wrong on its outline alone. */
+    const insideA = [[[0.25, 0.62], [0.75, 0.62]]];
+    const insideB = [[[0.5, 0.3], [0.5, 1]]];
+    const candidates = [
+      { outline: answerOutline, inside: insideB, correct: true },
+      { outline: front, inside: insideA },                   // forgot to mirror
+      { outline: flipOutline(front), inside: [] },           // flipped the wrong way
+      { outline: other, inside: insideA }                    // a different solid
+    ];
+    /* Position the answer by the seed, the way mk would. */
+    const at = i % 4;
+    const ordered = [];
+    const rest = candidates.slice(1);
+    for (let k = 0; k < 4; k += 1) ordered.push(k === at ? candidates[0] : rest.shift());
+    const letters = ["A", "B", "C", "D"];
+
+    /* Guard: exactly one candidate may carry the answer's outline. */
+    const matching = ordered.filter(c => sameShape(c.outline, answerOutline)).length;
+    if (matching !== 1) return null;
+
+    const answerLetter = letters[ordered.findIndex(c => c.correct)];
+    const q = mkFig("Geometry",
+      `The diagram shows the front elevation of a solid. Which of the shapes ` +
+      `below could be the back elevation of the same solid?`,
+      `Shape ${answerLetter}`,
+      letters.filter(l => l !== answerLetter).map(l => `Shape ${l}`), 4, i,
+      D.elevationChoices({ front: { outline: front, inside: insideA }, choices: ordered }));
+
+    if (q) q.explain =
+      `Walk round to the back of a solid and you see the same outline, but left ` +
+      `and right have swapped over. So the back elevation is the front ` +
+      `elevation MIRRORED — not turned upside down, and not unchanged.\n\n` +
+      `Shape ${answerLetter} has the front's outline flipped left to right, so ` +
+      `it is the only one that can be the back.\n\n` +
+      `Two traps are worth naming. The shape with the identical outline is ` +
+      `there for anyone who forgets that anything changes at all — it would be ` +
+      `right only if the front happened to be symmetrical, and this one is not. ` +
+      `And the lines INSIDE a shape do not have to match: they are edges that ` +
+      `happen to face you, and the back of a solid shows different ones. Judge ` +
+      `a candidate on its outline alone.`;
+    return q;
+  }
+
+  /* The vertex angle has to be worked out before it can be named, which is what
+     makes this different from being handed an angle and asked what it is. */
+  function geoIsoscelesAngleType(i) {
+    const fromBase = i % 2 === 0;
+    const base = 15 + (Math.floor(i / 2) % 35) * 2;        // 15..83, odd steps
+    const vertex = 180 - 2 * base;
+    if (vertex <= 0 || vertex >= 180) return null;
+    const asked = fromBase ? vertex : base;
+    const name = angle => (angle < 90 ? "acute" : angle === 90 ? "right-angled" : "obtuse");
+    const answer = name(asked);
+    /* Reflex is never possible inside a triangle, which makes it a fair trap
+       rather than a filler. */
+    const wrong = ["acute", "right-angled", "obtuse", "reflex"].filter(o => o !== answer);
+    const q = mk("Geometry",
+      fromBase
+        ? `An isosceles triangle has a base angle of ${base}°. What type of ` +
+          `angle is its vertex angle?`
+        : `An isosceles triangle has a vertex angle of ${vertex}°. What type of ` +
+          `angle is each of its base angles?`,
+      answer, wrong, 3, i);
+    if (q) q.explain =
+      `Step 1. An isosceles triangle has TWO equal base angles — that is the ` +
+      `fact the question is built on.\n\n` +
+      (fromBase
+        ? `Step 2. Both base angles are ${base}°, so together they take ` +
+          `2 × ${base} = ${2 * base}°.\n\n` +
+          `Step 3. The three angles add to 180°, so the vertex angle is ` +
+          `180 − ${2 * base} = ${vertex}°.\n\n`
+        : `Step 2. The vertex takes ${vertex}°, so the two base angles share ` +
+          `180 − ${vertex} = ${180 - vertex}° between them.\n\n` +
+          `Step 3. They are equal, so each one is ${180 - vertex} ÷ 2 = ${base}°.\n\n`) +
+      `Step 4. ${asked}° is ${answer === "right-angled" ? "exactly 90°, so it is right-angled"
+        : answer === "acute" ? "less than 90°, so it is acute" : "more than 90° but less than 180°, so it is obtuse"}.\n\n` +
+      `Reflex is offered and is never possible: a reflex angle is more than ` +
+      `180°, and all three angles of a triangle come to 180° between them.`;
+    return q;
+  }
+
+  /* Counts in a ratio, but a total in MONEY. The two are not the same thing,
+     and treating the total as something to share in the ratio is the mistake. */
+  function ratCoinValueSplit(i) {
+    const COINS = [
+      { low: 100, high: 200, lowName: "£1", highName: "£2" },
+      { low: 50, high: 100, lowName: "50p", highName: "£1" },
+      { low: 20, high: 50, lowName: "20p", highName: "50p" },
+      { low: 500, high: 1000, lowName: "£5", highName: "£10" },
+      { low: 10, high: 20, lowName: "10p", highName: "20p" }
+    ];
+    const coin = COINS[i % COINS.length];
+    const RATIOS = [[3, 5], [2, 3], [4, 5], [5, 2], [3, 4], [5, 3], [2, 7], [7, 4]];
+    const [a, b] = RATIOS[Math.floor(i / 5) % RATIOS.length];
+    const perPart = a * coin.low + b * coin.high;          // pence in one part-set
+    const parts = 8 + (Math.floor(i / 3) % 20);
+    const totalPence = perPart * parts;
+    const answer = parts * b;
+    const money = p => (p % 100 === 0 ? `£${p / 100}` : `£${(p / 100).toFixed(2)}`);
+    const wrong = [
+      parts * a,                                          // counted the other coin
+      parts,                                              // stopped at the number of parts
+      Math.round(totalPence / (a + b) * b / coin.high),   // shared the MONEY in the ratio
+      Math.round(totalPence / coin.high)                  // spent it all on the big coin
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== answer);
+    const q = mk("Ratio",
+      `Tim has ${coin.lowName} coins and ${coin.highName} coins in the ratio ` +
+      `${a}:${b}. He has ${money(totalPence)} in total. How many ` +
+      `${coin.highName} coins does he have?`,
+      comma(answer), wrong.map(v => comma(v)), 4, i);
+    if (q) q.explain =
+      `The ratio counts COINS, but the total is MONEY. Those are different ` +
+      `things, so the total cannot simply be split ${a}:${b}.\n\n` +
+      `Step 1. Work out what one "lot" of the ratio is worth. A lot is ${a} ` +
+      `${coin.lowName} coins and ${b} ${coin.highName} coins:\n` +
+      `  ${a} × ${coin.lowName} = ${money(a * coin.low)}, and ${b} × ` +
+      `${coin.highName} = ${money(b * coin.high)}, so a lot is worth ` +
+      `${money(perPart)}.\n\n` +
+      `Step 2. How many lots make ${money(totalPence)}? ` +
+      `${money(totalPence)} ÷ ${money(perPart)} = ${parts}.\n\n` +
+      `Step 3. Each lot holds ${b} ${coin.highName} coins, so there are ` +
+      `${parts} × ${b} = ${comma(answer)} of them.\n\n` +
+      `Splitting the ${money(totalPence)} in the ratio ${a}:${b} instead treats ` +
+      `a ${coin.lowName} coin and a ${coin.highName} coin as worth the same, ` +
+      `which is exactly what the question is checking you do not do.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -9277,7 +9557,9 @@ const QUESTIONS = [];
       [numRoundSigFigs, 2, 3],            // significant figures, not places
       [numEstimateOneSigFig, 3, 3],       // round both, then multiply
       [numFractionToPercent, 2, 3],       // divide, then x 100
-      [numLCMShare, 3, 3]                 // smallest, not just any common multiple
+      [numLCMShare, 3, 3],                // smallest, not just any common multiple
+      /* From a paper Milan sat: reasoning about a result, not calculating it. */
+      [numParityResult, 4, 4]             // must be true means true every time
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -9414,7 +9696,8 @@ const QUESTIONS = [];
       /* question-bank/NewText, second scan */
       [ratLimitingIngredient, 4, 4],      // the ingredient that runs out first
       [ratRelativeValueChain, 4, 4],      // price everything in one currency
-      [ratEqualise, 2, 3]                 // move enough to even them up
+      [ratEqualise, 2, 3],                // move enough to even them up
+      [ratCoinValueSplit, 4, 4]           // the ratio counts coins, the total is money
     ],
     Speed: [
       [spdCombinedTaps, 4, 4],            // two taps filling one tank
@@ -9506,7 +9789,9 @@ const QUESTIONS = [];
       [geoReflectPoint, 2, 3],            // across the mirror, same distance
       [geoBearing, 3, 3],                 // clockwise from north, three figures
       [geoParallelLineAngles, 3, 3],      // F, Z and C shapes on parallel lines
-      [geoTriangleUnique, 4, 4]           // what pins a triangle down to one
+      [geoTriangleUnique, 4, 4],          // what pins a triangle down to one
+      [geoIsoscelesAngleType, 3, 3],      // work the angle out, then name it
+      [geoBackElevation, 4, 4]            // the outline mirrors, the inside lines do not
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
