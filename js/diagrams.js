@@ -574,6 +574,56 @@
      Each label position is chosen so it sits inside exactly the circles that
      region belongs to; the assertion below is what keeps that true if the
      geometry is ever adjusted. */
+  /* ── A front elevation, and candidate back elevations ──
+
+     Looking at a solid from the front and from the back gives the same OUTLINE
+     mirrored left to right. The lines drawn inside it are edges that happen to
+     face you, so they can differ between the two views entirely - which is what
+     makes the question worth asking, and what makes a candidate carrying the
+     right outline the answer whatever is drawn inside it.
+
+     Outlines are polygons in a 0..1 square, so mirroring one is x -> 1 - x and
+     nothing else has to change. The alt text gives the corners in order,
+     because a shape cannot be described any other way and still be matched. */
+  function elevationChoices({ front, choices, letters = ["A", "B", "C", "D"] }) {
+    const box = 96, gap = 26, pad = 16, top = 128;
+    const w = Math.max(pad * 2 + choices.length * box + (choices.length - 1) * gap, 300);
+    const h = top + box + 46;
+
+    const draw = (shape, ox, oy, size) => {
+      const px = p => ox + p[0] * size;
+      const py = p => oy + p[1] * size;
+      let out = `<polygon points="${shape.outline.map(p => `${px(p).toFixed(1)},${py(p).toFixed(1)}`).join(" ")}" ` +
+                `fill="#ffffff" stroke="${INK}" stroke-width="2"/>`;
+      (shape.inside || []).forEach(seg => {
+        out += `<line x1="${px(seg[0]).toFixed(1)}" y1="${py(seg[0]).toFixed(1)}" ` +
+               `x2="${px(seg[1]).toFixed(1)}" y2="${py(seg[1]).toFixed(1)}" ` +
+               `stroke="${INK}" stroke-width="1.5"/>`;
+      });
+      return out;
+    };
+
+    let body = text(w / 2, 16, "The front elevation of a solid", { size: 12, fill: "#475569" });
+    body += draw(front, w / 2 - box / 2, 26, box);
+
+    choices.forEach((shape, i) => {
+      const x = pad + i * (box + gap);
+      body += draw(shape, x, top, box);
+      body += text(x + box / 2, top + box + 20, letters[i], { size: 15, weight: 700, fill: FILL });
+    });
+
+    const describe = shape => shape.outline
+      .map(p => `(${Number(p[0].toFixed(2))}, ${Number(p[1].toFixed(2))})`).join(", ");
+    return {
+      image: wrap(w, h, body),
+      alt: `A front elevation drawn as a shape with corners at ${describe(front)}, ` +
+        `measured from its top-left, with x running right and y running down. ` +
+        `Below it are ${choices.length} candidate shapes: ` +
+        choices.map((shape, i) => `${letters[i]} has corners at ${describe(shape)}`).join("; ") +
+        `. Lines drawn inside a shape are not part of its outline.`
+    };
+  }
+
   /* ── Scatter graph ──
 
      The alt text lists every plotted pair, because the pairs ARE the data and a
@@ -803,7 +853,7 @@
     };
   }
 
-  root.DIAGRAMS = { maze, cubeNet, parallelAngles, scatter, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+  root.DIAGRAMS = { maze, cubeNet, parallelAngles, scatter, elevationChoices, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };

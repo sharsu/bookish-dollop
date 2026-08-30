@@ -42,7 +42,15 @@ const wrong = [];
 const hints = [...new Set(app.maths.concat(app.english).map(q => q.explain).filter(Boolean))];
 
 hints.forEach(hint => {
-  let text = hint;
+  /* Drop the pound signs before scanning. "£154 ÷ £11 = 14" is a sound thing to
+     write - money divided by money gives a count - but the scanner cannot parse
+     £, so it would grab only the tail and read "11 = 14". Stripping the symbol
+     makes it "154 ÷ 11 = 14", which checks out.
+
+     This widens the check rather than narrowing it: a hint that mixes pounds
+     and pence in one equation now fails, which is exactly the fault that
+     reached a paper as "£1.56 ÷ 4 = 39p per 100 g". */
+  let text = hint.replace(/£/g, "");
 
   /* Check the percentage statements, then blank them out so the chain scan
      below does not read the numbers they leave behind as an equation. */

@@ -562,6 +562,138 @@ verify("numHCFofFour", question => {
   return best;
 });
 
+/* ── "what must be true" questions, where the danger is a SECOND true option ── */
+report.check("numParityResult: the answer always holds and every distractor breaks", () => {
+  /* The paper this came from asked what must be true of four different odd
+     numbers added together and offered "it has at least two digits" as a
+     distractor. The smallest such sum is 1 + 3 + 5 + 7 = 16, so that is always
+     true as well and the question has two right answers. Each option is
+     therefore tested against real instances here. */
+  const rows = byTemplate(app.maths, "numParityResult");
+  if (!rows.length) return "the template generates nothing";
+  const PREDICATES = [
+    [/^It is an odd number$/, v => v % 2 === 1],
+    [/^It is an even number$/, v => v % 2 === 0],
+    [/^It is greater than (\d+)$/, (v, m) => v > Number(m[1])],
+    [/^It has at least two digits$/, v => v >= 10],
+    [/^It is divisible by (\d+)$/, (v, m) => v % Number(m[1]) === 0],
+    [/^It is a multiple of (\d+)$/, (v, m) => v % Number(m[1]) === 0]
+  ];
+  const predicateFor = text => {
+    for (const [pattern, fn] of PREDICATES) {
+      const m = pattern.exec(text);
+      if (m) return v => fn(v, m);
+    }
+    return null;
+  };
+  for (const q of rows) {
+    const m = /(adds together|multiplies together) (\w+) different (odd|even) numbers/.exec(q.question);
+    if (!m) return "cannot read: " + q.question;
+    const count = ["two", "three", "four", "five", "six"].indexOf(m[2]) + 2;
+    const wantOdd = m[3] === "odd";
+    const pool = [];
+    for (let n = 1; n <= 21; n += 1) if ((n % 2 === 1) === wantOdd) pool.push(n);
+    const results = [];
+    const walk = (start, picked) => {
+      if (picked.length === count) {
+        results.push(m[1] === "adds together"
+          ? picked.reduce((a, b) => a + b, 0)
+          : picked.reduce((a, b) => a * b, 1));
+        return;
+      }
+      for (let k = start; k < pool.length; k += 1) {
+        picked.push(pool[k]); walk(k + 1, picked); picked.pop();
+      }
+    };
+    walk(0, []);
+    for (let k = 0; k < q.options.length; k += 1) {
+      const holds = predicateFor(String(q.options[k]));
+      if (!holds) return `unrecognised option: ${q.options[k]}`;
+      const alwaysTrue = results.every(holds);
+      if (k === q.answer && !alwaysTrue) {
+        return `"${q.options[k]}" is the marked answer but does not always hold`;
+      }
+      if (k !== q.answer && alwaysTrue) {
+        return `"${q.options[k]}" is a distractor but is ALSO always true (${q.question})`;
+      }
+    }
+  }
+  return true;
+});
+
+report.check("geoBackElevation: the marked shape is the front mirrored, and only it", () => {
+  /* Rebuilt from the alt text, which gives every corner. A back elevation is
+     the front flipped left to right, so mirroring the front and looking for the
+     candidate that matches is an independent route to the answer - and the
+     check also insists exactly ONE candidate matches, because two would make
+     the question unanswerable. */
+  const rows = byTemplate(app.maths, "geoBackElevation");
+  if (!rows.length) return "the template generates nothing";
+  const corners = text => [...text.matchAll(/\(([-\d.]+), ([-\d.]+)\)/g)]
+    .map(m => [Number(m[1]), Number(m[2])]);
+  const same = (a, b) => {
+    if (a.length !== b.length) return false;
+    for (let shift = 0; shift < a.length; shift += 1) {
+      const rotated = a.map((unused, k) => a[(k + shift) % a.length]);
+      if (rotated.every(([x, y], k) => Math.abs(x - b[k][0]) < 1e-6 && Math.abs(y - b[k][1]) < 1e-6)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  for (const q of rows) {
+    const alt = String(q.questionImageAlt);
+    const frontPart = /front elevation drawn as a shape with corners at (.+?), measured from/.exec(alt);
+    if (!frontPart) return "cannot read the front elevation";
+    const front = corners(frontPart[1]);
+    const mirrored = front.map(([x, y]) => [1 - x, y]);
+    const letters = ["A", "B", "C", "D"];
+    const matching = letters.filter(letter => {
+      /* Stop at the next semicolon or at the closing sentence - NOT at the next
+         full stop, which sits inside every decimal: "[^;.]+" truncates
+         "(0, 1), (0, 0.3), ..." to "(0, 1), (0, 0". */
+      const part = new RegExp(`${letter} has corners at (.+?)(?=;|\\. Lines drawn)`).exec(alt);
+      return part && same(corners(part[1]), mirrored);
+    });
+    if (matching.length !== 1) {
+      return `${matching.length} candidates carry the mirrored outline (expected exactly 1)`;
+    }
+    if (q.options[q.answer] !== `Shape ${matching[0]}`) {
+      return `marked ${q.options[q.answer]}, but the mirrored outline is Shape ${matching[0]}`;
+    }
+  }
+  return true;
+});
+
+verify("geoIsoscelesAngleType", question => {
+  const fromBase = /base angle of (\d+)°/.exec(question);
+  const fromVertex = /vertex angle of (\d+)°/.exec(question);
+  if (fromBase) {
+    const vertex = 180 - 2 * Number(fromBase[1]);
+    return vertex < 90 ? "acute" : vertex === 90 ? "right-angled" : "obtuse";
+  }
+  if (fromVertex) {
+    const base = (180 - Number(fromVertex[1])) / 2;
+    return base < 90 ? "acute" : base === 90 ? "right-angled" : "obtuse";
+  }
+  return null;
+});
+
+verify("ratCoinValueSplit", question => {
+  const m = /has (\S+) coins and (\S+) coins in the ratio (\d+):(\d+)\. He has £([\d.]+) in total/.exec(question);
+  if (!m) return null;
+  const pence = name => (name.startsWith("£") ? Number(name.slice(1)) * 100 : Number(name.replace("p", "")));
+  const low = pence(m[1]), high = pence(m[2]);
+  const a = Number(m[3]), b = Number(m[4]);
+  const total = Math.round(Number(m[5]) * 100);
+  /* Search the number of lots rather than dividing, so the check does not
+     repeat the generator's own arithmetic. */
+  for (let lots = 1; lots <= 2000; lots += 1) {
+    if (lots * (a * low + b * high) === total) return lots * b;
+  }
+  return null;
+}, v => v.toLocaleString("en-GB"));
+
 report.note(`${byTemplate(app.maths, "numSmallestEvenFromDigits").length} arrangements brute-forced; ` +
   `${new Set(app.maths.map(q => q.template)).size} templates in the bank`);
 process.exit(report.finish() ? 0 : 1);
