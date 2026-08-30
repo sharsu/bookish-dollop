@@ -408,21 +408,69 @@ const QUESTIONS = [];
       [2, 1, 5, 9, 6], [7, 4, 3, 8, 1], [9, 2, 6, 5, 3], [4, 8, 1, 7, 9], [5, 6, 2, 3, 8], [1, 9, 7, 4, 6]
     ];
     const digits = pools[i % pools.length].slice();
-    const evens = digits.filter(d => d % 2 === 0).sort((a, b) => a - b);
-    const units = evens[0];
-    const rest = digits.filter(d => d !== units).sort((a, b) => a - b);
-    const ans = Number([...rest, units].join(""));
-    return mk("Numbers",
-      `Using each of the digits ${digits.join(", ")} once, what is the smallest even ${digits.length}-digit number you can make?`,
-      `${comma(ans)}`,
-      /* Rebuilding rest in its own order just reproduced the answer. Putting
-         the two largest of the remaining digits the wrong way round is the
-         mistake a child actually makes. */
-      [comma(ans + 10), comma(ans - 10),
-       comma(Number([...rest.slice(0, -2), rest[rest.length - 1],
-                     rest[rest.length - 2], units].join(""))),
-       comma(Number([units, ...rest].join("")))],
-      diff(i, 3), i);
+    const asc = [...digits].sort((a, b) => a - b);
+    const evens = asc.filter(d => d % 2 === 0);
+    if (!evens.length) return null;
+
+    /* Put one even digit in the units place and the rest in ascending order in
+       front of it. Ascending is right for the front because the leftmost place
+       is worth the most, so the smallest digit must go there. Which even digit
+       to spend on the units is the actual question, and it has to be tried
+       rather than assumed - the smallest even digit is usually the WRONG one to
+       give away, because it is worth more at the front than at the back. */
+    const build = units => {
+      const rest = [...asc];
+      rest.splice(rest.indexOf(units), 1);
+      return Number([...rest, units].join(""));
+    };
+    const ans = Math.min(...evens.map(build));
+    const unitsUsed = evens.find(e => build(e) === ans);
+    const front = [...asc];
+    front.splice(front.indexOf(unitsUsed), 1);
+
+    /* Every candidate is a rearrangement of the SAME digits, so a child who
+       checks the digits cannot rule any of them out without doing the question.
+       There are more than three because several collapse onto the answer when
+       the ascending order already ends even - and when mk runs short it pads
+       with nudge(), which is how a 0 and a repeated 8 reached the paper. */
+    const swap = (arr, a, b) => {
+      const out = [...arr];
+      [out[a], out[b]] = [out[b], out[a]];
+      return out;
+    };
+    const cand = [
+      ...evens.map(build),                   // every even digit tried in the units
+      Number(asc.join("")),                  // ascending, ignoring "even" entirely
+      Number([...swap(front, front.length - 1, front.length - 2), unitsUsed].join("")),
+      Number([...swap(front, 0, 1), unitsUsed].join("")),
+      Number(swap(asc, asc.length - 1, asc.length - 2).join("")),
+      Number(swap(asc, 0, 1).join(""))
+    ].filter(v => v !== ans);
+
+    const q = mk("Numbers",
+      `Using each of the digits ${digits.join(", ")} once, what is the smallest ` +
+      `even ${digits.length}-digit number you can make?`,
+      `${comma(ans)}`, cand.map(v => comma(v)), diff(i, 3), i);
+
+    if (q) q.explain =
+      `Two rules pull against each other here, and the whole question is which ` +
+      `one wins where.\n\n` +
+      `Step 1. The number has to be even, so an even digit must go in the units ` +
+      `place. The even digits available are ${evens.join(" and ")}.\n\n` +
+      `Step 2. The leftmost place is worth the most, so the smallest digits ` +
+      `belong at the FRONT. That means the units digit should be the one you ` +
+      `can most afford to give away — and the units place is worth least of ` +
+      `all.\n\n` +
+      `Step 3. Try each even digit in the units place and keep the rest in ` +
+      `order:\n` +
+      evens.map(e => `  • ${e} at the end gives ${comma(build(e))}`).join("\n") + "\n\n" +
+      `Step 4. The smallest of those is ${comma(ans)}.\n\n` +
+      `Putting the smallest even digit at the end is the trap` +
+      (build(evens[0]) === ans ? `, though here it happens to be the right choice.`
+        : `: it gives ${comma(build(evens[0]))}, which is bigger, because ` +
+          `${evens[0]} is worth far more sitting at the front than it is in the ` +
+          `units place.`);
+    return q;
   }
 
   function numCubeMissing(i) {
