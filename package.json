@@ -1,0 +1,9 @@
+{
+  "name": "exam-prep",
+  "version": "1.0.0",
+  "private": true,
+  "description": "11+/QE exam practice app. Static site: no build step, no runtime dependencies. package.json exists only so the checks in tests/ can be run with npm test.",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  }
+}
