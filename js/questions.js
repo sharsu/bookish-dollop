@@ -5188,6 +5188,200 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── The four September questions that lean on a figure ── */
+
+  /* Reading a value off a scale, then doing something with it. What one
+     division is worth is the whole question: the marks are a unit apart and the
+     divisions between them are fractions of that unit, not whole numbers. */
+  function meaReadScale(i) {
+    if (!D) return null;
+    const DIVISIONS = [4, 5, 8, 10];
+    const divisions = DIVISIONS[i % DIVISIONS.length];
+    const from = 2 + (Math.floor(i / 4) % 7);
+    const at = 1 + (Math.floor(i / 3) % (divisions - 1));      // never on a mark
+    const value = from + at / divisions;
+    const many = 2 + (Math.floor(i / 9) % 3);
+    const grams = value * many * 1000;
+    if (!Number.isInteger(grams)) return null;
+    const dec = v => `${Number(v.toFixed(3))}`;
+    const wrong = [
+      value * 1000,                     // forgot there is more than one
+      (from + at) * many * 1000,        // read the divisions as whole units
+      from * many * 1000,               // ignored the divisions altogether
+      value * many                      // gave kilograms, not grams
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== grams);
+    const q = mkFig("Measurement",
+      `The scale below shows the weight of one watermelon in kilograms. How ` +
+      `many grams would ${many} such watermelons weigh?`,
+      `${comma(grams)} g`, wrong.map(v => `${comma(v)} g`), 4, i,
+      D.scaleReading({ from, to: from + 1, divisions, atDivision: at, unit: "kg" }));
+    if (q) q.explain =
+      `Step 1. Work out what one division is worth. The two marks are ${from} ` +
+      `and ${from + 1}, so they are 1 kg apart, and there are ${divisions} ` +
+      `divisions between them: 1 ÷ ${divisions} = ${dec(1 / divisions)} kg each.\n\n` +
+      `Step 2. The pointer is ${at} division${at === 1 ? "" : "s"} past ${from}, ` +
+      `so it reads ${from} + ${at} × ${dec(1 / divisions)} = ${dec(value)} kg.\n\n` +
+      `Step 3. ${many} of them weigh ${dec(value)} × ${many} = ` +
+      `${dec(value * many)} kg.\n\n` +
+      `Step 4. The question asks for GRAMS, and 1 kg is 1,000 g, so ` +
+      `${dec(value * many)} × 1,000 = ${comma(grams)} g.\n\n` +
+      `Counting the divisions as whole kilograms gives ` +
+      `${comma((from + at) * many * 1000)} g, which is offered — the numbers on ` +
+      `a scale are a unit apart, and the small marks split that unit up.`;
+    return q;
+  }
+
+  /* Two lines on one graph, and a gap between them measured in marks rather
+     than in the percentages the axis shows. */
+  function statTwoSeriesGap(i) {
+    if (!D) return null;
+    const weeks = 10;
+    const outOf = 20;
+    const perMark = 100 / outOf;                                // 5 percentage points
+    const gapMarks = 2 + (i % 3);
+    /* Build both series, then place the wanted gap in exactly one week. */
+    const maths = [];
+    const english = [];
+    for (let w = 1; w <= weeks; w += 1) {
+      const m = 50 + ((i * 7 + w * 13) % 9) * 5;                 // multiples of 5
+      maths.push([w, m]);
+      const drift = ((i + w * 3) % 5) - 2;                       // -2..2 marks
+      let e = m + drift * perMark;
+      if (e < 40) e = 40;
+      if (e > 100) e = 100;
+      english.push([w, e]);
+    }
+    const target = 1 + (Math.floor(i / 3) % weeks);
+    const wanted = maths[target - 1][1] + gapMarks * perMark;
+    if (wanted > 100) return null;
+    english[target - 1][1] = wanted;
+    /* Exactly one week may show the wanted gap, or the question has several
+       answers. */
+    const matches = [];
+    for (let w = 0; w < weeks; w += 1) {
+      if (english[w][1] - maths[w][1] === gapMarks * perMark) matches.push(w + 1);
+    }
+    if (matches.length !== 1) return null;
+    const others = [];
+    for (let w = 1; w <= weeks && others.length < 4; w += 1) if (w !== target) others.push(w);
+    const q = mkFig("Statistics",
+      `Devin sits a test in maths and in English every week, each marked out of ` +
+      `${outOf}. The graph shows his results over ${weeks} weeks. In which week ` +
+      `did he score ${gapMarks} more marks in English than in maths?`,
+      `Week ${target}`, others.map(w => `Week ${w}`), 4, i,
+      D.distanceTimeTwo({
+        seriesA: maths, seriesB: english, labelA: "Maths", labelB: "English",
+        xLabel: "Week", yLabel: "Percentage (%)",
+        kind: "line graph with two lines, one for each subject"
+      }));
+    if (q) q.explain =
+      `The graph is in PERCENTAGES but the question is in MARKS, so the first ` +
+      `job is to turn one into the other.\n\n` +
+      `Step 1. The test is out of ${outOf}, so one mark is 100 ÷ ${outOf} = ` +
+      `${perMark}%. ${gapMarks} marks is ${gapMarks} × ${perMark} = ` +
+      `${gapMarks * perMark}%.\n\n` +
+      `Step 2. So look for the week where the English line sits exactly ` +
+      `${gapMarks * perMark}% above the maths line — ${gapMarks} gridlines, not ` +
+      `${gapMarks}.\n\n` +
+      `Step 3. In week ${target}, maths is ${maths[target - 1][1]}% and English ` +
+      `is ${wanted}%, a gap of ${gapMarks * perMark}%. That is the week.\n\n` +
+      `Looking for a gap of ${gapMarks} on the axis is the trap: the axis counts ` +
+      `percentages, and each mark is worth ${perMark} of them.`;
+    return q;
+  }
+
+  /* A line at 45 degrees to a diagonal. Nothing has to be drawn: a line at 45
+     degrees to a 45-degree line is horizontal or vertical, and that can be read
+     straight off a pair of coordinates. */
+  function geoLineAt45(i) {
+    const x1 = 1 + (i % 4), y1 = 1 + (Math.floor(i / 4) % 4);
+    const run = 2 + (Math.floor(i / 5) % 3);
+    const rising = i % 2 === 0;
+    const x2 = x1 + run, y2 = rising ? y1 + run : y1 - run;
+    if (y2 < 0 || y2 > 9) return null;
+    const px = 1 + (Math.floor(i / 7) % 6), py = 1 + (Math.floor(i / 11) % 6);
+    /* Answer: a vertical pair. Distractors: parallel, perpendicular, and a
+       gradient that is neither. */
+    const answer = [[px, py], [px, py + 3]];
+    const cand = [
+      [[px, py], [px + 2, py + 2]],                 // parallel to a rising line
+      [[px, py], [px + 2, py - 2]],                 // at right angles to it
+      [[px, py], [px + 3, py + 1]],                 // some other gradient
+      [[px, py], [px + 1, py + 3]]
+    ];
+    const show = pair => `(${pair[0][0]}, ${pair[0][1]}) and (${pair[1][0]}, ${pair[1][1]})`;
+    /* The angle between two lines, so the check is on the geometry rather than
+       on which case was intended. */
+    const angleOf = pair => {
+      const dx = pair[1][0] - pair[0][0], dy = pair[1][1] - pair[0][1];
+      return ((Math.atan2(dy, dx) * 180 / Math.PI) + 180) % 180;
+    };
+    const between = (a, b) => {
+      const d = Math.abs(angleOf(a) - angleOf(b));
+      return Math.min(d, 180 - d);
+    };
+    const lm = [[x1, y1], [x2, y2]];
+    if (Math.abs(between(lm, answer) - 45) > 1e-6) return null;
+    const wrong = cand.filter(p => Math.abs(between(lm, p) - 45) > 1e-6);
+    if (wrong.length < 3) return null;
+    const q = mk("Geometry",
+      `On a grid, the line LM joins the points (${x1}, ${y1}) and (${x2}, ${y2}). ` +
+      `Which of these pairs of points gives a line at 45° to LM?`,
+      show(answer), wrong.slice(0, 4).map(show), 4, i);
+    if (q) q.explain =
+      `Step 1. Look at LM itself. From (${x1}, ${y1}) to (${x2}, ${y2}) it goes ` +
+      `${run} across and ${run} ${rising ? "up" : "down"} — the same either way, ` +
+      `so it cuts each square exactly corner to corner and sits at 45° to both ` +
+      `the horizontal and the vertical.\n\n` +
+      `Step 2. That is the key: since LM is already 45° from horizontal and 45° ` +
+      `from vertical, ANY horizontal or vertical line is at 45° to LM.\n\n` +
+      `Step 3. ${show(answer)} share the same x-coordinate, so the line joining ` +
+      `them is vertical. That is the answer.\n\n` +
+      `A pair going ${rising ? "up" : "down"} diagonally the same way as LM is ` +
+      `parallel to it — 0°, not 45° — and a pair going the other way is at right ` +
+      `angles. Both are offered.`;
+    return q;
+  }
+
+  /* A right-angled triangle cut by a vertical line at the middle of its base.
+     Described rather than drawn: saying where the right angle is fixes the
+     shape completely, and the two pieces follow. */
+  function meaTriangleSplit(i) {
+    const base = 4 + (i % 9) * 2;                    // even, so half is whole
+    const height = 4 + (Math.floor(i / 9) % 8) * 2;
+    const whole = base * height / 2;
+    const left = 3 * base * height / 8;              // trapezium
+    const right = base * height / 8;                 // small triangle
+    const answer = left - right;
+    if (!Number.isInteger(left) || !Number.isInteger(right)) return null;
+    const wrong = [right, left, whole, whole - answer, answer / 2]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== answer);
+    const q = mk("Measurement",
+      `A right-angled triangle has a base of ${base} cm and a height of ` +
+      `${height} cm, with the right angle at the bottom-left, so the sloping ` +
+      `side runs from the top-left corner down to the bottom-right. A vertical ` +
+      `line is drawn at the midpoint of the base, cutting the triangle into two ` +
+      `pieces. How much larger is the left piece than the right piece?`,
+      `${comma(answer)} cm²`, wrong.map(v => `${comma(v)} cm²`), 4, i);
+    if (q) q.explain =
+      `The vertical cut is halfway along the base, at ${base / 2} cm. Because ` +
+      `the sloping side falls steadily, it has dropped exactly halfway down by ` +
+      `then, so the cut is ${height / 2} cm tall.\n\n` +
+      `The LEFT piece is a trapezium: its two parallel sides are the full ` +
+      `height, ${height} cm, and the cut, ${height / 2} cm, and it is ` +
+      `${base / 2} cm wide.\n` +
+      `  Area = (${height} + ${height / 2}) ÷ 2 × ${base / 2} = ${comma(left)} cm².\n\n` +
+      `The RIGHT piece is a triangle ${base / 2} cm along the base and ` +
+      `${height / 2} cm tall.\n` +
+      `  Area = ${base / 2} × ${height / 2} ÷ 2 = ${comma(right)} cm².\n\n` +
+      `The difference is ${comma(left)} − ${comma(right)} = ${comma(answer)} cm².\n\n` +
+      `Check it: the two pieces come to ${comma(left)} + ${comma(right)} = ` +
+      `${comma(whole)} cm², which is the whole triangle, ${base} × ${height} ÷ 2. ` +
+      `Halving the base does NOT halve the area — the left piece is three times ` +
+      `the right one.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -10335,7 +10529,9 @@ const QUESTIONS = [];
       [meaAreaFindMissingSide, 3, 3],     // undo the triangle's half
       [meaImperialConvert, 3, 3],         // match the units before multiplying
       [meaSquareAreaToPerimeter, 4, 4],   // square root first, and the units change
-      [meaMinimumBlocks, 4, 4]            // smallest means every side as low as it goes
+      [meaMinimumBlocks, 4, 4],           // smallest means every side as low as it goes
+      [meaReadScale, 4, 4],               // what one division is worth
+      [meaTriangleSplit, 4, 4]            // halving the base does not halve the area
     ],
     Geometry: [
       [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
@@ -10385,7 +10581,8 @@ const QUESTIONS = [];
       [geoIsoscelesAngleType, 3, 3],      // work the angle out, then name it
       [geoBackElevation, 4, 4],           // the outline mirrors, the inside lines do not
       [geoRotatePolygon, 3, 3],           // a share of 360, counted in segments
-      [geoDecisionTreeQuestion, 4, 4]     // the question has to split the two shapes
+      [geoDecisionTreeQuestion, 4, 4],    // the question has to split the two shapes
+      [geoLineAt45, 4, 4]                 // 45 degrees to a diagonal is horizontal or vertical
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -10413,7 +10610,8 @@ const QUESTIONS = [];
       [statCompareDistributions, 4, 4],
       [statScatterCorrelation, 3, 3],     // read the trend, left to right
       [statSetFromSummary, 4, 4],         // mean AND range, both at once
-      [statModeFromTable, 3, 3]           // the value, not how often it occurs
+      [statModeFromTable, 3, 3],          // the value, not how often it occurs
+      [statTwoSeriesGap, 4, 4]            // the axis is percentages, the question is marks
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements

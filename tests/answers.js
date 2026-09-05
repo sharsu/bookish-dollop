@@ -953,6 +953,118 @@ verify("numCoinExchange", question => {
   return start - (half / pence(m[3]) + half / pence(m[4]));
 }, v => v.toLocaleString("en-GB"));
 
+/* ── the four September questions that lean on a figure ── */
+report.check("meaReadScale: the reading is rebuilt from the alt text", () => {
+  const rows = byTemplate(app.maths, "meaReadScale");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const alt = /marked (\d+) at the left and (\d+) at the right, in (\w+), with (\d+) equal divisions.*?stands (\d+) divisions? to the right/.exec(q.questionImageAlt || "");
+    const many = /How many grams would (\d+) such watermelons weigh/.exec(q.question);
+    if (!alt || !many) return "cannot read the scale or the count";
+    const from = Number(alt[1]), to = Number(alt[2]);
+    const divisions = Number(alt[4]), at = Number(alt[5]);
+    const value = from + (to - from) * at / divisions;
+    const want = value * Number(many[1]) * 1000;
+    if (num(q.options[q.answer]) !== want) {
+      return `scale ${from}-${to} with ${divisions} divisions at ${at}: marked ${q.options[q.answer]}, expected ${want} g`;
+    }
+    if (at === 0 || at === divisions) return "the pointer sits on a labelled mark, which gives the reading away";
+  }
+  return true;
+});
+
+report.check("statTwoSeriesGap: exactly one week shows the stated gap", () => {
+  const rows = byTemplate(app.maths, "statTwoSeriesGap");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /marked out of (\d+)\..*?score (\d+) more marks in English than in maths/.exec(q.question);
+    if (!m) return "cannot read the question";
+    const perMark = 100 / Number(m[1]);
+    const gap = Number(m[2]) * perMark;
+    const alt = String(q.questionImageAlt);
+    const series = name => {
+      const part = new RegExp(`${name} passes through ([^.]+)`).exec(alt);
+      if (!part) return null;
+      return [...part[1].matchAll(/\((\d+), (\d+)\)/g)]
+        .map(p => [Number(p[1]), Number(p[2])]);
+    };
+    const maths = series("Maths"), english = series("English");
+    if (!maths || !english) return "cannot read the two lines from the alt text";
+    const weeks = maths.filter((p, k) => english[k][1] - p[1] === gap).map(p => p[0]);
+    if (weeks.length !== 1) return `${weeks.length} weeks show a gap of ${gap}%`;
+    if (String(q.options[q.answer]) !== `Week ${weeks[0]}`) {
+      return `marked ${q.options[q.answer]}, the gap is in Week ${weeks[0]}`;
+    }
+  }
+  return true;
+});
+
+report.check("geoLineAt45: the angle is measured, and only one option is 45°", () => {
+  const rows = byTemplate(app.maths, "geoLineAt45");
+  if (!rows.length) return "the template generates nothing";
+  const angleOf = ([a, b]) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    return ((Math.atan2(dy, dx) * 180 / Math.PI) + 180) % 180;
+  };
+  const between = (p, r) => {
+    const d = Math.abs(angleOf(p) - angleOf(r));
+    return Math.min(d, 180 - d);
+  };
+  const pair = text => {
+    const pts = [...String(text).matchAll(/\((\d+), (\d+)\)/g)]
+      .map(p => [Number(p[1]), Number(p[2])]);
+    return pts.length === 2 ? pts : null;
+  };
+  for (const q of rows) {
+    const lm = pair(/joins the points (\(\d+, \d+\) and \(\d+, \d+\))/.exec(q.question)[1]);
+    if (!lm) return "cannot read LM";
+    const at45 = q.options.filter(o => {
+      const p = pair(o);
+      return p && Math.abs(between(lm, p) - 45) < 1e-6;
+    });
+    if (at45.length !== 1) return `${at45.length} options are at 45° to LM`;
+    if (String(q.options[q.answer]) !== String(at45[0])) {
+      return `marked ${q.options[q.answer]}, but ${at45[0]} is the one at 45°`;
+    }
+  }
+  return true;
+});
+
+report.check("meaTriangleSplit: both pieces measured by the shoelace formula", () => {
+  /* The generator uses the trapezium and triangle area formulas. This takes the
+     corners of each piece and applies the shoelace formula instead, which knows
+     nothing about what shape it is being given. */
+  const rows = byTemplate(app.maths, "meaTriangleSplit");
+  if (!rows.length) return "the template generates nothing";
+  const shoelace = pts => {
+    let sum = 0;
+    for (let k = 0; k < pts.length; k += 1) {
+      const [x1, y1] = pts[k], [x2, y2] = pts[(k + 1) % pts.length];
+      sum += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(sum) / 2;
+  };
+  for (const q of rows) {
+    const m = /base of (\d+) cm and a height of (\d+) cm/.exec(q.question);
+    if (!m) return "cannot read the triangle";
+    const base = Number(m[1]), height = Number(m[2]);
+    /* Right angle at the bottom-left: corners (0,0), (base,0), (0,height).
+       The cut is vertical at x = base/2, where the sloping side has height
+       height/2. */
+    const mid = base / 2, midHeight = height / 2;
+    const left = shoelace([[0, 0], [mid, 0], [mid, midHeight], [0, height]]);
+    const right = shoelace([[mid, 0], [base, 0], [mid, midHeight]]);
+    const want = left - right;
+    if (num(q.options[q.answer]) !== want) {
+      return `base ${base}, height ${height}: marked ${q.options[q.answer]}, shoelace gives ${want}`;
+    }
+    if (Math.abs(left + right - base * height / 2) > 1e-9) {
+      return "the two pieces do not add up to the whole triangle";
+    }
+  }
+  return true;
+});
+
 /* ── English ──
    There is no independent way to recompute "which technique is this", the way
    there is for a sum: the answer is a judgment, and a second judgment made here
