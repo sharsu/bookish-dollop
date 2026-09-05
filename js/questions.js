@@ -4890,6 +4890,304 @@ const QUESTIONS = [];
     return q;
   }
 
+  /* ── From the papers Milan sat in September 2026 ── */
+
+  /* A regular polygon turned through whole and half segments. The segments are
+     equal, so the angle is just a share of 360 - but the share is counted in
+     segments, and half a segment is easy to drop. */
+  function geoRotatePolygon(i) {
+    const SIDES = [5, 6, 8, 9, 10, 12];
+    const sides = SIDES[i % SIDES.length];
+    const segment = 360 / sides;
+    const halves = 3 + (Math.floor(i / 6) % 6);              // 1.5 .. 4 segments
+    const turns = halves / 2;
+    const answer = segment * turns;
+    if (answer >= 360 || !Number.isInteger(answer * 10)) return null;
+    const dec = v => `${Number(v.toFixed(2))}`;
+    const wrong = [
+      segment * (turns + 0.5), segment * (turns - 0.5),
+      360 - answer, segment, segment * Math.round(turns)
+    ].filter(v => v > 0 && v < 360 && Math.abs(v - answer) > 1e-9);
+    const shown = turns === Math.floor(turns) ? `${turns}` : `${Math.floor(turns)}½`;
+    const q = mk("Geometry",
+      `A regular ${["", "", "", "triangle", "square", "pentagon", "hexagon", "", "octagon",
+        "nonagon", "decagon", "", "dodecagon"][sides]} is divided into ${sides} ` +
+      `equal segments by lines drawn from its centre to each corner. It is then ` +
+      `rotated clockwise about its centre through ${shown} of those segments. ` +
+      `What angle does it turn through?`,
+      `${dec(answer)}°`, wrong.map(v => `${dec(v)}°`), 3, i);
+    if (q) q.explain =
+      `Step 1. The segments meet at the centre and share the whole turn between ` +
+      `them, and angles round a point come to 360°. So one segment is ` +
+      `360 ÷ ${sides} = ${dec(segment)}°.\n\n` +
+      `Step 2. The shape turns through ${shown} segments, so multiply: ` +
+      `${shown} × ${dec(segment)} = ${dec(answer)}°.\n\n` +
+      `The half segment is where this goes wrong. Counting ${Math.round(turns)} ` +
+      `segments instead gives ${dec(segment * Math.round(turns))}°, which is ` +
+      `offered — the arrow does not have to finish on a corner.`;
+    return q;
+  }
+
+  /* A frequency table with the counts in the LEFT column and the values on the
+     right, which is the way round that catches people: the mode is the value
+     that occurs most often, not the number of times it occurs. */
+  function statModeFromTable(i) {
+    const rows = 5;
+    /* The values and the counts must not both turn on i, or the same table
+       comes round again with only the labels moved. */
+    const base = 9 + (i % 8);
+    const step = 1 + (Math.floor(i / 8) % 3);
+    const values = Array.from({ length: rows }, (unused, k) => base + k * step);
+    const shift = Math.floor(i / 24) % 5;
+    const counts = [5, 6, 2, 4, 3].map((c, k) => c + ((shift + k) % 3));
+    const top = Math.max(...counts);
+    if (counts.filter(c => c === top).length !== 1) return null;      // one clear mode
+    const mode = values[counts.indexOf(top)];
+    const total = counts.reduce((a, b) => a + b, 0);
+    const wrong = [top, Math.max(...values), Math.min(...values),
+                   values[values.length - 1]]
+      .filter(v => v !== mode);
+    if (new Set(wrong).size < 3) return null;
+    const table = counts.map((c, k) => `${c} boxes hold ${values[k]} books each`).join("; ");
+    const q = mk("Statistics",
+      `A librarian counted the books in each of ${total} boxes: ${table}. What ` +
+      `is the mode of the number of books in a box?`,
+      `${mode}`, wrong.map(v => `${v}`), 3, i);
+    if (q) q.explain =
+      `The mode is the value that comes up MOST OFTEN — here, the number of ` +
+      `books that the greatest number of boxes hold.\n\n` +
+      `Reading down the counts, the largest is ${top}, and those ${top} boxes ` +
+      `each hold ${mode} books. So the mode is ${mode}.\n\n` +
+      `${top} is offered and is the trap: it is how MANY boxes, not how many ` +
+      `books. The question asks for a number of books, so the answer has to ` +
+      `come from the other column. ${Math.max(...values)} is offered too — that ` +
+      `is the largest number of books, which is a different thing again.`;
+    return q;
+  }
+
+  /* Area of a square back to its perimeter. The square root of a decimal is the
+     step that goes wrong, and the units change with it. */
+  function meaSquareAreaToPerimeter(i) {
+    const SIDES = [0.1, 0.3, 0.4, 0.5, 0.6, 0.8, 1.2, 1.5, 2, 2.5, 3, 4, 5, 0.7, 0.9, 1.1];
+    const side = SIDES[i % SIDES.length];
+    const UNITS = [["km", "km²"], ["m", "m²"], ["cm", "cm²"]];
+    const [unit, areaUnit] = UNITS[Math.floor(i / 16) % UNITS.length];
+    const area = Number((side * side).toFixed(4));
+    const perimeter = Number((side * 4).toFixed(4));
+    const dec = v => `${Number(v.toFixed(4))}`;
+    const wrong = [area * 4, side, area / 4, side * 2, area * 2]
+      .filter(v => v > 0 && Math.abs(v - perimeter) > 1e-9);
+    const q = mk("Measurement",
+      `The area of a square field is ${dec(area)} ${areaUnit}. What is its ` +
+      `perimeter?`,
+      `${dec(perimeter)} ${unit}`, wrong.map(v => `${dec(v)} ${unit}`), 4, i);
+    if (q) q.explain =
+      `Step 1. A square's area is one side times itself, so go backwards with a ` +
+      `square root: which number times itself is ${dec(area)}? ` +
+      `${dec(side)} × ${dec(side)} = ${dec(area)}, so the side is ` +
+      `${dec(side)} ${unit}.\n\n` +
+      `Step 2. The perimeter is all four sides: 4 × ${dec(side)} = ` +
+      `${dec(perimeter)} ${unit}.\n\n` +
+      `Notice the units change at step 1: ${areaUnit} for the area, ${unit} for ` +
+      `a length. Multiplying the area by 4 instead gives ${dec(area * 4)}, which ` +
+      `is offered and is still an area — a quick way to catch the mistake.`;
+    return q;
+  }
+
+  /* A decision tree with one question missing. The missing question has to
+     SEPARATE the two shapes below it - true of one, false of the other - which
+     is a property lookup rather than an opinion, so it can be checked. */
+  const SHAPE_PROPERTIES = {
+    "parallelogram":      { sides: 4, regular: false, rotational: true,  reflective: false, equalSides: false, rightAngle: false, parallelPair: true },
+    "isosceles trapezium":{ sides: 4, regular: false, rotational: false, reflective: true,  equalSides: false, rightAngle: false, parallelPair: true },
+    "rectangle":          { sides: 4, regular: false, rotational: true,  reflective: true,  equalSides: false, rightAngle: true,  parallelPair: true },
+    "rhombus":            { sides: 4, regular: false, rotational: true,  reflective: true,  equalSides: true,  rightAngle: false, parallelPair: true },
+    "square":             { sides: 4, regular: true,  rotational: true,  reflective: true,  equalSides: true,  rightAngle: true,  parallelPair: true },
+    "kite":               { sides: 4, regular: false, rotational: false, reflective: true,  equalSides: false, rightAngle: false, parallelPair: false },
+    "regular pentagon":   { sides: 5, regular: true,  rotational: true,  reflective: true,  equalSides: true,  rightAngle: false, parallelPair: false },
+    "regular hexagon":    { sides: 6, regular: true,  rotational: true,  reflective: true,  equalSides: true,  rightAngle: false, parallelPair: true },
+    "isosceles triangle": { sides: 3, regular: false, rotational: false, reflective: true,  equalSides: false, rightAngle: false, parallelPair: false },
+    "equilateral triangle": { sides: 3, regular: true, rotational: true, reflective: true,  equalSides: true,  rightAngle: false, parallelPair: false },
+    "scalene triangle":   { sides: 3, regular: false, rotational: false, reflective: false, equalSides: false, rightAngle: false, parallelPair: false }
+  };
+  /* "an isosceles trapezium", "a parallelogram". */
+  const shapeArticle = word => (/^[aeiou]/i.test(word) ? "an" : "a");
+
+  const TREE_QUESTIONS = [
+    { text: "Does the shape have rotational symmetry?", key: "rotational" },
+    { text: "Does the shape have a line of symmetry?", key: "reflective" },
+    { text: "Is the shape regular?", key: "regular" },
+    { text: "Are all of the shape's sides the same length?", key: "equalSides" },
+    { text: "Does the shape have a right angle?", key: "rightAngle" },
+    { text: "Does the shape have a pair of parallel sides?", key: "parallelPair" }
+  ];
+
+  function geoDecisionTreeQuestion(i) {
+    /* Find the pairs that work FIRST rather than picking a pair and hoping.
+       A pair is usable when exactly ONE question is true of the first shape and
+       false of the second - two would give the question two right answers, and
+       none would leave it unanswerable. */
+    const names = Object.keys(SHAPE_PROPERTIES);
+    const usable = [];
+    names.forEach(yesName => {
+      names.forEach(noName => {
+        if (yesName === noName) return;
+        const a = SHAPE_PROPERTIES[yesName], b = SHAPE_PROPERTIES[noName];
+        const splits = TREE_QUESTIONS.filter(t => a[t.key] === true && b[t.key] === false);
+        if (splits.length === 1 && TREE_QUESTIONS.length - splits.length >= 3) {
+          usable.push([yesName, noName, splits[0].text]);
+        }
+      });
+    });
+    if (!usable.length) return null;
+    const [yes, no, answer] = usable[i % usable.length];
+    const A = SHAPE_PROPERTIES[yes], B = SHAPE_PROPERTIES[no];
+    const fails = TREE_QUESTIONS.filter(t => !(A[t.key] === true && B[t.key] === false));
+    const q = mk("Geometry",
+      /* The article has to follow the vowel on BOTH shapes, not just the
+         second one: "a isosceles trapezium" was reaching the paper. */
+      `A decision tree is being used to sort shapes. One question is missing. ` +
+      `Shapes answering YES to the missing question are ${shapeArticle(yes)} ` +
+      `${yes}, and shapes answering NO are ${shapeArticle(no)} ${no}. Which ` +
+      `question could be the missing one?`,
+      answer, fails.slice(0, 4).map(t => t.text), 4, i);
+    if (q) q.explain =
+      `The missing question has to SPLIT the two shapes: the answer must be yes ` +
+      `for the ${yes} and no for the ${no}. A question that is true of both, or ` +
+      `false of both, sorts nothing.\n\n` +
+      `"${answer}" does it: ${shapeArticle(yes)} ${yes} ` +
+      `${answer.startsWith("Is") ? "is" : "does"}, and ${shapeArticle(no)} ` +
+      `${no} ${answer.startsWith("Is") ? "is not" : "does not"}.\n\n` +
+      `Check each of the others against BOTH shapes before choosing. That is the ` +
+      `whole method here — one shape at a time is not enough, because a question ` +
+      `that is true of the first might be true of the second as well.`;
+    return q;
+  }
+
+  /* All but one of a number's factors are listed. Finding it needs the count to
+     be used, not just the list - several numbers contain those factors. */
+  function numFactorsFromList(i) {
+    const POOL = [12, 18, 20, 28, 32, 45, 50, 44, 52, 63, 68, 75, 76, 92, 99, 116,
+                  124, 148, 153, 164, 171, 172, 175, 188, 207, 212, 236, 242,
+                  244, 245, 261, 268, 275, 279, 284, 292, 316, 325, 332, 333];
+    const n = POOL[i % POOL.length];
+    const factors = factorsOf(n);
+    if (factors.length < 5 || factors.length > 8) return null;
+    const shown = factors.slice(0, -1);                       // all but n itself
+    const scrambled = shown.map((unused, k) => shown[(k * 3 + 1) % shown.length]);
+    if (new Set(scrambled).size !== shown.length) return null;
+    /* A wrong option must fail on the count or on the factors, and be checkable
+       either way - so they are drawn from the pool and filtered. */
+    const wrong = POOL.filter(v => v !== n &&
+        (factorsOf(v).length !== factors.length || !shown.every(f => v % f === 0)))
+      .slice(0, 6);
+    if (wrong.length < 3) return null;
+    const q = mk("Numbers",
+      `A number N has exactly ${factors.length} factors. ${factors.length - 1} of ` +
+      `them are shown here: ${scrambled.join(", ")}. What is N?`,
+      comma(n), wrong.slice(0, 4).map(v => comma(v)), 4, i);
+    if (q) q.explain =
+      `Step 1. Put the factors given in order: ${shown.join(", ")}. Every number ` +
+      `has itself as a factor, and it is always the biggest, so the missing one ` +
+      `is N.\n\n` +
+      `Step 2. Factors pair up to make N — the smallest with the largest. ` +
+      `${shown[1]} pairs with ${n / shown[1]}, and ${shown[1]} × ${n / shown[1]} ` +
+      `= ${comma(n)}.\n\n` +
+      `Step 3. Check the count: ${comma(n)} has exactly ` +
+      `${factors.length} factors — ${factors.join(", ")} — which is what the ` +
+      `question said.\n\n` +
+      `The count is doing real work. Other numbers are divisible by all of ` +
+      `${shown.slice(1).join(", ")} too, and they are offered; what rules them ` +
+      `out is having the wrong NUMBER of factors.`;
+    return q;
+  }
+
+  /* Smallest cuboid meeting a chain of conditions. The catch is that a block is
+     the smallest a side can be - a height of zero is not a cuboid. */
+  function meaMinimumBlocks(i) {
+    const multiple = 2 + (i % 3);                 // length is this many widths
+    const gap = 1 + (Math.floor(i / 3) % 5);      // width is this much more than height
+    const height = 1;                             // the smallest a side can be
+    const width = height + gap;
+    const length = multiple * width;
+    const answer = height * width * length;
+    const wrong = [
+      (height + 1) * (width + 1) * (multiple * (width + 1)),   // started at 2
+      height * gap * (multiple * gap),                          // used the gap as the width
+      height * width * (multiple * height),                     // doubled the height, not the width
+      answer * 2
+    ].filter(v => Number.isInteger(v) && v > 0 && v !== answer);
+    const q = mk("Measurement",
+      `Tess is building a cuboid out of centimetre blocks. She wants the length ` +
+      `to be ${multiple} times the width, and the width to be ${gap} cm longer ` +
+      `than the height. What is the smallest number of blocks she can use?`,
+      comma(answer), wrong.map(v => comma(v)), 4, i);
+    if (q) q.explain =
+      `Every measurement is fixed to the height, so start there — and the ` +
+      `smallest a side can be is ONE block. A height of 0 would not be a ` +
+      `cuboid at all.\n\n` +
+      `Height: 1 cm.\n` +
+      `Width: ${gap} cm more than the height, so ${1} + ${gap} = ${width} cm.\n` +
+      `Length: ${multiple} times the width, so ${multiple} × ${width} = ` +
+      `${length} cm.\n\n` +
+      `The number of centimetre blocks is the volume: ${height} × ${width} × ` +
+      `${length} = ${comma(answer)}.\n\n` +
+      `Starting the height at 2 gives ${comma((height + 1) * (width + 1) * (multiple * (width + 1)))}, ` +
+      `which is offered — the question asks for the SMALLEST, so every side has ` +
+      `to be pushed as low as it will go.`;
+    return q;
+  }
+
+  /* Swapping coins: the money stays the same, so the number of coins is what
+     changes - and "half his coins" is half the COINS, not half the money. */
+  function numCoinExchange(i) {
+    const COINS = [
+      { from: 10, a: 20, b: 50, fromName: "10p", aName: "20p", bName: "50p" },
+      { from: 5, a: 10, b: 20, fromName: "5p", aName: "10p", bName: "20p" },
+      { from: 20, a: 50, b: 100, fromName: "20p", aName: "50p", bName: "£1" },
+      { from: 10, a: 50, b: 100, fromName: "10p", aName: "50p", bName: "£1" },
+      { from: 5, a: 20, b: 50, fromName: "5p", aName: "20p", bName: "50p" }
+    ];
+    const c = COINS[i % COINS.length];
+    /* Half the money has to divide by both new coins, so the total in pence
+       must be a multiple of 2 x lcm(a, b) - and it also has to be a whole
+       number of pounds, or the question reads "Mark has £3.6". The smallest
+       step meeting both is lcm(2 x lcm(a, b), 100) pence. */
+    const step = lcm(2 * lcm(c.a, c.b), 100) / 100;
+    const pounds = step * (2 + (Math.floor(i / 5) % 12));
+    const totalPence = pounds * 100;
+    const startCount = totalPence / c.from;
+    const halfValue = totalPence / 2;
+    if (!Number.isInteger(startCount) || startCount % 2 !== 0) return null;
+    if (halfValue % c.a !== 0 || halfValue % c.b !== 0) return null;
+    const endCount = halfValue / c.a + halfValue / c.b;
+    const answer = startCount - endCount;
+    if (answer <= 0) return null;
+    const wrong = [endCount, startCount, halfValue / c.a, halfValue / c.b,
+                   startCount - halfValue / c.a]
+      .filter(v => Number.isInteger(v) && v > 0 && v !== answer);
+    const q = mk("Numbers",
+      `Mark has £${pounds} in ${c.fromName} coins. He swaps half of his coins ` +
+      `for ${c.aName} coins and the other half for ${c.bName} coins. How many ` +
+      `fewer coins does he have now?`,
+      comma(answer), wrong.slice(0, 4).map(v => comma(v)), 4, i);
+    if (q) q.explain =
+      `Step 1. How many coins to begin with? £${pounds} is ${comma(totalPence)}p, ` +
+      `and each coin is ${c.from}p, so ${comma(totalPence)} ÷ ${c.from} = ` +
+      `${comma(startCount)} coins.\n\n` +
+      `Step 2. He swaps half his COINS, which is ${comma(startCount / 2)} of ` +
+      `them, and those are worth £${pounds / 2}. Swapping does not change the ` +
+      `money, only the number of coins.\n\n` +
+      `Step 3. £${pounds / 2} in ${c.aName} coins is ${comma(halfValue / c.a)} ` +
+      `coins, and £${pounds / 2} in ${c.bName} coins is ` +
+      `${comma(halfValue / c.b)} coins. That is ${comma(endCount)} altogether.\n\n` +
+      `Step 4. He had ${comma(startCount)} and now has ${comma(endCount)}, so he ` +
+      `has ${comma(answer)} fewer.\n\n` +
+      `${comma(endCount)} is offered on its own — that is how many he HAS, not ` +
+      `how many FEWER, and the question asks for the difference.`;
+    return q;
+  }
+
   /* ── Circles ──
 
      KS3 Year 8, and a gap the bank had no cover for at all: not one question
@@ -9844,7 +10142,10 @@ const QUESTIONS = [];
       [numParityResult, 4, 4],            // must be true means true every time
       /* question-bank/20260824-Onwards */
       [numDigitCardsDivisible, 4, 4],     // fix the ending, then fill the front
-      [numEvenFactorCount, 3, 3]          // only squares have an odd count
+      [numEvenFactorCount, 3, 3],         // only squares have an odd count
+      /* question-bank/20260831-Onwards */
+      [numFactorsFromList, 4, 4],         // the count rules the others out
+      [numCoinExchange, 4, 4]             // half the COINS, not half the money
     ],
     Decimals: [
       [decAdd, 1, 1], [decSubtract, 1, 2], [decMultiply, 2, 2], [decDivide, 2, 2],
@@ -10032,7 +10333,9 @@ const QUESTIONS = [];
          went down to Medium. */
       [meaTrapeziumArea, 3, 3],           // halving is the step that gets dropped
       [meaAreaFindMissingSide, 3, 3],     // undo the triangle's half
-      [meaImperialConvert, 3, 3]          // match the units before multiplying
+      [meaImperialConvert, 3, 3],         // match the units before multiplying
+      [meaSquareAreaToPerimeter, 4, 4],   // square root first, and the units change
+      [meaMinimumBlocks, 4, 4]            // smallest means every side as low as it goes
     ],
     Geometry: [
       [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
@@ -10080,7 +10383,9 @@ const QUESTIONS = [];
       [geoParallelLineAngles, 3, 3],      // F, Z and C shapes on parallel lines
       [geoTriangleUnique, 4, 4],          // what pins a triangle down to one
       [geoIsoscelesAngleType, 3, 3],      // work the angle out, then name it
-      [geoBackElevation, 4, 4]            // the outline mirrors, the inside lines do not
+      [geoBackElevation, 4, 4],           // the outline mirrors, the inside lines do not
+      [geoRotatePolygon, 3, 3],           // a share of 360, counted in segments
+      [geoDecisionTreeQuestion, 4, 4]     // the question has to split the two shapes
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -10107,7 +10412,8 @@ const QUESTIONS = [];
       /* Comparing distributions: an average and a range, held at once. */
       [statCompareDistributions, 4, 4],
       [statScatterCorrelation, 3, 3],     // read the trend, left to right
-      [statSetFromSummary, 4, 4]          // mean AND range, both at once
+      [statSetFromSummary, 4, 4],         // mean AND range, both at once
+      [statModeFromTable, 3, 3]           // the value, not how often it occurs
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements

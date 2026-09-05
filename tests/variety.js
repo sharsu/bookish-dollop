@@ -56,7 +56,14 @@ const FLOORS = {
   /* question-bank/20260824-Onwards: Mock Papers 8 and 10. */
   numDigitCardsDivisible: 20, numEvenFactorCount: 45, decToImproperFraction: 14,
   pctToFraction: 14, pctCompoundGrowth: 44, statSetFromSummary: 45,
-  spdDurationRounded: 45
+  spdDurationRounded: 45,
+  /* question-bank/20260831-Onwards: Mock Paper 11 and the September screenshots.
+     geoDecisionTreeQuestion shipped at 7 of 50 first time - it picked a pair of
+     shapes by index and threw the seed away unless exactly one question
+     happened to separate them. Searching for the usable pairs first fixed it. */
+  geoRotatePolygon: 32, statModeFromTable: 42, meaSquareAreaToPerimeter: 43,
+  geoDecisionTreeQuestion: 45, numFactorsFromList: 36, meaMinimumBlocks: 45,
+  numCoinExchange: 45
 };
 
 report.check("every pinned template still meets its distinct-question floor", () => {
