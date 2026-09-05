@@ -406,7 +406,8 @@
   /* Two journeys on one pair of axes, which is how the papers ask for the gap
      between them at a given time. */
   function distanceTimeTwo({ seriesA, seriesB, labelA = "A", labelB = "B",
-                             xLabel = "Time (hours)", yLabel = "Distance (miles)" }) {
+                             xLabel = "Time (hours)", yLabel = "Distance (miles)",
+                             kind = "distance-time graph with two journeys" }) {
     const padL = 50, padB = 38, padT = 34, plotW = 230, plotH = 158;
     const w = padL + plotW + 60, h = padT + plotH + padB;
     const all = seriesA.concat(seriesB);
@@ -426,22 +427,33 @@
     body += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>` +
             `<line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="${INK}" stroke-width="1.5"/>`;
 
-    const draw = (pts, colour, label) => {
+    /* Each line is named where it ends. Two lines finishing at a similar height
+       put their names on top of each other, which happens whenever the series
+       are two scores rather than two journeys - so when the ends are close the
+       labels are pushed apart. */
+    const endA = Y(seriesA[seriesA.length - 1][1]);
+    const endB = Y(seriesB[seriesB.length - 1][1]);
+    const crowded = Math.abs(endA - endB) < 16;
+    const nudge = crowded ? (endA <= endB ? [-9, 9] : [9, -9]) : [0, 0];
+
+    const draw = (pts, colour, label, shift) => {
       const path = pts.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
       const last = pts[pts.length - 1];
       return `<polyline points="${path}" fill="none" stroke="${colour}" stroke-width="2.5"/>` +
              pts.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.5" fill="${colour}"/>`).join("") +
-             text(X(last[0]) + 7, Y(last[1]) + 4, label, { anchor: "start", size: 12, weight: 700, fill: colour });
+             text(X(last[0]) + 7, Y(last[1]) + 4 + shift, label, { anchor: "start", size: 12, weight: 700, fill: colour });
     };
-    body += draw(seriesA, FILL, labelA) + draw(seriesB, "#b45309", labelB);
+    body += draw(seriesA, FILL, labelA, nudge[0]) + draw(seriesB, "#b45309", labelB, nudge[1]);
     body += text(padL + plotW / 2, h - 6, xLabel, { size: 11, fill: "#475569" }) +
             text(4, padT - 16, yLabel, { anchor: "start", size: 11, fill: "#475569" });
 
     const say = (pts, label) => `${label} passes through ` +
       pts.map(p => `(${p[0]}, ${p[1]})`).join(", ");
+    /* `kind` lets the same builder describe something that is not a journey -
+       two sets of test scores over ten weeks, say. It defaults to the original
+       wording so every existing caller's alt text is unchanged. */
     return { image: wrap(w, h, body),
-             alt: `A distance-time graph with two journeys. ${say(seriesA, labelA)}. ` +
-                  `${say(seriesB, labelB)}.` };
+             alt: `A ${kind}. ${say(seriesA, labelA)}. ${say(seriesB, labelB)}.` };
   }
 
 
@@ -574,6 +586,44 @@
      Each label position is chosen so it sits inside exactly the circles that
      region belongs to; the assertion below is what keeps that true if the
      geometry is ever adjusted. */
+  /* ── A measuring scale with a pointer ──
+
+     Two labelled marks with equal divisions between them, and an arrow standing
+     at one of the divisions. The whole question is what one division is worth,
+     so the alt text says how many there are and which one the pointer is on
+     rather than giving the reading away - a child using a screen reader gets
+     the same job to do as one looking at it. */
+  function scaleReading({ from, to, divisions, atDivision, unit = "kg" }) {
+    const padX = 46, w = 320, h = 104;
+    const left = padX, right = w - padX;
+    const span = right - left;
+    const x = k => left + (k / divisions) * span;
+
+    let body = `<line x1="${left}" y1="64" x2="${right}" y2="64" stroke="${INK}" stroke-width="2"/>`;
+    for (let k = 0; k <= divisions; k += 1) {
+      const major = k === 0 || k === divisions;
+      body += `<line x1="${x(k).toFixed(1)}" y1="64" x2="${x(k).toFixed(1)}" ` +
+              `y2="${major ? 44 : 53}" stroke="${INK}" stroke-width="${major ? 2 : 1}"/>`;
+    }
+    body += text(left, 84, `${from}`, { size: 15, weight: 700 });
+    body += text(right, 84, `${to}`, { size: 15, weight: 700 });
+    /* The pointer, drawn above the scale so it cannot sit on a tick label. */
+    const px = x(atDivision);
+    body += `<path d="M ${px.toFixed(1)} 40 L ${(px - 6).toFixed(1)} 24 L ` +
+            `${(px + 6).toFixed(1)} 24 Z" fill="${INK}"/>`;
+    body += `<line x1="${px.toFixed(1)}" y1="24" x2="${px.toFixed(1)}" y2="12" ` +
+            `stroke="${INK}" stroke-width="2"/>`;
+    body += text(w / 2, 100, `Reading in ${unit}`, { size: 11, fill: "#475569" });
+
+    return {
+      image: wrap(w, h, body),
+      alt: `A scale marked ${from} at the left and ${to} at the right, in ${unit}, ` +
+        `with ${divisions} equal divisions between the two marks. The pointer ` +
+        `stands ${atDivision} division${atDivision === 1 ? "" : "s"} to the right ` +
+        `of the ${from} mark.`
+    };
+  }
+
   /* ── A front elevation, and candidate back elevations ──
 
      Looking at a solid from the front and from the back gives the same OUTLINE
@@ -853,7 +903,7 @@
     };
   }
 
-  root.DIAGRAMS = { maze, cubeNet, parallelAngles, scatter, elevationChoices, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
+  root.DIAGRAMS = { maze, cubeNet, parallelAngles, scatter, elevationChoices, scaleReading, vennThree, speedTimeChoices, shadedGrid, barChart, pictogram, pieChart, distanceTime, vennTwo,
                     lShape, anglesOnLine, coordGrid,
                     shapeChoices, triangleRow, triangleStrip, distanceTimeTwo,
                     dotTriangles };

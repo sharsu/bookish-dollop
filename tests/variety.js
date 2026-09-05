@@ -63,7 +63,9 @@ const FLOORS = {
      happened to separate them. Searching for the usable pairs first fixed it. */
   geoRotatePolygon: 32, statModeFromTable: 42, meaSquareAreaToPerimeter: 43,
   geoDecisionTreeQuestion: 45, numFactorsFromList: 36, meaMinimumBlocks: 45,
-  numCoinExchange: 45
+  numCoinExchange: 45,
+  /* The four that lean on a figure. */
+  meaReadScale: 34, statTwoSeriesGap: 24, geoLineAt45: 39, meaTriangleSplit: 35
 };
 
 report.check("every pinned template still meets its distinct-question floor", () => {
