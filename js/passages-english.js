@@ -17,11 +17,17 @@
    Difficulty per question: 2 Medium, 3 Hard, 4 Super Hard. Papers are
    configured to skip level 1 entirely, so nothing here is written at it.
 
-   NOTE ON THE CLASSIC TEXTS: these are original passages written in the
-   Victorian and Edwardian register, not extracts from named authors. They
-   are labelled Classic because that is the kind of prose they train a
-   child to read. Swap in genuine public-domain extracts if you would
-   rather use the real thing — the structure takes them unchanged.
+   NOTE ON THE CLASSIC TEXTS: these are now a mix. Some are original
+   passages written in the Victorian and Edwardian register; the rest are
+   genuine public-domain extracts — Alice, Black Beauty, The Wind in the
+   Willows, The War of the Worlds, The Mill on the Floss, The Swiss Family
+   Robinson — reproduced as supplied and attributed to their authors. Both
+   kinds are labelled Classic because that is the kind of prose they train
+   a child to read.
+
+   NOTHING IN COPYRIGHT GOES IN HERE. Every named extract is out of
+   copyright; where a modern paper supplied the text, only the question
+   SHAPE was reused and the passage was written or sourced afresh.
 ═══════════════════════════════════════════════════════════════════ */
 (() => {
   const root = typeof window !== "undefined" ? window : globalThis;
@@ -2790,6 +2796,123 @@
         { q: "Which word is closest in meaning to 'remonstrating' as it is used in line 5?",
           a: "Protesting",
           d: ["Whispering", "Explaining patiently", "Praising"], diff: 3 },
+      ]
+    },
+    {
+      /* From the standard Victorian English translation of Der Schweizerische
+         Robinson (1812), which is public domain. The narrator is the father;
+         Fritz is his eldest son. Chosen because the drumming-grouse scene does
+         three things a comprehension paper wants at once: a sequence to follow,
+         vocabulary that has to be worked out from context (prostrate, mottled,
+         edification, pantomime), and a change of feeling the reader is left to
+         infer rather than told. */
+      title: "The Swiss Family Robinson: The Drummer in the Glade",
+      attribution: "by Johann David Wyss",
+      category: "Classic",
+      intro: "A shipwrecked family are making a life on an unknown coast. The father tells the story. On this day he takes only Fritz, his eldest son, leaving the younger boys with their mother.",
+      lines: [
+        "The first thing to be done on the following day was to return",
+        "to the Calabash Wood, to fetch the sledge, with the dishes,",
+        "bowls and baskets we had made.",
+        "Fritz alone accompanied me. I desired the other boys to remain with their mother,",
+        "intending to explore beyond the chain of rocky hills,",
+        "and thinking a large party undesirable on the occasion.",
+        "Passing through the wood of evergreen oaks, we observed our sow",
+        "feasting on the acorns, evidently not a whit the worse for the fright",
+        "we had given her the previous day—in fact, she appeared more friendly",
+        "disposed towards us than usual, possibly considering us as her deliverers",
+        "from the jaws of the savage dogs.",
+        "",
+        "Many birds tenanted this grove, and were undisturbed by our movements,",
+        "until Fritz fired and shot a beautiful blue jay, and a couple of parakeets,",
+        "one a brilliant scarlet, the other green and gold.",
+        "Fritz was in the act of reloading his gun, when an unaccountable noise",
+        "struck our ears, and put us instantly on the alert, because it appeared",
+        "like the dull thumping sound of a muffled drum.",
+        "",
+        "With the greatest caution we drew nearer the sound, concealing ourselves",
+        "among the low bushes and thick grass and creepers, until we reached an open glade;",
+        "where, standing on an old prostrate log, was a beautiful bird,",
+        "about the size of a cock, of a rich chestnut brown colour,",
+        "finely mottled with dark brown and grey. On the shoulders were curious",
+        "tufts of velvety black feathers, glossed with green. He was ruffling his wings,",
+        "erecting his tail and neck feathers, strutting and wheeling about",
+        "in a most strange and stately fashion.",
+        "",
+        "After manoeuvring for some time in this manner, greatly to the edification",
+        "of a party of birds resembling him but without any ruff, who, assembled",
+        "round the stump, were enjoying his performances, he spread out his tail",
+        "like a fan, stiffened his wings, and began to strike with them in short,",
+        "rapid beats, faster and faster, until a rumbling sound like very distant",
+        "thunder was produced, and the whirring wings enveloped him as in a cloud.",
+        "This was the drumming noise which had alarmed us, increased, as I imagine,",
+        "by the wing strokes falling at times on the decayed and hollow stump",
+        "on which the curious pantomime was acted.",
+        "",
+        "I was watching it with the utmost interest, when a shot from behind me",
+        "was fired, and in a moment the play was at an end; my over-hasty son",
+        "had changed the pretty comedy into a sad and needless tragedy.",
+        "The enthusiastic drummer fell dead from his perch, and the crowd",
+        "of admiring companions fled in dismay.",
+        "The cruel interruption of a scene so rare and remarkable annoyed me extremely,",
+        "and I blamed Fritz for firing without my leave. I felt sure the bird",
+        "was the ruffed grouse, and a very fine specimen."
+      ],
+      questions: [
+        { q: "Why did the father take only Fritz with him?",
+          a: "He thought a large party would be a nuisance on a journey of exploration",
+          d: ["Fritz was the only one who could shoot", "The other boys were unwell that morning",
+              "There was room on the sledge for only two"], diff: 2 },
+        { q: "What had frightened the sow the day before?",
+          a: "Savage dogs", d: ["A gunshot", "The rocky hills", "A drumming noise"], diff: 2 },
+        { q: "What did Fritz shoot in the grove of evergreen oaks?",
+          a: "A blue jay and two parakeets",
+          d: ["A ruffed grouse and a blue jay", "Two blue jays and a parakeet",
+              "A sow and a parakeet"], diff: 2 },
+        { q: "What did the strange noise sound like when the narrator first heard it?",
+          a: "The dull thumping of a muffled drum",
+          d: ["Very distant thunder", "The howling of dogs", "A gun being reloaded"], diff: 2 },
+        { q: "What was actually making the drumming sound?",
+          a: "A bird beating its wings, helped by the hollow stump beneath it",
+          d: ["Savages beating a drum somewhere in the glade",
+              "The sow rooting among the fallen acorns",
+              "Thunder rolling in from beyond the rocky hills"], diff: 3 },
+        { q: "Which word is closest in meaning to 'prostrate' as it is used in this passage?",
+          a: "Lying flat", d: ["Rotten", "Ancient", "Enormous"], diff: 3 },
+        { q: "What does 'mottled' tell you about the bird's colouring?",
+          a: "It was marked with patches of different shades",
+          d: ["It was a single rich brown all over", "It shone like polished metal",
+              "It changed colour as the bird moved"], diff: 3 },
+        { q: "The other birds gathered round the stump were 'without any ruff'. What does this suggest about the drumming bird?",
+          a: "Its neck feathers set it apart from the others watching",
+          d: ["It was older than the birds around it", "It was the only one able to fly",
+              "It belonged to a completely different species"], diff: 4 },
+        { q: "Why does the narrator say the display was 'greatly to the edification' of the watching birds?",
+          a: "They were gathered round as an audience, getting something out of the performance",
+          d: ["They were frightened into keeping still",
+              "They were being taught how to find food",
+              "They were waiting for a chance to attack him"], diff: 4 },
+        { q: "Why does the narrator call the bird's display a 'pantomime'?",
+          a: "It was a piece of theatre, performed without any words",
+          d: ["It was comical and badly done", "It was meant to deceive the watching birds",
+              "It happened at a particular time of year"], diff: 4 },
+        { q: "What does the narrator mean by 'the pretty comedy into a sad and needless tragedy'?",
+          a: "A delightful scene was destroyed by a killing that served no purpose",
+          d: ["A funny incident turned out to be dangerous",
+              "The birds stopped performing and flew away",
+              "Fritz was hurt by his own gun"], diff: 4 },
+        { q: "Which word is closest in meaning to 'dismay' as it is used at the end of the passage?",
+          a: "Alarm", d: ["Anger", "Curiosity", "Exhaustion"], diff: 3 },
+        { q: "How do the narrator's feelings change during the passage?",
+          a: "From wary alarm, to fascination, to annoyance with his son",
+          d: ["From boredom, to fear, to relief",
+              "From irritation with Fritz, to pride in him, to forgiveness",
+              "From excitement, to disappointment at finding nothing"], diff: 4 },
+        { q: "What does the narrator's reaction to the shot suggest about him?",
+          a: "He valued watching the living bird more than adding it to their supplies",
+          d: ["He thought Fritz had wasted valuable gunpowder",
+              "He was afraid the noise would attract savages",
+              "He did not believe Fritz had hit anything"], diff: 4 }
       ]
     },
     {
