@@ -816,6 +816,143 @@ verify("ratCoinValueSplit", question => {
   return null;
 }, v => v.toLocaleString("en-GB"));
 
+/* ── from the September 2026 papers ── */
+verify("geoRotatePolygon", question => {
+  const m = /divided into (\d+) equal segments.*?through (\d+)(½)? of those segments/.exec(question);
+  if (!m) return null;
+  const turns = Number(m[2]) + (m[3] ? 0.5 : 0);
+  return 360 / Number(m[1]) * turns;
+}, v => `${Number(v.toFixed(2))}°`);
+
+report.check("statModeFromTable: the mode is recounted from the table", () => {
+  const rows = byTemplate(app.maths, "statModeFromTable");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const pairs = [...q.question.matchAll(/(\d+) boxes hold (\d+) books each/g)]
+      .map(m => ({ boxes: Number(m[1]), books: Number(m[2]) }));
+    if (pairs.length < 3) return "cannot read the table";
+    /* Build the whole list of boxes and take the commonest value, rather than
+       looking for the biggest count - a different route to the same place. */
+    const every = [];
+    pairs.forEach(p => { for (let k = 0; k < p.boxes; k += 1) every.push(p.books); });
+    const tally = {};
+    every.forEach(v => { tally[v] = (tally[v] || 0) + 1; });
+    const best = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    if (best.length > 1 && best[0][1] === best[1][1]) return "the table has no single mode";
+    if (num(q.options[q.answer]) !== Number(best[0][0])) {
+      return `marked ${q.options[q.answer]}, the commonest value is ${best[0][0]}`;
+    }
+  }
+  return true;
+});
+
+verify("meaSquareAreaToPerimeter", question => {
+  const m = /area of a square field is ([\d.]+) (km²|m²|cm²)\. What is its perimeter\?/.exec(question);
+  if (!m) return null;
+  const side = Math.sqrt(Number(m[1]));
+  return { value: Number((side * 4).toFixed(4)), unit: m[2].replace("²", "") };
+}, r => `${r.value} ${r.unit}`);
+
+report.check("geoDecisionTreeQuestion: exactly one option separates the two shapes", () => {
+  /* The properties are looked up from a table written here, independently of
+     the one in the generator - so a wrong entry there would show up. */
+  const P = {
+    "parallelogram":        { regular: 0, rotational: 1, reflective: 0, equalSides: 0, rightAngle: 0, parallelPair: 1 },
+    "isosceles trapezium":  { regular: 0, rotational: 0, reflective: 1, equalSides: 0, rightAngle: 0, parallelPair: 1 },
+    "rectangle":            { regular: 0, rotational: 1, reflective: 1, equalSides: 0, rightAngle: 1, parallelPair: 1 },
+    "rhombus":              { regular: 0, rotational: 1, reflective: 1, equalSides: 1, rightAngle: 0, parallelPair: 1 },
+    "square":               { regular: 1, rotational: 1, reflective: 1, equalSides: 1, rightAngle: 1, parallelPair: 1 },
+    "kite":                 { regular: 0, rotational: 0, reflective: 1, equalSides: 0, rightAngle: 0, parallelPair: 0 },
+    "regular pentagon":     { regular: 1, rotational: 1, reflective: 1, equalSides: 1, rightAngle: 0, parallelPair: 0 },
+    "regular hexagon":      { regular: 1, rotational: 1, reflective: 1, equalSides: 1, rightAngle: 0, parallelPair: 1 },
+    "isosceles triangle":   { regular: 0, rotational: 0, reflective: 1, equalSides: 0, rightAngle: 0, parallelPair: 0 },
+    "equilateral triangle": { regular: 1, rotational: 1, reflective: 1, equalSides: 1, rightAngle: 0, parallelPair: 0 },
+    "scalene triangle":     { regular: 0, rotational: 0, reflective: 0, equalSides: 0, rightAngle: 0, parallelPair: 0 }
+  };
+  const KEY = {
+    "Does the shape have rotational symmetry?": "rotational",
+    "Does the shape have a line of symmetry?": "reflective",
+    "Is the shape regular?": "regular",
+    "Are all of the shape's sides the same length?": "equalSides",
+    "Does the shape have a right angle?": "rightAngle",
+    "Does the shape have a pair of parallel sides?": "parallelPair"
+  };
+  const rows = byTemplate(app.maths, "geoDecisionTreeQuestion");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /answering YES to the missing question are an? ([a-z ]+?), and shapes answering NO are an? ([a-z ]+?)\. Which/.exec(q.question);
+    if (!m) return "cannot read the two shapes from: " + q.question.slice(0, 110);
+    const yes = P[m[1]], no = P[m[2]];
+    if (!yes || !no) return `unknown shape: ${m[1]} / ${m[2]}`;
+    const splits = q.options.filter(option => {
+      const key = KEY[String(option)];
+      if (!key) return false;
+      return yes[key] === 1 && no[key] === 0;
+    });
+    if (q.options.some(o => !KEY[String(o)])) return `unknown question offered: ${q.options.find(o => !KEY[String(o)])}`;
+    if (splits.length !== 1) return `${splits.length} of the options separate ${m[1]} from ${m[2]}`;
+    if (String(q.options[q.answer]) !== String(splits[0])) {
+      return `marked "${q.options[q.answer]}" but "${splits[0]}" is the separating question`;
+    }
+  }
+  return true;
+});
+
+report.check("numFactorsFromList: the count and the listed factors both check out", () => {
+  const rows = byTemplate(app.maths, "numFactorsFromList");
+  if (!rows.length) return "the template generates nothing";
+  const factorsOf = n => { const out = []; for (let k = 1; k <= n; k += 1) if (n % k === 0) out.push(k); return out; };
+  for (const q of rows) {
+    const m = /has exactly (\d+) factors\. \d+ of them are shown here: ([\d, ]+)\. What is N\?/.exec(q.question);
+    if (!m) return "cannot read: " + q.question.slice(0, 100);
+    const count = Number(m[1]);
+    const shown = m[2].split(",").map(x => Number(x.trim()));
+    const answer = num(q.options[q.answer]);
+    const fs = factorsOf(answer);
+    if (fs.length !== count) return `${answer} has ${fs.length} factors, not ${count}`;
+    if (!shown.every(f => answer % f === 0)) return `${answer} is not divisible by all of ${m[2]}`;
+    /* No distractor may satisfy both conditions, or there are two answers. */
+    for (const option of q.options) {
+      const v = num(option);
+      if (v === answer) continue;
+      if (factorsOf(v).length === count && shown.every(f => v % f === 0)) {
+        return `${v} also has ${count} factors and all of ${m[2]}`;
+      }
+    }
+  }
+  return true;
+});
+
+report.check("meaMinimumBlocks: found by searching every small cuboid", () => {
+  const rows = byTemplate(app.maths, "meaMinimumBlocks");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = /length to be (\d+) times the width, and the width to be (\d+) cm longer than the height/.exec(q.question);
+    if (!m) return "cannot read the conditions";
+    const multiple = Number(m[1]), gap = Number(m[2]);
+    let best = Infinity;
+    for (let h = 1; h <= 40; h += 1) {
+      const w = h + gap;
+      const l = multiple * w;
+      best = Math.min(best, h * w * l);
+    }
+    if (num(q.options[q.answer]) !== best) {
+      return `marked ${q.options[q.answer]}, the smallest cuboid is ${best} blocks`;
+    }
+  }
+  return true;
+});
+
+verify("numCoinExchange", question => {
+  const m = /has £(\d+) in (\S+) coins\. He swaps half of his coins for (\S+) coins and the other half for (\S+) coins/.exec(question);
+  if (!m) return null;
+  const pence = name => (name.startsWith("£") ? Number(name.slice(1)) * 100 : Number(name.replace("p", "")));
+  const total = Number(m[1]) * 100;
+  const start = total / pence(m[2]);
+  const half = total / 2;
+  return start - (half / pence(m[3]) + half / pence(m[4]));
+}, v => v.toLocaleString("en-GB"));
+
 /* ── English ──
    There is no independent way to recompute "which technique is this", the way
    there is for a sum: the answer is a judgment, and a second judgment made here
