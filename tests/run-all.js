@@ -15,6 +15,7 @@ const SUITES = [
   ["answers", "answers re-derived from each question's own wording"],
   ["hints", "arithmetic written out inside hints"],
   ["figures", "drawn figures readable, and answerable without sight"],
+  ["passages", "comprehension texts, and the questions hanging off them"],
   ["variety", "templates still produce genuinely different questions"],
   ["papers", "what a generated paper looks like"]
 ];

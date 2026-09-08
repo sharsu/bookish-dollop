@@ -20,6 +20,7 @@ is the usual reason a new check reports `undefined`.
 | `answers` | answers re-derived from each question's own wording, by a route the generator does not use |
 | `hints` | every sum written out inside a hint balances |
 | `figures` | drawn figures carry their data in alt text, no label off-canvas or on top of another |
+| `passages` | comprehension texts: quoted fragments really are in the passage, line references exist |
 | `variety` | templates still produce genuinely different questions |
 | `papers` | length, 60/40 difficulty mix, topic spread, no repeated question or template, passages intact |
 
@@ -68,13 +69,13 @@ Rebuilt after the originals were lost, so it is not a restoration. Known gaps:
 
 - Only about 40 of the 376 maths templates have an independent answer check.
   The rest are covered for shape and formatting but not for correctness.
-- English is checked for shape only, plus two consistency checks on the newer
-  Literary Devices templates. There is no equivalent of `answers.js` for
-  comprehension, spelling or grammar, and no check that quoted fragments appear
-  in their passage. "Which technique is this" has no independent recomputation —
-  the answer is a judgment, and a second judgment written into a test would only
-  be the same opinion twice — so those checks confirm the questions are well
-  formed and that no single answer dominates the set.
+- English generators are checked for shape only, plus two consistency checks on
+  the newer Literary Devices templates. There is no equivalent of `answers.js`
+  for spelling or grammar. "Which technique is this" has no independent
+  recomputation — the answer is a judgment, and a second judgment written into a
+  test would only be the same opinion twice — so those checks confirm the
+  questions are well formed and that no single answer dominates the set.
+  Comprehension passages *are* covered, by `passages.js`.
 - NVRT is checked for shape only, and cannot take part in the template-spread
   check at all: its questions carry no `template` field, and its images carry no
   alt text.

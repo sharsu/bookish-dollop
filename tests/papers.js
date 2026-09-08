@@ -58,24 +58,53 @@ TYPES.forEach(testType => {
 });
 
 /* ── the configured difficulty mix ── */
-report.check("a maths paper is 60% Super Hard and 40% Hard, whatever the child has scored", () => {
-  /* The share used to come off the recent average, and at 38% that rule handed
-     back 80% HARD - the opposite of what is wanted. A weak record is therefore
-     the case worth testing. */
-  for (const [label, rows] of [
-    ["no history", null],
-    ["a strong record", history("maths", 92)],
-    ["a weak record", history("maths", 38)]
-  ]) {
-    const tally = {};
-    withHistory(rows, () => build("maths", 12)).forEach(paper =>
-      paper.forEach(q => { tally[q.difficulty] = (tally[q.difficulty] || 0) + 1; }));
-    const total = (tally[3] || 0) + (tally[4] || 0);
-    if (!total) return `${label}: no Hard or Super Hard questions at all`;
-    const superShare = Math.round(100 * (tally[4] || 0) / total);
-    if (Math.abs(superShare - 60) > 3) return `${label}: ${superShare}% Super Hard, expected 60%`;
-  }
-  return true;
+
+/* The expected shares are read from config rather than written here, so
+   changing the mix does not mean editing a test to agree with it. What is
+   being checked is that a real paper MATCHES the setting - which is a
+   different claim from the setting having a particular value. */
+function expectedShares(testType) {
+  const raw = config.difficultyMix;
+  if (!raw) return null;
+  const named = raw[testType];
+  const chosen = (named && typeof named === "object") ? named
+    : (raw.default && typeof raw.default === "object") ? raw.default : raw;
+  const allowed = ctx.getAllowedDifficulties(testType);
+  const weights = allowed.filter(level => Number(chosen[level]) > 0);
+  if (!weights.length) return null;
+  const total = weights.reduce((sum, level) => sum + Number(chosen[level]), 0);
+  return Object.fromEntries(weights.map(level =>
+    [level, Math.round(100 * Number(chosen[level]) / total)]));
+}
+
+TYPES.forEach(testType => {
+  report.check(`${testType}: a paper matches the configured mix, whatever the child has scored`, () => {
+    const want = expectedShares(testType);
+    if (!want) return true;                       // no mix configured for this test
+    /* The share used to come off the recent average, and at 38% that rule
+       handed back 80% Hard - the opposite of what was wanted. A weak record is
+       therefore the case worth testing. */
+    for (const [label, rows] of [
+      ["no history", null],
+      ["a strong record", history(testType, 92)],
+      ["a weak record", history(testType, 38)]
+    ]) {
+      const tally = {};
+      withHistory(rows, () => build(testType, 12)).forEach(paper =>
+        paper.forEach(q => { tally[q.difficulty] = (tally[q.difficulty] || 0) + 1; }));
+      const total = Object.values(tally).reduce((a, b) => a + b, 0);
+      if (!total) return `${label}: the papers were empty`;
+      for (const [level, share] of Object.entries(want)) {
+        const got = Math.round(100 * (tally[level] || 0) / total);
+        if (Math.abs(got - share) > 3) {
+          return `${label}: level ${level} is ${got}% of the paper, config asks for ${share}%`;
+        }
+      }
+      const stray = Object.keys(tally).filter(level => !(level in want));
+      if (stray.length) return `${label}: level ${stray.join(", ")} appeared but has no share`;
+    }
+    return true;
+  });
 });
 
 /* ── spread across templates ── */
