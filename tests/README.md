@@ -22,7 +22,7 @@ is the usual reason a new check reports `undefined`.
 | `figures` | drawn figures carry their data in alt text, no label off-canvas or on top of another |
 | `passages` | comprehension texts: quoted fragments really are in the passage, line references exist |
 | `variety` | templates still produce genuinely different questions |
-| `papers` | length, 60/40 difficulty mix, topic spread, no repeated question or template, passages intact |
+| `papers` | length, the difficulty mix `config.js` asks for, topic spread, no repeated question or template, passages intact |
 
 ## The one rule worth keeping
 

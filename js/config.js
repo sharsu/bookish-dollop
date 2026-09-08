@@ -109,8 +109,8 @@ const CONFIG = {
 
      The shares do not have to add up to 1 - whatever is listed is rescaled
      across the levels `allowedDifficulties` permits for that test. On a
-     60-question maths paper, { 2: 0.3, 3: 0.4, 4: 0.3 } is 18 Medium,
-     24 Hard and 18 Super Hard.
+     60-question maths paper, { 2: 0.20, 3: 0.45, 4: 0.35 } is 12 Medium,
+     27 Hard and 21 Super Hard - so 80% of the paper is Hard or above.
 
      A level that is allowed but not listed gets NO questions: the mix is a
      statement about what the paper should contain, not a hint. Remove the
@@ -127,9 +127,9 @@ const CONFIG = {
       4: 0.6                 // Super Hard
     },
     maths: {
-      2: 0.3,                // Medium
-      3: 0.4,                // Hard
-      4: 0.3                 // Super Hard
+      2: 0.20,               // Medium
+      3: 0.45,               // Hard
+      4: 0.35                // Super Hard
     }
   },
 
