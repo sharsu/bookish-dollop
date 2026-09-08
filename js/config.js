@@ -14,8 +14,11 @@ const CONFIG = {
      A missing row, or a missing/invalid value inside one, falls back to
      defaultQuestions / defaultTimeLimit above. */
   papers: {
-    /* 45 minutes across the board, as the QE papers run. */
-    maths:   { questions: 60, timeLimit: 45 },   // minutes
+    /* The QE papers run 45 minutes. Maths is set shorter on purpose: it now
+       includes Medium questions, which are quicker, and the tighter clock is
+       what makes the paper feel like the real thing. 60 questions in 35
+       minutes is 35 seconds each. */
+    maths:   { questions: 60, timeLimit: 35 },   // minutes
     nvrt:    { questions: 60, timeLimit: 45 },
     english: { questions: 65, timeLimit: 45 }
   },
@@ -85,39 +88,49 @@ const CONFIG = {
          for that test only, e.g.  english: [1, 2, 3, 4]
        • or change `default` to apply to every test type at once
 
-     To put Medium back, set:
+     Maths already uses Medium; to give NVRT and English it too, set:
          default: [2, 3, 4]
      and to include Easy as well:
          default: [1, 2, 3, 4]
+     Whatever a test is allowed, `difficultyMix` below decides how much of
+     its paper sits at each level.
      Order does not matter, and an empty or invalid list falls back to all
      four levels so a typo can never leave a paper with nothing to draw on. */
   allowedDifficulties: {
-    default: [3, 4]          // QE prep: Hard and Super Hard only
-    // maths:   [3, 4],
+    default: [3, 4],         // NVRT and English: Hard and Super Hard only
+    maths:   [2, 3, 4]       // maths also uses Medium, in the mix below
     // nvrt:    [3, 4],
     // english: [3, 4]
   },
 
   /* ── How much of a paper sits at each level ──────────────────────────
-     Shares per difficulty. They do not have to add up to 1: whatever is
-     listed is rescaled across the levels `allowedDifficulties` permits, so
-     { 3: 0.4, 4: 0.6 } means 40% Hard and 60% Super Hard, which on a
-     60-question maths paper is 24 and 36.
+     Shares per difficulty, written the same way as `allowedDifficulties`
+     above: a `default` for every test type, plus overrides by name.
 
-     A level that is allowed but not listed here gets NO questions - the mix
-     is a statement about what the paper should contain, not a hint. Remove
-     the block entirely (or set it to null) to go back to the old behaviour:
-     an even split across the allowed levels, tilted by the child's recent
-     average.
+     The shares do not have to add up to 1 - whatever is listed is rescaled
+     across the levels `allowedDifficulties` permits for that test. On a
+     60-question maths paper, { 2: 0.3, 3: 0.4, 4: 0.3 } is 18 Medium,
+     24 Hard and 18 Super Hard.
+
+     A level that is allowed but not listed gets NO questions: the mix is a
+     statement about what the paper should contain, not a hint. Remove the
+     block entirely (or set it to null) to go back to an even split across
+     the allowed levels, tilted by the child's recent average.
 
      Setting this turns OFF that score-based tilt for the band split. The
      tilt eases a struggling child down the levels, so if papers start
-     feeling punishing this is the first thing to relax - try
-     { 3: 0.5, 4: 0.5 }, or delete it. Topic choice stays adaptive either
-     way: the weakest topics still get the most questions. */
+     feeling punishing this is the first thing to relax. Topic choice stays
+     adaptive either way: the weakest topics still get the most questions. */
   difficultyMix: {
-    3: 0.4,                  // Hard
-    4: 0.6                   // Super Hard
+    default: {
+      3: 0.4,                // Hard
+      4: 0.6                 // Super Hard
+    },
+    maths: {
+      2: 0.3,                // Medium
+      3: 0.4,                // Hard
+      4: 0.3                 // Super Hard
+    }
   },
 
   /* Grade boundaries (%) */

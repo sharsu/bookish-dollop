@@ -775,16 +775,23 @@ function orderGroupsTogether(questions) {
 /* A mix set in config wins over both the even split and the score-based tilt.
    Returns null when nothing usable is configured, so a typo cannot leave a
    paper with no levels to draw on - the same rule allowedDifficulties follows. */
-function configuredDifficultyMix(allowed) {
+function configuredDifficultyMix(allowed, testType) {
   const raw = CONFIG.difficultyMix;
   if (!raw || typeof raw !== "object") return null;
-  const usable = allowed.filter(level => Number(raw[level]) > 0);
+  /* Same shape as allowedDifficulties: a per-test-type entry wins over
+     `default`. A flat map of levels is still honoured, so an older config
+     keeps working rather than silently losing its mix. */
+  const named = raw[normalizeTestType(testType)];
+  const chosen = (named && typeof named === "object") ? named
+    : (raw.default && typeof raw.default === "object") ? raw.default
+    : raw;
+  const usable = allowed.filter(level => Number(chosen[level]) > 0);
   if (!usable.length) return null;
-  return restrictWeights(raw, allowed);
+  return restrictWeights(chosen, allowed);
 }
 
-function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES) {
-  const configured = configuredDifficultyMix(allowed);
+function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES, testType) {
+  const configured = configuredDifficultyMix(allowed, testType);
   if (configured) return buildWeightedTargets(allowed, configured, totalQuestions);
 
   const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
@@ -847,7 +854,7 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const studentResults = options.studentName
     ? storedResults.filter(result => result.studentName === options.studentName)
     : storedResults;
-  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults, allowed);
+  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults, allowed, options.testType);
   const topicTargets = buildTargets(topics, totalQuestions);
   const topicDifficultyPreferences = buildTopicDifficultyPreferences(topics, studentResults, difficultyOrder);
   const selected = [];
