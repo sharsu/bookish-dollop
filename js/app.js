@@ -170,7 +170,85 @@ const SUPER_HARD_DIFFICULTY = 4;
    paper, which is configured to start at Medium. */
 
 const SKILL_MASTERY_KEY = "mathsExamPrepSkillMastery";
-const PRACTICE_LENGTH = 8;
+
+const PRACTICE_SCORE_WINDOW = 5;   // recent papers read for the topic scores
+const PRACTICE_WEAK_BELOW = 60;    // below this a topic score is called out
+const PRACTICE_WEAK_PICK = 3;      // how many "pick the weakest" ticks
+
+/* One setting out of CONFIG.practice, with the old built-in number as the
+   fallback so a missing or nonsense value shortens nothing. */
+function practiceSetting(key, fallback) {
+  const value = Number((CONFIG.practice || {})[key]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/* How many questions follow a revision card. This was 8, written into the
+   code; it is CONFIG.practice.questionsAfterRevision now. */
+const PRACTICE_LENGTH = practiceSetting("questionsAfterRevision", 8);
+
+/* The difficulty presets a practice paper can be built at. A preset with no
+   levels of its own means "whatever a real paper of this type uses", which is
+   how the "match the real paper" one follows the settings above instead of
+   repeating them. */
+const FALLBACK_PRACTICE_PRESET = Object.freeze({
+  id: "exam", label: "Match the real paper",
+  detail: "The same spread of difficulty as a Maths test",
+  difficulties: null, mix: null, order: "mixed"
+});
+
+function getPracticePresets() {
+  const listed = (CONFIG.practice || {}).presets;
+  const usable = Array.isArray(listed) ? listed.filter(preset => preset && preset.id) : [];
+  return usable.length ? usable : [FALLBACK_PRACTICE_PRESET];
+}
+
+function getPracticePreset(id) {
+  const presets = getPracticePresets();
+  return presets.find(preset => preset.id === id) || presets[0];
+}
+
+/* The questions a practice paper may draw on: one topic list, one preset, no
+   DOM. Deduped here because the summary on the builder screen counts this to
+   tell a parent how long the paper can actually be. */
+function practicePracticePool(topics, preset) {
+  const allowed = getAllowedDifficulties("maths", preset.difficulties);
+  const pool = dedupeByPrintedQuestion(
+    getValidQuestionPool(getQuestionBankForTestType("maths"), allowed));
+  return pool.filter(q => topics.includes(q.topic));
+}
+
+/* Build the paper itself. Kept apart from the screen so it can be checked
+   directly: everything above this line is what a parent typed, everything
+   below is the same selection engine a real paper uses. */
+function buildPracticePaper(options) {
+  const topics = Array.isArray(options.topics) ? options.topics : [];
+  const preset = getPracticePreset(options.presetId);
+  const shuffleArray = options.shuffleArray || (arr => arr.slice());
+  if (!topics.length) return { questions: [], preset, pool: 0 };
+
+  const pool = practicePracticePool(topics, preset);
+  /* Short is better than padded: if the topics cannot fill the length asked
+     for, the paper is as long as they can honestly make it. */
+  const wanted = Math.max(1, Math.min(Number(options.count) || 0, pool.length));
+  if (!pool.length) return { questions: [], preset, pool: 0 };
+
+  const questions = selectQuizQuestions(pool, wanted, shuffleArray, {
+    studentName: options.studentName,
+    testType: "maths",
+    allowedDifficulties: preset.difficulties,
+    difficultyMix: preset.mix
+  });
+
+  /* A ladder, if the preset asks for one: the same easiest-first order the
+     revision practice uses, so a shaky topic opens gently. */
+  return {
+    preset,
+    pool: pool.length,
+    questions: preset.order === "easiest-first"
+      ? questions.slice().sort((a, b) => a.difficulty - b.difficulty)
+      : questions
+  };
+}
 const WEAK_SPOT_WINDOW = 5;      // how many recent papers to read
 const WEAK_SPOT_LIMIT = 6;       // how many skills to suggest
 
@@ -356,6 +434,18 @@ function getTestTypeConfig(testType) {
   return TEST_TYPE_CONFIG[normalizeTestType(testType)] || TEST_TYPE_CONFIG.maths;
 }
 
+/* What a result should be called. A practice paper is a Maths paper built
+   from a handful of chosen topics, so calling it "Maths Test" in the history
+   invites exactly the reading the practice flag exists to prevent. */
+function getResultLabel(result) {
+  const base = getTestTypeLabel(result?.testType);
+  if (!result?.practice) return base;
+  const topics = Array.isArray(result.practiceTopics) ? result.practiceTopics : [];
+  return topics.length
+    ? `Practice — ${topics.join(", ")}`
+    : "Practice Paper";
+}
+
 function getTestTypeLabel(testType) {
   return getTestTypeConfig(testType).label;
 }
@@ -408,16 +498,24 @@ function formatCompletedAt(isoString) {
   });
 }
 
-function loadStoredResults() {
+/* Practice papers are left out unless asked for. A practice paper is built
+   from the topics a parent is worried about, so its score says nothing about
+   how a whole paper would go - and the mastery store carries the same warning
+   for the same reason. Two callers do want them: the History screen, which
+   shows them on their own tab, and saveResultRecord, which would otherwise
+   rewrite the store without them and delete every practice result on the next
+   real paper. */
+function loadStoredResults(options = {}) {
   const storage = getStorage();
   if (!storage) return [];
 
   try {
     const raw = storage.getItem(RESULTS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed)
-      ? parsed.filter(result => result && typeof result.percentage === "number" && Array.isArray(result.topicBreakdown))
-      : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(result => result && typeof result.percentage === "number" && Array.isArray(result.topicBreakdown))
+      .filter(result => options.includePractice || !result.practice);
   } catch (error) {
     console.warn("Could not load saved results:", error);
     return [];
@@ -554,7 +652,15 @@ const ALL_DIFFICULTIES = [1, 2, 3, 4];
 /* The difficulties a paper of this type may use, from CONFIG.allowedDifficulties.
    Anything unusable — missing, empty, or containing no real level — falls back
    to all four, so a mistake in the config can never produce an empty paper. */
-function getAllowedDifficulties(testType) {
+/* `override` is the Practice Paper builder's doing: a practice paper is
+   pitched by the preset the parent chose, not by what a real paper of this
+   type is allowed. Anything outside the four levels is ignored rather than
+   trusted, so a bad preset cannot empty the paper. */
+function getAllowedDifficulties(testType, override) {
+  if (Array.isArray(override)) {
+    const chosen = ALL_DIFFICULTIES.filter(level => override.includes(level));
+    if (chosen.length) return chosen;
+  }
   const configured = CONFIG.allowedDifficulties || {};
   const chosen = configured[normalizeTestType(testType)] || configured.default;
   const levels = ALL_DIFFICULTIES.filter(level => Array.isArray(chosen) && chosen.includes(level));
@@ -775,6 +881,15 @@ function orderGroupsTogether(questions) {
 /* A mix set in config wins over both the even split and the score-based tilt.
    Returns null when nothing usable is configured, so a typo cannot leave a
    paper with no levels to draw on - the same rule allowedDifficulties follows. */
+/* A mix supplied by a caller rather than read from CONFIG - the practice
+   presets. Same rule as the configured one: a mix naming no level this paper
+   is allowed is no mix at all, and falls through to the normal behaviour. */
+function restrictedMix(mix, allowed) {
+  if (!mix || typeof mix !== "object") return null;
+  if (!allowed.some(level => Number(mix[level]) > 0)) return null;
+  return restrictWeights(mix, allowed);
+}
+
 function configuredDifficultyMix(allowed, testType) {
   const raw = CONFIG.difficultyMix;
   if (!raw || typeof raw !== "object") return null;
@@ -790,8 +905,9 @@ function configuredDifficultyMix(allowed, testType) {
   return restrictWeights(chosen, allowed);
 }
 
-function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES, testType) {
-  const configured = configuredDifficultyMix(allowed, testType);
+function buildAdaptiveDifficultyTargets(totalQuestions, recentResults, allowed = ALL_DIFFICULTIES,
+                                        testType, mixOverride) {
+  const configured = restrictedMix(mixOverride, allowed) || configuredDifficultyMix(allowed, testType);
   if (configured) return buildWeightedTargets(allowed, configured, totalQuestions);
 
   const recent = recentResults.slice(0, ADAPTIVE_RESULTS_WINDOW);
@@ -835,8 +951,12 @@ function buildTopicDifficultyPreferences(topics, recentResults, fallbackOrder) {
   }));
 }
 
+/* Restricting a paper to certain TOPICS needs nothing here: the topic list is
+   read off the pool, so handing in a pool filtered to the chosen topics gives
+   a paper of just those, with the balancing, the difficulty mix and the
+   no-repeated-template rule all still applied. */
 function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
-  const allowed = getAllowedDifficulties(options.testType);
+  const allowed = getAllowedDifficulties(options.testType, options.allowedDifficulties);
   const rangePool = dedupeByPrintedQuestion(getValidQuestionPool(pool, allowed));
 
   /* Fix the comprehension passages up front and draw only from those, so the
@@ -851,10 +971,14 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
   const difficultyOrder = shuffleArray(allowed.slice());
   const topics = shuffleArray([...new Set(validPool.map(q => q.topic))]);
   const storedResults = loadStoredResults().filter(result => matchesTestType(result, options.testType));
+  /* A practice paper is pitched by its preset, so the score-based tilt that
+     eases a struggling child down the levels must not also apply: the parent
+     has already said what they want. */
   const studentResults = options.studentName
     ? storedResults.filter(result => result.studentName === options.studentName)
     : storedResults;
-  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults, allowed, options.testType);
+  const difficultyTargets = buildAdaptiveDifficultyTargets(totalQuestions, studentResults, allowed,
+    options.testType, options.difficultyMix);
   const topicTargets = buildTargets(topics, totalQuestions);
   const topicDifficultyPreferences = buildTopicDifficultyPreferences(topics, studentResults, difficultyOrder);
   const selected = [];
@@ -1014,6 +1138,13 @@ class ExamApp {
     this.currentStudyConcept = "";
     this.currentSkill = null;
     this.practice = null;
+    /* The Practice Paper builder's state: which topics are ticked, which
+       difficulty preset is chosen, and - once one is running - what it was
+       built from, so the result can be labelled and the readiness history
+       left alone. */
+    this.practiceTopics = new Set();
+    this.practicePreset = "";
+    this.practicePaper = null;
 
     // DOM
     this.testTypeScreen = document.getElementById("test-type-screen");
@@ -1101,6 +1232,31 @@ class ExamApp {
        and the one on the setup screen, which used to lead to Learn Topics. */
     this.learnTopicsBtn?.addEventListener("click", () => this.openSkillLibrary());
     document.getElementById("revise-entry-btn")?.addEventListener("click", () => this.openSkillLibrary());
+
+    document.getElementById("practice-entry-btn")?.addEventListener("click", () => this.openPracticeBuilder());
+    document.getElementById("practice-build-back-btn")?.addEventListener("click", () => this.returnToTestTypeMenu());
+    document.getElementById("practice-start-btn")?.addEventListener("click", () => this.startPracticePaper());
+    document.getElementById("practice-pick-weak-btn")?.addEventListener("click", () => this.pickWeakestPracticeTopics());
+    document.getElementById("practice-clear-btn")?.addEventListener("click", () => {
+      this.practiceTopics = new Set();
+      this.hidePracticeError();
+      this.renderPracticeBuilder();
+    });
+    document.getElementById("practice-topic-grid")?.addEventListener("click", event => {
+      const tile = event.target.closest("[data-practice-topic]");
+      if (tile) this.togglePracticeTopic(tile.dataset.practiceTopic);
+    });
+    document.getElementById("practice-preset-list")?.addEventListener("click", event => {
+      const tile = event.target.closest("[data-practice-preset]");
+      if (!tile) return;
+      this.practicePreset = tile.dataset.practicePreset;
+      this.renderPracticeBuilder();
+    });
+    ["practice-questions", "practice-time"].forEach(id => {
+      document.getElementById(id)?.addEventListener("input", () => this.updatePracticeSummary());
+    });
+    /* Scores are per child, so changing the name re-sorts the topic list. */
+    document.getElementById("practice-name")?.addEventListener("change", () => this.renderPracticeBuilder());
     document.getElementById("revise-library-back-btn")?.addEventListener("click", () => this.returnToSetupMenu());
 
     /* Topic page */
@@ -1183,6 +1339,7 @@ class ExamApp {
       timeRemaining: this.timeRemaining,
       startTime: this.startTime,
       timeExpired: this.timeExpired,
+      practicePaper: this.practicePaper,
       savedAt: Date.now()
     };
   }
@@ -1261,6 +1418,9 @@ class ExamApp {
     this.timeRemaining = adjustedTimeRemaining;
     this.startTime = savedState.startTime || Date.now();
     this.timeExpired = !!savedState.timeExpired || adjustedTimeRemaining <= 0;
+    /* Or a practice paper picked up after a refresh would be filed as a real
+       one, which is exactly what the flag exists to prevent. */
+    this.practicePaper = savedState.practicePaper || null;
     this.examInProgress = true;
 
     if (this.studentInput) this.studentInput.value = this.studentName;
@@ -1350,6 +1510,9 @@ class ExamApp {
       this.showError(`Not enough questions available. Found: ${pool.length}`);
       return;
     }
+
+    /* Whatever the last paper was, this one is a real one. */
+    this.practicePaper = null;
 
     // Shuffle and select random questions, making sure a few super-hard ones are included
     this.quizQuestions = selectQuizQuestions(pool, this.numQuestions, arr => this.shuffleArray(arr), {
@@ -1588,12 +1751,20 @@ class ExamApp {
          keep, and the questions themselves are regenerated anyway. */
       wrongTemplates: this.quizQuestions
         .map((q, idx) => (idx in this.answers && this.answers[idx] !== q.answer ? q.template : null))
-        .filter(Boolean)
+        .filter(Boolean),
+      /* Present only on a practice paper, and what keeps it out of the
+         readiness history: a paper built from three weak topics says nothing
+         about how a full paper would go. */
+      ...(this.practicePaper
+        ? { practice: true, practiceTopics: this.practicePaper.topics,
+            practicePreset: this.practicePaper.presetId }
+        : {})
     };
   }
 
   saveResultRecord(resultRecord) {
-    const existingResults = loadStoredResults();
+    /* Everything, practice included: this list is written straight back. */
+    const existingResults = loadStoredResults({ includePractice: true });
     existingResults.unshift(resultRecord);
     persistStoredResults(existingResults);
   }
@@ -1605,7 +1776,8 @@ class ExamApp {
     const grade = CONFIG.grades.find(g => percentage >= g.min) || CONFIG.grades[CONFIG.grades.length - 1];
     document.getElementById("results-trophy").textContent = grade.trophy;
     document.getElementById("results-title").textContent = grade.label;
-    document.getElementById("results-student-name").textContent = `${this.studentName} — ${getTestTypeLabel(resultRecord.testType)} — ${percentage}%`;
+    document.getElementById("results-student-name").textContent =
+      `${this.studentName} — ${getResultLabel(resultRecord)} — ${percentage}%`;
 
     // Score circle
     document.getElementById("score-pct").textContent = percentage + "%";
@@ -1748,7 +1920,7 @@ class ExamApp {
     const emptyState = document.getElementById("parent-progress-empty");
     const content = document.getElementById("parent-progress-content");
     const subjectEmpty = document.getElementById("parent-progress-subject-empty");
-    const all = loadStoredResults();
+    const all = loadStoredResults({ includePractice: true });
 
     const backBtn = document.getElementById("progress-back-btn");
     if (backBtn) {
@@ -1832,7 +2004,7 @@ class ExamApp {
         <div class="history-item">
           <div class="history-main">
             <div class="history-title">${result.studentName || "Student"} — ${formatCompletedAt(result.completedAt)}</div>
-            <div class="history-subtitle">${getTestTypeLabel(result.testType)} • ${result.correct}/${result.questionCount} correct • ${result.superHardCount || 0} super hard question(s)</div>
+            <div class="history-subtitle">${getResultLabel(result)} • ${result.correct}/${result.questionCount} correct • ${result.superHardCount || 0} super hard question(s)</div>
           </div>
           <div class="history-score">${result.percentage}%</div>
           <div class="history-time">${formatDuration(result.timeTakenSeconds)}</div>
@@ -2036,6 +2208,275 @@ class ExamApp {
     this.currentStudyConcept = "";
     this.setupError?.setAttribute("hidden", "");
     this.showScreen(this.selectedTestType ? "setup" : "test-type");
+  }
+
+  /* ═══════════════════ PRACTICE PAPER ═══════════════════
+     A parent picks the topics; the paper is then an ordinary paper built from
+     only those. Nothing here rebuilds the selection - selectQuizQuestions
+     takes the topic list from the pool it is given, so a filtered pool is the
+     whole trick, and the balancing, the no-repeated-template rule and the
+     difficulty mix all still apply. */
+
+  openPracticeBuilder() {
+    this.setHistorySlug(false);
+    this.setupError?.setAttribute("hidden", "");
+    const defaults = (CONFIG.practice || {}).paper || {};
+    if (!this.practiceTopics) this.practiceTopics = new Set();
+    if (!this.practicePreset) this.practicePreset = defaults.preset || getPracticePresets()[0]?.id;
+
+    const nameField = document.getElementById("practice-name");
+    if (nameField && !nameField.value) {
+      /* Whoever last sat a paper, so the scores shown beside each topic are
+         that child's rather than everyone's. */
+      const recent = loadStoredResults({ includePractice: true })[0];
+      nameField.value = this.studentName || recent?.studentName || "";
+    }
+    const setNumber = (id, value, fallback) => {
+      const field = document.getElementById(id);
+      if (field && !field.value) field.value = Number(value) > 0 ? value : fallback;
+    };
+    setNumber("practice-questions", defaults.questions, 20);
+    setNumber("practice-time", defaults.timeLimit, 15);
+
+    this.renderPracticeBuilder();
+    this.showScreen("practice-build");
+  }
+
+  /* One row per topic: how many questions it can offer, and how the child has
+     been doing on it lately. Weakest first, because that is what the screen is
+     for; topics never yet answered sit at the bottom rather than the top,
+     where a missing score would look like a bad one. */
+  practiceTopicStats() {
+    const pool = dedupeByPrintedQuestion(
+      getValidQuestionPool(getQuestionBankForTestType("maths"), ALL_DIFFICULTIES));
+    const available = {};
+    pool.forEach(q => { available[q.topic] = (available[q.topic] || 0) + 1; });
+
+    const name = (document.getElementById("practice-name")?.value || "").trim();
+    const scored = {};
+    loadStoredResults()
+      .filter(result => matchesTestType(result, "maths"))
+      .filter(result => !name || result.studentName === name)
+      .slice(0, PRACTICE_SCORE_WINDOW)
+      .forEach(result => (result.topicBreakdown || []).forEach(row => {
+        if (!scored[row.topic]) scored[row.topic] = { correct: 0, total: 0 };
+        scored[row.topic].correct += row.correct;
+        scored[row.topic].total += row.total;
+      }));
+
+    return Object.keys(available)
+      .map(topic => {
+        const seen = scored[topic];
+        return {
+          topic,
+          available: available[topic],
+          answered: seen ? seen.total : 0,
+          percentage: seen && seen.total ? Math.round((100 * seen.correct) / seen.total) : null
+        };
+      })
+      .sort((a, b) => {
+        if ((a.percentage === null) !== (b.percentage === null)) return a.percentage === null ? 1 : -1;
+        if (a.percentage !== b.percentage) return (a.percentage ?? 0) - (b.percentage ?? 0);
+        return a.topic.localeCompare(b.topic);
+      });
+  }
+
+  renderPracticeBuilder() {
+    const stats = this.practiceTopicStats();
+    const grid = document.getElementById("practice-topic-grid");
+    if (grid) {
+      grid.innerHTML = "";
+      stats.forEach(row => grid.appendChild(this.buildPracticeTopicTile(row)));
+    }
+
+    const hint = document.getElementById("practice-topic-hint");
+    if (hint) {
+      const tried = stats.filter(row => row.percentage !== null).length;
+      hint.textContent = tried
+        ? `Scores are from the last ${PRACTICE_SCORE_WINDOW} maths papers, weakest topic first. Practice papers are not counted.`
+        : `No maths papers sat yet, so there are no scores to sort by. Pick the topics you want.`;
+    }
+
+    const presets = document.getElementById("practice-preset-list");
+    if (presets) {
+      presets.innerHTML = "";
+      getPracticePresets().forEach(preset => presets.appendChild(this.buildPracticePresetTile(preset)));
+    }
+
+    this.updatePracticeSummary();
+  }
+
+  buildPracticeTopicTile(row) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "practice-topic-tile";
+    button.classList.toggle("is-picked", this.practiceTopics.has(row.topic));
+    button.dataset.practiceTopic = row.topic;
+    button.setAttribute("aria-pressed", this.practiceTopics.has(row.topic) ? "true" : "false");
+
+    const box = document.createElement("span");
+    box.className = "practice-topic-box";
+    box.setAttribute("aria-hidden", "true");
+    button.appendChild(box);
+
+    const text = document.createElement("span");
+    text.className = "practice-topic-text";
+    const name = document.createElement("span");
+    name.className = "practice-topic-name";
+    name.textContent = row.topic;
+    text.appendChild(name);
+
+    const score = document.createElement("span");
+    score.className = "practice-topic-score";
+    if (row.percentage === null) {
+      score.textContent = `not tried yet · ${row.available} questions`;
+    } else {
+      score.textContent = `${row.percentage}% of ${row.answered} · ${row.available} questions`;
+      if (row.percentage < PRACTICE_WEAK_BELOW) score.classList.add("is-weak");
+    }
+    text.appendChild(score);
+    button.appendChild(text);
+    return button;
+  }
+
+  buildPracticePresetTile(preset) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "practice-preset";
+    button.classList.toggle("is-picked", this.practicePreset === preset.id);
+    button.dataset.practicePreset = preset.id;
+    button.setAttribute("aria-pressed", this.practicePreset === preset.id ? "true" : "false");
+
+    const dot = document.createElement("span");
+    dot.className = "practice-preset-dot";
+    dot.setAttribute("aria-hidden", "true");
+    button.appendChild(dot);
+
+    const text = document.createElement("span");
+    const label = document.createElement("span");
+    label.className = "practice-preset-label";
+    label.textContent = preset.label;
+    text.appendChild(label);
+    const detail = document.createElement("span");
+    detail.className = "practice-preset-detail";
+    detail.textContent = ` — ${preset.detail}`;
+    text.appendChild(detail);
+    button.appendChild(text);
+    return button;
+  }
+
+  /* Says what the paper will be, and warns BEFORE the start button is pressed
+     if the topics chosen cannot fill it at the difficulty asked for. */
+  updatePracticeSummary() {
+    const line = document.getElementById("practice-build-summary");
+    if (!line) return;
+    const picked = [...this.practiceTopics];
+    if (!picked.length) {
+      line.textContent = "No topics picked yet.";
+      return;
+    }
+    const wanted = this.practicePaperLength();
+    const supply = this.practiceAvailableCount(picked);
+    const preset = getPracticePreset(this.practicePreset);
+    const topicWord = picked.length === 1 ? "topic" : "topics";
+    line.textContent = supply < wanted
+      ? `${picked.length} ${topicWord} can only offer ${supply} questions at "${preset.label}" — the paper will be ${supply} long.`
+      : `${wanted} questions from ${picked.length} ${topicWord}, ${this.practiceTimeLimit()} minutes.`;
+  }
+
+  /* How many DIFFERENT questions the chosen topics hold at the chosen levels -
+     counted the way the selector counts them, duplicates removed, or the
+     summary would promise questions that do not exist. */
+  practiceAvailableCount(topics) {
+    return practicePracticePool(topics, getPracticePreset(this.practicePreset)).length;
+  }
+
+  practicePaperLength() {
+    const typed = Number(document.getElementById("practice-questions")?.value);
+    const fallback = Number(((CONFIG.practice || {}).paper || {}).questions) || 20;
+    const wanted = Number.isFinite(typed) && typed > 0 ? Math.floor(typed) : fallback;
+    return Math.min(Math.max(wanted, CONFIG.minQuestions || 1), CONFIG.maxQuestions || 100);
+  }
+
+  practiceTimeLimit() {
+    const typed = Number(document.getElementById("practice-time")?.value);
+    const fallback = Number(((CONFIG.practice || {}).paper || {}).timeLimit) || 15;
+    const wanted = Number.isFinite(typed) && typed > 0 ? Math.floor(typed) : fallback;
+    return Math.min(Math.max(wanted, CONFIG.minTime || 1), CONFIG.maxTime || 180);
+  }
+
+  togglePracticeTopic(topic) {
+    if (this.practiceTopics.has(topic)) this.practiceTopics.delete(topic);
+    else this.practiceTopics.add(topic);
+    this.renderPracticeBuilder();
+  }
+
+  pickWeakestPracticeTopics() {
+    const weakest = this.practiceTopicStats()
+      .filter(row => row.percentage !== null)
+      .slice(0, PRACTICE_WEAK_PICK);
+    this.practiceTopics = new Set(weakest.map(row => row.topic));
+    if (!weakest.length) {
+      this.showPracticeError("No maths papers have been sat yet, so there is nothing to call weakest. Pick the topics yourself.");
+    } else {
+      this.hidePracticeError();
+    }
+    this.renderPracticeBuilder();
+  }
+
+  showPracticeError(message) {
+    const box = document.getElementById("practice-build-error");
+    if (!box) return;
+    box.textContent = message;
+    box.removeAttribute("hidden");
+  }
+
+  hidePracticeError() {
+    document.getElementById("practice-build-error")?.setAttribute("hidden", "");
+  }
+
+  startPracticePaper() {
+    const name = (document.getElementById("practice-name")?.value || "").trim();
+    if (!name) return this.showPracticeError("Please enter a name");
+
+    const topics = [...this.practiceTopics];
+    if (!topics.length) return this.showPracticeError("Pick at least one topic");
+
+    const built = buildPracticePaper({
+      topics,
+      presetId: this.practicePreset,
+      count: this.practicePaperLength(),
+      studentName: name,
+      shuffleArray: arr => this.shuffleArray(arr)
+    });
+
+    if (!built.questions.length) {
+      return this.showPracticeError(
+        `Those topics have no questions at "${built.preset.label}". Try another difficulty.`);
+    }
+    this.hidePracticeError();
+
+    this.selectedTestType = "maths";
+    this.studentName = name;
+    this.quizQuestions = built.questions;
+    this.numQuestions = built.questions.length;
+    this.timeLimit = this.practiceTimeLimit();
+    this.practicePaper = { topics, presetId: built.preset.id, presetLabel: built.preset.label };
+
+    this.answers = {};
+    this.currentIndex = 0;
+    this.timeRemaining = this.timeLimit * 60;
+    this.startTime = Date.now();
+    this.timeExpired = false;
+    this.examInProgress = true;
+
+    this.hideResumeOverlay();
+    this.hideDiscardRecoveryConfirm(false);
+    this.showScreen("quiz");
+    this.displayTime();
+    this.updateQuestionDisplay();
+    this.startTimer();
+    this.persistExamProgress();
   }
 
   /* ═══════════════════ REVISION ═══════════════════ */
@@ -2455,7 +2896,7 @@ class ExamApp {
       this.studyTopicScreen?.setAttribute("hidden", "");
     }
 
-    ["revise-library", "revise-skill", "revise-practice"].forEach(screen => {
+    ["revise-library", "revise-skill", "revise-practice", "practice-build"].forEach(screen => {
       const el = document.getElementById(`${screen}-screen`);
       if (!el) return;
       if (name === screen) el.removeAttribute("hidden");
