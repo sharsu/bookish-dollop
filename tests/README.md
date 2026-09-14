@@ -67,7 +67,7 @@ So the checks in `answers.js` do this instead:
 
 Rebuilt after the originals were lost, so it is not a restoration. Known gaps:
 
-- Only about 40 of the 376 maths templates have an independent answer check.
+- Only about 65 of the 417 maths templates have an independent answer check.
   The rest are covered for shape and formatting but not for correctness.
 - English generators are checked for shape only, plus two consistency checks on
   the newer Literary Devices templates. There is no equivalent of `answers.js`

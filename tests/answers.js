@@ -1113,6 +1113,581 @@ report.check("litReportingClause: the answer is never also offered as a distract
     `${repeated[0][0]} is the answer ${repeated[0][1]} times`;
 });
 
+/* ── question-bank/56-Milan: the new topics ──────────────────────────────
+ *
+ * Roman numerals are PARSED rather than built, the divisibility puzzles are
+ * brute-forced over all ten digits, the card puzzles over every deal of the
+ * cards, the tally charts are re-counted from the marks as printed, the
+ * polygon diagonals enumerated corner pair by corner pair, the diagonal
+ * properties computed from the shapes' actual corners, the playing-card
+ * probabilities counted by dealing a real pack, and the L-shaped prism is
+ * built out of unit cubes with its exposed faces counted one at a time.
+ *
+ * Mutation-tested: adding the notch edges to the prism's perimeter, letting a
+ * trapezium into the right-angles group, reading the median off the middle
+ * ROW, and forgetting to halve the diagonal count are each caught, naming the
+ * template.
+ */
+
+const ROMAN_VALUE = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+function parseRoman(text) {
+  let total = 0;
+  for (let k = 0; k < text.length; k++) {
+    const here = ROMAN_VALUE[text[k]], next = ROMAN_VALUE[text[k + 1]] || 0;
+    if (here === undefined) return NaN;
+    total += next > here ? -here : here;
+  }
+  return total;
+}
+
+report.check("logRomanToNumber: the printed numeral parses to the printed answer", () => {
+  const rows = byTemplate(app.maths, "logRomanToNumber");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const shown = q.question.match(/value of ([IVXLCDM]+)\?/);
+    if (!shown) return `no numeral in "${q.question.slice(-60)}"`;
+    if (parseRoman(shown[1]) !== num(q.options[q.answer])) {
+      return `${shown[1]} parses to ${parseRoman(shown[1])}, answer says ${q.options[q.answer]}`;
+    }
+    /* The whole point of the question is the subtraction rule, so the value
+       you get by ignoring it must be offered and must not BE the answer. */
+    const addedUp = shown[1].split("").reduce((t, c) => t + ROMAN_VALUE[c], 0);
+    if (addedUp === parseRoman(shown[1])) return `${shown[1]} has no subtractive pair`;
+    if (!q.options.map(num).includes(addedUp)) return `${shown[1]}: the trap ${addedUp} is not offered`;
+  }
+  return true;
+});
+
+report.check("logRomanArithmetic: the operands parse and add to the answer, in standard form", () => {
+  const rows = byTemplate(app.maths, "logRomanArithmetic");
+  if (!rows.length) return "the template generates nothing";
+  const build = n => {
+    const table = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"],
+                   [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"],
+                   [5, "V"], [4, "IV"], [1, "I"]];
+    let left = n, out = "";
+    for (const [v, sym] of table) while (left >= v) { out += sym; left -= v; }
+    return out;
+  };
+  for (const q of rows) {
+    const m = q.question.match(/Work out ([IVXLCDM]+) \+ ([IVXLCDM]+)\./);
+    if (!m) return `cannot read "${q.question.slice(0, 60)}"`;
+    const want = parseRoman(m[1]) + parseRoman(m[2]);
+    if (parseRoman(q.options[q.answer]) !== want) {
+      return `${m[1]} + ${m[2]} is ${want}, answer ${q.options[q.answer]} parses to ${parseRoman(q.options[q.answer])}`;
+    }
+    for (const opt of q.options) {
+      if (build(parseRoman(opt)) !== opt) return `${opt} is not a standard-form numeral`;
+    }
+  }
+  return true;
+});
+
+["logDivisibleMissingDigit", "logDivisibleMissingDigitHard"].forEach(name => {
+  report.check(`${name}: exactly one digit fits, brute-forced over all ten`, () => {
+    const rows = byTemplate(app.maths, name);
+    if (!rows.length) return "the template generates nothing";
+    for (const q of rows) {
+      const shown = q.question.match(/In the number ([\d□]+) the box/);
+      const by = q.question.match(/divides exactly by (\d+)\./);
+      if (!shown || !by) return `cannot read "${q.question.slice(0, 70)}"`;
+      const fits = [];
+      for (let g = 0; g <= 9; g++) {
+        const candidate = Number(shown[1].replace("□", String(g)));
+        if (String(candidate).length !== shown[1].length) continue;   // no leading zero
+        if (candidate % Number(by[1]) === 0) fits.push(g);
+      }
+      if (fits.length !== 1) return `${shown[1]} by ${by[1]}: ${fits.length} digits fit (${fits})`;
+      if (fits[0] !== num(q.options[q.answer])) {
+        return `${shown[1]} by ${by[1]}: ${fits[0]} fits, answer says ${q.options[q.answer]}`;
+      }
+      /* An option that is not a single digit cannot be a missing digit. mk
+         invented "12" here once, when the distractor list ran short. */
+      if (q.options.some(o => !/^\d$/.test(o))) return `${shown[1]}: "${q.options.find(o => !/^\d$/.test(o))}" is not a digit`;
+    }
+    return true;
+  });
+});
+
+report.check("logCryptarithmSubtract: every digit pair that fits gives the printed answer", () => {
+  const rows = byTemplate(app.maths, "logCryptarithmSubtract");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = q.question.match(/answer is the two-digit number written .(\d)\./);
+    if (!m) return `cannot read "${q.question.slice(-80)}"`;
+    const tens = new Set();
+    for (let low = 0; low <= 9; low++) for (let high = low + 1; high <= 9; high++) {
+      const result = (10 * high + low) - (10 * low + high);
+      if (result >= 10 && result <= 99 && result % 10 === Number(m[1])) {
+        tens.add(Math.floor(result / 10));
+      }
+    }
+    if (tens.size !== 1) return `ending in ${m[1]}: ${tens.size} possible answers (${[...tens]})`;
+    if ([...tens][0] !== num(q.options[q.answer])) {
+      return `ending in ${m[1]}: works out as ${[...tens][0]}, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+["logCardWordSum", "logCardWordRest"].forEach(name => {
+  report.check(`${name}: the answer is forced, over every deal of the cards`, () => {
+    const rows = byTemplate(app.maths, name);
+    if (!rows.length) return "the template generates nothing";
+    for (const q of rows) {
+      const cardsText = q.question.match(/the numbers ([\d, and]+) written on the back/);
+      const word = q.question.match(/spell ([A-Z]+),/);
+      const twice = q.question.match(/The ([A-Z]) card is then laid down/);
+      const shown = q.question.match(/add up to (\d+)\./);
+      if (!cardsText || !word || !twice || !shown) return `cannot read "${q.question.slice(0, 90)}"`;
+      const cards = cardsText[1].split(/,| and /).map(t => t.trim()).filter(Boolean).map(Number);
+      const letters = word[1].split("");
+      if (cards.length !== letters.length) return `${word[1]}: ${cards.length} cards, ${letters.length} letters`;
+      const answers = new Set();
+      for (const deal of permutations(cards)) {
+        const value = {};
+        letters.forEach((l, k) => { value[l] = deal[k]; });
+        const spelt = letters.reduce((t, l) => t + value[l], 0);
+        if (spelt + value[twice[1]] !== Number(shown[1])) continue;
+        answers.add(name === "logCardWordSum" ? value[twice[1]] : spelt - value[twice[1]]);
+      }
+      if (answers.size === 0) return `${word[1]}: no deal of the cards gives ${shown[1]}`;
+      if (answers.size > 1) return `${word[1]}: the answer is not forced (${[...answers]})`;
+      if ([...answers][0] !== num(q.options[q.answer])) {
+        return `${word[1]}: deals give ${[...answers][0]}, answer says ${q.options[q.answer]}`;
+      }
+    }
+    return true;
+  });
+});
+
+const bigFactorial = n => {
+  let p = 1n;
+  for (let k = 2n; k <= BigInt(n); k++) p *= k;
+  return p;
+};
+
+report.check("countFactorialRatio: the factorials computed in full, and divided", () => {
+  const rows = byTemplate(app.maths, "countFactorialRatio");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    /* Two phrasings, and they name the two factorials in opposite orders. */
+    const bigger = q.question.match(/bigger than (\d+)! is (\d+)!\?/);
+    const divide = q.question.match(/Work out (\d+)! ÷ (\d+)!\./);
+    if (!bigger && !divide) return `cannot read "${q.question.slice(-60)}"`;
+    const lower = Number(bigger ? bigger[1] : divide[2]);
+    const upper = Number(bigger ? bigger[2] : divide[1]);
+    if (upper <= lower) return `read the factorials the wrong way round in "${q.question.slice(-40)}"`;
+    if (bigFactorial(upper) % bigFactorial(lower) !== 0n) return `${upper}!/${lower}! is not whole`;
+    if (bigFactorial(upper) / bigFactorial(lower) !== BigInt(num(q.options[q.answer]))) {
+      return `${upper}!/${lower}! is ${bigFactorial(upper) / bigFactorial(lower)}, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+report.check("countFactorialEquation: searching n from 2 to 30 finds one answer, the printed one", () => {
+  const rows = byTemplate(app.maths, "countFactorialEquation");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = q.question.match(/n! ÷ \(n − (\d+)\)! = ([\d,]+)\./);
+    if (!m) return `cannot read "${q.question}"`;
+    const drop = Number(m[1]), value = BigInt(m[2].replace(/,/g, ""));
+    const hits = [];
+    for (let n = drop; n <= 30; n++) {
+      if (bigFactorial(n) % bigFactorial(n - drop) === 0n
+          && bigFactorial(n) / bigFactorial(n - drop) === value) hits.push(n);
+    }
+    if (hits.length !== 1) return `${value} dropping ${drop}: ${hits.length} values of n (${hits})`;
+    if (hits[0] !== num(q.options[q.answer])) return `n is ${hits[0]}, answer says ${q.options[q.answer]}`;
+  }
+  return true;
+});
+
+/* A real pack, dealt out, rather than the counts the generator was given. */
+const PACK = [["hearts", "red"], ["diamonds", "red"], ["spades", "black"], ["clubs", "black"]]
+  .flatMap(([suit, colour]) =>
+    ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"]
+      .map(rank => ({ suit, colour, rank })));
+const isPicture = c => ["Jack", "Queen", "King"].includes(c.rank);
+const CARD_TESTS = {
+  "a red king": c => c.colour === "red" && c.rank === "King",
+  "a picture card (a Jack, a Queen or a King)": isPicture,
+  "a heart": c => c.suit === "hearts",
+  "a heart or a Queen": c => c.suit === "hearts" || c.rank === "Queen",
+  "a black picture card": c => c.colour === "black" && isPicture(c),
+  "an Ace or a spade": c => c.rank === "Ace" || c.suit === "spades",
+  "a card showing an even number (2, 4, 6, 8 or 10)": c => ["2", "4", "6", "8", "10"].includes(c.rank),
+  "a red card that is not a picture card": c => c.colour === "red" && !isPicture(c),
+  "a King or a Queen": c => ["King", "Queen"].includes(c.rank),
+  "a diamond that is not a picture card": c => c.suit === "diamonds" && !isPicture(c),
+  "a black Ace": c => c.colour === "black" && c.rank === "Ace",
+  "a club or a diamond": c => c.suit === "clubs" || c.suit === "diamonds",
+  "a Queen or a red card": c => c.rank === "Queen" || c.colour === "red",
+  "a spade that is not a picture card": c => c.suit === "spades" && !isPicture(c),
+  "a card that is neither a heart nor a King": c => c.suit !== "hearts" && c.rank !== "King",
+  "a Jack, or any card in clubs": c => c.rank === "Jack" || c.suit === "clubs"
+};
+const GROUP_TESTS = {
+  "hearts": c => c.suit === "hearts",
+  "red cards": c => c.colour === "red",
+  "Kings": c => c.rank === "King",
+  "picture cards": isPicture,
+  "Aces": c => c.rank === "Ace",
+  "spades": c => c.suit === "spades",
+  "black cards": c => c.colour === "black",
+  "cards showing an even number (2, 4, 6, 8 or 10)": c => ["2", "4", "6", "8", "10"].includes(c.rank),
+  "clubs": c => c.suit === "clubs",
+  "Queens": c => c.rank === "Queen",
+  "diamonds": c => c.suit === "diamonds",
+  "cards below 5, counting an Ace as 1 (an Ace, 2, 3 or 4)": c => ["Ace", "2", "3", "4"].includes(c.rank)
+};
+const asFraction = text => {
+  const m = String(text).match(/^(\d+)\/(\d+)$/);
+  return m ? Number(m[1]) / Number(m[2]) : NaN;
+};
+
+report.check("probPlayingCard: counted by dealing all 52 cards", () => {
+  const rows = byTemplate(app.maths, "probPlayingCard");
+  if (!rows.length) return "the template generates nothing";
+  if (PACK.length !== 52) return `the test pack holds ${PACK.length} cards`;
+  const seen = new Set();
+  for (const q of rows) {
+    const m = q.question.match(/that it is (.+)\?$/);
+    if (!m) return `cannot read "${q.question.slice(-50)}"`;
+    const test = CARD_TESTS[m[1]];
+    if (!test) return `no independent test written for "${m[1]}"`;
+    seen.add(m[1]);
+    if (!near(asFraction(q.options[q.answer]), PACK.filter(test).length / 52)) {
+      return `"${m[1]}": the pack holds ${PACK.filter(test).length}, answer says ${q.options[q.answer]}`;
+    }
+    for (const opt of q.options) {
+      const v = asFraction(opt);
+      if (!(v > 0 && v <= 1)) return `"${opt}" is not a probability`;
+    }
+  }
+  if (seen.size !== Object.keys(CARD_TESTS).length) {
+    return `only ${seen.size} of the ${Object.keys(CARD_TESTS).length} events appeared`;
+  }
+  return true;
+});
+
+report.check("probTwoCardsNoReplacement: counted over all 2,652 ordered pairs", () => {
+  const rows = byTemplate(app.maths, "probTwoCardsNoReplacement");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = q.question.match(/that both are (.+)\?$/);
+    if (!m) return `cannot read "${q.question.slice(-50)}"`;
+    const test = GROUP_TESTS[m[1]];
+    if (!test) return `no independent test written for "${m[1]}"`;
+    let favourable = 0, all = 0;
+    for (let a = 0; a < 52; a++) for (let b = 0; b < 52; b++) {
+      if (a === b) continue;                     // the first card is not put back
+      all++;
+      if (test(PACK[a]) && test(PACK[b])) favourable++;
+    }
+    if (all !== 2652) return `enumerated ${all} pairs, expected 2,652`;
+    if (!near(asFraction(q.options[q.answer]), favourable / all)) {
+      return `"${m[1]}": dealing gives ${favourable}/${all}, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+/* Re-count the marks that were actually printed, not the numbers behind them. */
+function readTally(question) {
+  const body = question.match(/groups of five\.\s+(.*?)\s+What is/);
+  if (!body) return null;
+  const rows = [];
+  for (const piece of body[1].split(/\s{2,}/)) {
+    const m = piece.match(/^(\d+) (?:book|goal)s?: ([| ]+)$/);
+    if (!m) return null;
+    rows.push({ value: Number(m[1]), count: (m[2].match(/\|/g) || []).length });
+  }
+  return rows.length ? rows : null;
+}
+
+report.check("statTallyMedian: the median of the marks as printed", () => {
+  const rows = byTemplate(app.maths, "statTallyMedian");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const chart = readTally(q.question);
+    if (!chart) return `cannot read the chart in "${q.question.slice(0, 110)}"`;
+    /* Write every child out as one number and sort: the definition of a
+       median, with no cumulative-frequency shortcut in sight. */
+    const all = chart.flatMap(r => Array(r.count).fill(r.value)).sort((a, b) => a - b);
+    if (all.length % 2 === 0) return `${all.length} children leaves no single middle one`;
+    if (all[(all.length - 1) / 2] !== num(q.options[q.answer])) {
+      return `the marks give ${all[(all.length - 1) / 2]}, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+report.check("statTallyMean: the mean of the marks as printed, exact as written", () => {
+  const rows = byTemplate(app.maths, "statTallyMean");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const chart = readTally(q.question);
+    if (!chart) return `cannot read the chart in "${q.question.slice(0, 110)}"`;
+    const all = chart.flatMap(r => Array(r.count).fill(r.value));
+    const mean = all.reduce((a, b) => a + b, 0) / all.length;
+    if (!near(mean, num(q.options[q.answer]))) {
+      return `the marks give ${mean}, answer says ${q.options[q.answer]}`;
+    }
+    /* A printed answer that is really 6.4999 rounded is unanswerable. */
+    if (Number(mean.toFixed(1)) !== mean) return `the mean ${mean} is not exact to 1 dp`;
+  }
+  return true;
+});
+
+report.check("tally charts: the marks really are grouped in fives", () => {
+  for (const name of ["statTallyMedian", "statTallyMean"]) {
+    for (const q of byTemplate(app.maths, name)) {
+      const body = q.question.match(/groups of five\.\s+(.*?)\s+What is/);
+      if (!body) return `${name}: cannot find the chart`;
+      for (const piece of body[1].split(/\s{2,}/)) {
+        const groups = (piece.split(": ")[1] || "").split(" ");
+        if (groups.slice(0, -1).some(g => g.length !== 5)) return `${name}: "${piece}" is not in fives`;
+        if (groups[groups.length - 1].length > 5) return `${name}: "${piece}" has a group over five`;
+      }
+    }
+  }
+  return true;
+});
+
+function readMileage(question) {
+  const body = question.match(/between four towns: (.*?)\. A /);
+  if (!body) return null;
+  const legs = {};
+  for (const piece of body[1].split("; ")) {
+    const m = piece.match(/^(\w+) to (\w+) (\d+)$/);
+    if (!m) return null;
+    legs[[m[1], m[2]].sort().join("~")] = Number(m[3]);
+  }
+  return legs;
+}
+const legBetween = (legs, a, b) => legs[[a, b].sort().join("~")];
+/* The shared num() above strips cm, g and p but not km, so "77 km" comes back
+   as NaN. These two answers are the only ones in kilometres. */
+const kmValue = text => {
+  const m = String(text).match(/^([\d,]+) km$/);
+  return m ? Number(m[1].replace(/,/g, "")) : null;
+};
+
+report.check("statMileageChart: the two legs the question names, added", () => {
+  const rows = byTemplate(app.maths, "statMileageChart");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const legs = readMileage(q.question);
+    const m = q.question.match(/drives from (\w+) to (\w+), and then on from \w+ to (\w+)\./);
+    if (!legs || !m) return `cannot read "${q.question.slice(0, 120)}"`;
+    const want = legBetween(legs, m[1], m[2]) + legBetween(legs, m[2], m[3]);
+    if (want !== kmValue(q.options[q.answer])) {
+      return `${m[1]}-${m[2]}-${m[3]} is ${want} km, answer says ${q.options[q.answer]}`;
+    }
+    if (q.options.some(o => kmValue(o) === null)) return `an option is not a distance in km`;
+  }
+  return true;
+});
+
+report.check("statMileageDetour: the detour, minus the direct route", () => {
+  const rows = byTemplate(app.maths, "statMileageDetour");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const legs = readMileage(q.question);
+    const m = q.question.match(/going from (\w+) to (\w+) calls at (\w+) on the way/);
+    if (!legs || !m) return `cannot read "${q.question.slice(0, 120)}"`;
+    const want = legBetween(legs, m[1], m[3]) + legBetween(legs, m[3], m[2])
+      - legBetween(legs, m[1], m[2]);
+    if (want <= 0) return `the longer way round is not longer (${want} km)`;
+    if (want !== kmValue(q.options[q.answer])) {
+      return `the detour is ${want} km, answer says ${q.options[q.answer]}`;
+    }
+    if (q.options.some(o => kmValue(o) === null)) return `an option is not a distance in km`;
+  }
+  return true;
+});
+
+report.check("mileage charts: the six distances describe towns that could exist", () => {
+  /* Six numbers written down freely can break the triangle rule, and then a
+     detour comes out SHORTER than going direct - the one thing these
+     questions must never do. */
+  for (const name of ["statMileageChart", "statMileageDetour"]) {
+    for (const q of byTemplate(app.maths, name)) {
+      const legs = readMileage(q.question);
+      if (!legs) return `${name}: cannot read the chart`;
+      const towns = [...new Set(Object.keys(legs).flatMap(k => k.split("~")))];
+      if (towns.length !== 4 || Object.keys(legs).length !== 6) {
+        return `${name}: ${towns.length} towns and ${Object.keys(legs).length} distances`;
+      }
+      for (const a of towns) for (const b of towns) for (const c of towns) {
+        if (a === b || b === c || a === c) continue;
+        if (legBetween(legs, a, c) + legBetween(legs, c, b) < legBetween(legs, a, b)) {
+          return `${name}: ${a} to ${b} via ${c} is shorter than going direct`;
+        }
+      }
+    }
+  }
+  return true;
+});
+
+/* Count the diagonals corner pair by corner pair, with no formula. */
+function countDiagonals(n) {
+  let found = 0;
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {
+    if (!(b - a === 1 || (a === 0 && b === n - 1))) found++;
+  }
+  return found;
+}
+
+report.check("geoPolygonDiagonals: counted corner pair by corner pair", () => {
+  const rows = byTemplate(app.maths, "geoPolygonDiagonals");
+  if (!rows.length) return "the template generates nothing";
+  const NAMED = { quadrilateral: 4, pentagon: 5, hexagon: 6, heptagon: 7, octagon: 8,
+                  nonagon: 9, decagon: 10, hendecagon: 11, dodecagon: 12 };
+  for (const q of rows) {
+    const named = q.question.match(/does a (\w+) have/);
+    const sided = q.question.match(/regular (\d+)-sided polygon/);
+    const n = sided ? Number(sided[1]) : NAMED[named && named[1]];
+    if (!n) return `cannot read the shape in "${q.question.slice(-60)}"`;
+    if (countDiagonals(n) !== num(q.options[q.answer])) {
+      return `${n} sides gives ${countDiagonals(n)} diagonals, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+report.check("geoShapeFromDiagonals: the printed count belongs to exactly one polygon", () => {
+  const rows = byTemplate(app.maths, "geoShapeFromDiagonals");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = q.question.match(/has (\d+) diagonals altogether/);
+    if (!m) return `cannot read "${q.question}"`;
+    const hits = [];
+    for (let n = 3; n <= 60; n++) if (countDiagonals(n) === Number(m[1])) hits.push(n);
+    if (hits.length !== 1) return `${m[1]} diagonals fits ${hits.length} polygons (${hits})`;
+    if (hits[0] !== num(q.options[q.answer])) {
+      return `${m[1]} diagonals means ${hits[0]} sides, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+/* The shapes as actual corners, so a claim about their diagonals is worked
+   out rather than remembered. The plain trapezium is drawn lopsided on
+   purpose: a symmetric one is an ISOSCELES trapezium, and those do have
+   diagonals of equal length. */
+const QUADS = {
+  square: [[0, 0], [4, 0], [4, 4], [0, 4]],
+  rectangle: [[0, 0], [6, 0], [6, 3], [0, 3]],
+  rhombus: [[0, 0], [4, 3], [8, 0], [4, -3]],
+  parallelogram: [[0, 0], [5, 0], [7, 3], [2, 3]],
+  kite: [[0, 0], [3, 4], [0, 10], [-3, 4]],
+  trapezium: [[0, 0], [9, 0], [6, 3], [2, 3]],
+  "isosceles trapezium": [[0, 0], [8, 0], [6, 3], [2, 3]]
+};
+function diagonalFacts(name) {
+  const corners = QUADS[name];
+  if (!corners) return null;
+  const [A, B, C, D] = corners;
+  const len = v => Math.hypot(v[0], v[1]);
+  const d1 = [C[0] - A[0], C[1] - A[1]], d2 = [D[0] - B[0], D[1] - B[1]];
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const m1 = mid(A, C), m2 = mid(B, D);
+  const angleAt = (corner, one, two) => {
+    const u = [one[0] - corner[0], one[1] - corner[1]];
+    const v = [two[0] - corner[0], two[1] - corner[1]];
+    return Math.acos((u[0] * v[0] + u[1] * v[1]) / (len(u) * len(v)));
+  };
+  return {
+    "cross at right angles": near(d1[0] * d2[0] + d1[1] * d2[1], 0),
+    "are the same length as each other": near(len(d1), len(d2)),
+    "cut each other exactly in half": near(m1[0], m2[0]) && near(m1[1], m2[1]),
+    "cut the corner angles they meet exactly in half":
+      near(angleAt(A, B, C), angleAt(A, D, C)) && near(angleAt(B, A, D), angleAt(B, C, D))
+  };
+}
+
+report.check("geoDiagonalProperty: worked out from the shapes' corners, and only one group fits", () => {
+  const rows = byTemplate(app.maths, "geoDiagonalProperty");
+  if (!rows.length) return "the template generates nothing";
+  const shapesIn = text => text.split(/, | and /).map(t => t.trim()).filter(Boolean);
+  const claims = new Set();
+  for (const q of rows) {
+    const claim = q.question.match(/diagonals that (.+)\?$/);
+    if (!claim) return `cannot read the claim in "${q.question}"`;
+    claims.add(claim[1]);
+    for (const shape of shapesIn(q.options[q.answer])) {
+      const facts = diagonalFacts(shape);
+      if (!facts) return `no corners written down for "${shape}"`;
+      if (facts[claim[1]] === undefined) return `no independent test for "${claim[1]}"`;
+      if (!facts[claim[1]]) return `a ${shape}'s diagonals do not ${claim[1]}, but it is in the answer`;
+    }
+    for (const option of q.options) {
+      if (option === q.options[q.answer]) continue;
+      if (shapesIn(option).every(shape => (diagonalFacts(shape) || {})[claim[1]])) {
+        return `"${option}" is also entirely correct for "${claim[1]}"`;
+      }
+    }
+  }
+  if (claims.size < 3) return `only ${claims.size} different claims ever appear`;
+  return true;
+});
+
+report.check("meaCompoundSurfaceArea: counted off a solid built from unit cubes", () => {
+  const rows = byTemplate(app.maths, "meaCompoundSurfaceArea");
+  if (!rows.length) return "the template generates nothing";
+  for (const q of rows) {
+    const m = q.question.match(
+      /prism is (\d+) cm long.*?cutting an? (\d+) cm by (\d+) cm rectangle out of the corner of an? (\d+) cm by (\d+) cm rectangle/);
+    if (!m) return `cannot read "${q.question.slice(0, 120)}"`;
+    const [len, w, h, W, H] = m.slice(1).map(Number);
+    /* Fill the cross-section, take the corner notch out, extrude it, then
+       count every cube face with nothing next to it. No formula involved,
+       and in particular no claim about what the perimeter does. */
+    const solid = new Set();
+    for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+      if (x >= W - w && y >= H - h) continue;
+      for (let z = 0; z < len; z++) solid.add(`${x},${y},${z}`);
+    }
+    let faces = 0;
+    for (const cell of solid) {
+      const [x, y, z] = cell.split(",").map(Number);
+      for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+        if (!solid.has(`${x + dx},${y + dy},${z + dz}`)) faces++;
+      }
+    }
+    if (faces !== num(q.options[q.answer])) {
+      return `${W} by ${H} less ${w} by ${h}, ${len} long: the cubes give ${faces}, answer says ${q.options[q.answer]}`;
+    }
+  }
+  return true;
+});
+
+report.check("56-Milan templates: every question is well formed and explained", () => {
+  const NEW = ["logRomanToNumber", "logRomanArithmetic", "logDivisibleMissingDigit",
+               "logDivisibleMissingDigitHard", "logCryptarithmSubtract", "logCardWordSum",
+               "logCardWordRest", "countFactorialRatio", "countFactorialEquation",
+               "probPlayingCard", "probTwoCardsNoReplacement", "statTallyMedian",
+               "statTallyMean", "statMileageChart", "statMileageDetour",
+               "geoPolygonDiagonals", "geoShapeFromDiagonals", "geoDiagonalProperty",
+               "meaCompoundSurfaceArea"];
+  let seen = 0;
+  for (const name of NEW) {
+    const rows = byTemplate(app.maths, name);
+    if (!rows.length) return `${name} generates nothing`;
+    for (const q of rows) {
+      seen++;
+      if (!q.explain || q.explain.length < 40) return `${name}: no explanation worth the name`;
+      if (/undefined|NaN|\[object/.test(q.question + q.explain)) return `${name}: broken text`;
+      if (q.difficulty < 3) return `${name}: a question below Hard (level ${q.difficulty})`;
+    }
+  }
+  if (seen < 800) return `only ${seen} questions checked, expected the full set`;
+  return true;
+});
+
 report.note(`${byTemplate(app.maths, "numSmallestEvenFromDigits").length} arrangements brute-forced; ` +
   `${new Set(app.maths.map(q => q.template)).size} templates in the bank`);
 process.exit(report.finish() ? 0 : 1);

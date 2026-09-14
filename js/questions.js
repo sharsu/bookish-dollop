@@ -10261,6 +10261,846 @@ const QUESTIONS = [];
     return q;
   }
 
+
+  /* ═══════════════════ 56-MILAN CURRICULUM GAPS ═══════════════════
+
+     Topics the "56-Milan" course teaches that the bank had no question for at
+     all — checked template by template, not by keyword, because an earlier
+     audit had "clock" matching "clockwise" and "range" matching "arrange".
+
+     These are new topics rather than harder numbers on an old one, so each
+     gets its own template. Bands are the step count earned, as set out at the
+     DRIVER comment below; nothing here sits below Hard. */
+
+  /* ── Roman numerals (Logical Maths, Day 11) ──────────────────────── */
+
+  const ROMAN_PAIRS = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+                       [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+                       [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  const ROMAN_SYMBOL_VALUE = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+
+  /* Greedy largest-first, which is what makes the form the standard one: the
+     subtractive pairs are in the table, so CD is reached before C. */
+  const toRoman = value => {
+    let left = value, out = "";
+    for (const [n, symbol] of ROMAN_PAIRS) while (left >= n) { out += symbol; left -= n; }
+    return out;
+  };
+
+  /* The numeral read with the subtraction rule ignored — every symbol simply
+     added up. It is the mistake the question is about, so it makes a better
+     distractor than the answer plus a round number. */
+  const romanAddedUp = text =>
+    text.split("").reduce((total, symbol) => total + ROMAN_SYMBOL_VALUE[symbol], 0);
+
+  const romanChunks = value => {
+    const parts = [];
+    let left = value;
+    for (const [n, symbol] of ROMAN_PAIRS) while (left >= n) { parts.push([n, symbol]); left -= n; }
+    return parts;
+  };
+
+  function logRomanToNumber(i) {
+    /* Three independent digits on strides coprime with their pools, so the
+       hundreds do not turn over in step with the units. */
+    const hundreds = [4, 9, 5, 6, 7, 8, 3][i % 7];
+    const tens = [9, 4, 8, 4, 9, 2, 9, 4][(i * 3) % 8];
+    const units = [9, 4, 7, 4, 9, 6, 4, 9][(i * 5) % 8];
+    const value = hundreds * 100 + tens * 10 + units;
+    const shown = toRoman(value);
+    /* Without a subtractive pair there is nothing to test — MLXVI is addition. */
+    if (!/CM|CD|XC|XL|IX|IV/.test(shown)) return null;
+    const addedUp = romanAddedUp(shown);
+    const wrong = [addedUp, value + 100, value - 10, value + 1, value - 100]
+      .filter(v => v !== value && v > 0);
+    const q = mk("Logic",
+      `In Roman numerals I = 1, V = 5, X = 10, L = 50, C = 100, D = 500 and ` +
+      `M = 1,000. A smaller symbol written BEFORE a larger one is taken away ` +
+      `from it; written after a larger one it is added on. What is the value ` +
+      `of ${shown}?`,
+      comma(value), wrong.map(v => comma(v)), 3, i);
+    if (q) {
+      const parts = romanChunks(value);
+      q.explain =
+        `Break the numeral into pieces from the left, taking the subtractive ` +
+        `pairs as single pieces:\n\n` +
+        parts.map(([n, symbol]) => `${symbol} = ${n}`).join(", ") + `.\n\n` +
+        `Adding those: ${parts.map(([n]) => n).join(" + ")} = ${value}.\n\n` +
+        `The trap is ${comma(addedUp)}, which is offered. That is what you get ` +
+        `by adding every letter up on its own and forgetting that a smaller ` +
+        `symbol in front of a larger one is SUBTRACTED.`;
+    }
+    return q;
+  }
+
+  function logRomanArithmetic(i) {
+    const a = [49, 94, 149, 249, 349, 449, 549][i % 7];
+    const b = [76, 128, 234, 342, 156, 263, 187, 295, 419][(i * 2) % 9];
+    const total = a + b;
+    const addedUp = romanAddedUp(toRoman(a)) + romanAddedUp(toRoman(b));
+    const wrong = [addedUp, total + 10, total - 10, total + 100]
+      .filter(v => v !== total && v > 0 && v < 4000)
+      .map(v => toRoman(v))
+      .filter(text => text !== toRoman(total));
+    const q = mk("Logic",
+      `Work out ${toRoman(a)} + ${toRoman(b)}. Give your answer as a Roman ` +
+      `numeral.`,
+      toRoman(total), wrong, 4, i);
+    if (q) q.explain =
+      `Turn both numerals into ordinary numbers first — adding Roman numerals ` +
+      `symbol by symbol does not work, because the subtractive pairs get in ` +
+      `the way.\n\n` +
+      `${toRoman(a)} = ${a} and ${toRoman(b)} = ${b}, so the total is ` +
+      `${a} + ${b} = ${total}.\n\n` +
+      `Now write ${total} back in Roman numerals, biggest value first: ` +
+      `${romanChunks(total).map(([n, symbol]) => `${symbol} = ${n}`).join(", ")}. ` +
+      `That gives ${toRoman(total)}.`;
+    return q;
+  }
+
+  /* ── Missing-digit divisibility (Applying, Alphanumeric past papers) ── */
+
+  /* The near-miss divisor: a digit that passes THIS test but fails the one
+     asked for is the distractor worth offering, because it is the answer a
+     child gets by checking half the rule. */
+  const DIVISIBILITY_NEAR_MISS = { 6: 3, 8: 4, 9: 3, 12: 6, 7: 3, 11: 3 };
+
+  function missingDigitPuzzle(i, divisor, lowest, width) {
+    /* Search for a pattern that pins the digit down, rather than testing one
+       and giving up: most patterns leave two or three digits fitting, and a
+       question with three right answers is worse than no question. */
+    for (let tries = 0; tries < 120; tries++) {
+      const base = lowest + ((i * 137 + tries * 311) % (lowest * 9));
+      const pos = 1 + ((i + tries) % (width - 1));         // never the leading digit
+      const digits = String(base).split("");
+      const fits = [];
+      for (let g = 0; g <= 9; g++) {
+        const candidate = Number(digits.map((c, k) => (k === pos ? g : c)).join(""));
+        if (candidate % divisor === 0) fits.push(g);
+      }
+      if (fits.length !== 1) continue;
+      const answer = fits[0];
+      const near = DIVISIBILITY_NEAR_MISS[divisor];
+      const nearMisses = [];
+      for (let g = 0; g <= 9; g++) {
+        const candidate = Number(digits.map((c, k) => (k === pos ? g : c)).join(""));
+        if (g !== answer && candidate % near === 0) nearMisses.push(g);
+      }
+      /* The near misses come first because they are the interesting wrong
+         answers, but there are sometimes only one or two of them. The rest of
+         the digits follow, so the list can never run short: a short list has
+         mk invent an option, and an invented option here is a number like 12
+         offered as a single digit. */
+      const wrong = [];
+      for (const g of [...nearMisses, ...Array.from({ length: 10 }, (u, k) => (answer + 1 + k) % 10)]) {
+        if (g !== answer && !wrong.includes(g)) wrong.push(g);
+      }
+      return {
+        shown: digits.map((c, k) => (k === pos ? "□" : c)).join(""),
+        complete: Number(digits.map((c, k) => (k === pos ? answer : c)).join("")),
+        answer, near, wrong
+      };
+    }
+    return null;
+  }
+
+  function logDivisibleMissingDigit(i) {
+    const divisor = [6, 8, 9, 12][i % 4];
+    const puzzle = missingDigitPuzzle(i, divisor, 1000, 4);
+    if (!puzzle) return null;
+    const digitSum = String(puzzle.complete).split("").reduce((t, d) => t + Number(d), 0);
+    const q = mk("Logic",
+      `In the number ${puzzle.shown} the box stands for one missing digit. ` +
+      `The complete number divides exactly by ${divisor}. What digit is in ` +
+      `the box?`,
+      `${puzzle.answer}`, puzzle.wrong.slice(0, 3).map(g => `${g}`), 3, i);
+    if (q) q.explain =
+      `Only one digit works, so this is a rule to apply, not ten divisions to ` +
+      `do.\n\n` +
+      (divisor === 9 || divisor === 6 || divisor === 12
+        ? `A number divides by 3 when its digits add up to a multiple of 3, and ` +
+          `by 9 when they add up to a multiple of 9. With ${puzzle.answer} in ` +
+          `the box the number is ${comma(puzzle.complete)}, whose digits add ` +
+          `up to ${digitSum}.\n\n`
+        : `A number divides by 8 when its last three digits do, and by 4 when ` +
+          `its last two do. With ${puzzle.answer} in the box the number is ` +
+          `${comma(puzzle.complete)}.\n\n`) +
+      `Check it: ${comma(puzzle.complete)} ÷ ${divisor} = ` +
+      `${comma(puzzle.complete / divisor)}, exactly.\n\n` +
+      `The other digits offered pass part of the test only — they give a ` +
+      `number that divides by ${puzzle.near} but not by ${divisor}, which is ` +
+      `what checking half the rule leaves you with.`;
+    return q;
+  }
+
+  function logDivisibleMissingDigitHard(i) {
+    const divisor = [7, 11][i % 2];
+    const puzzle = missingDigitPuzzle(i, divisor, 10000, 5);
+    if (!puzzle) return null;
+    const digits = String(puzzle.complete).split("").map(Number);
+    /* For 11 the test is the alternating sum, written out here so the child
+       can see where it comes from. */
+    const alternating = digits.reduce((t, d, k) => t + (k % 2 === 0 ? d : -d), 0);
+    const q = mk("Logic",
+      `In the number ${puzzle.shown} the box stands for one missing digit. ` +
+      `The complete number divides exactly by ${divisor}. What digit is in ` +
+      `the box?`,
+      `${puzzle.answer}`, puzzle.wrong.slice(0, 3).map(g => `${g}`), 4, i);
+    if (q) q.explain =
+      (divisor === 11
+        ? `There is a test for 11: add the digits in the 1st, 3rd and 5th ` +
+          `places, add the digits in the 2nd and 4th, and subtract. If the ` +
+          `answer is 0 or a multiple of 11, the number divides by 11.\n\n` +
+          `With ${puzzle.answer} in the box the number is ` +
+          `${comma(puzzle.complete)}, and that subtraction gives ` +
+          `${alternating}, a multiple of 11.\n\n`
+        : `There is no quick test for 7 that is worth learning at this level, ` +
+          `so work along the number instead: divide, carry the remainder to ` +
+          `the next digit, and see which box digit clears the remainder.\n\n` +
+          `With ${puzzle.answer} in the box the number is ` +
+          `${comma(puzzle.complete)}.\n\n`) +
+      `Check it: ${comma(puzzle.complete)} ÷ ${divisor} = ` +
+      `${comma(puzzle.complete / divisor)}, exactly. Only one digit does ` +
+      `this — the others leave a remainder.`;
+    return q;
+  }
+
+  /* ── Letters standing for digits (Applying, Alphanumeric past papers) ── */
+
+  const CRYPTARITHM_LETTERS = [["a", "b", "c"], ["p", "q", "r"],
+                               ["x", "y", "z"], ["m", "n", "t"]];
+
+  function logCryptarithmSubtract(i) {
+    const units = [2, 3, 4, 5, 6, 7, 8][i % 7];
+    const [low, high, result] = CRYPTARITHM_LETTERS[(i * 3) % 4];
+    /* "ba" minus "ab" is 10b + a - 10a - b, which is always 9 x (b - a). So the
+       printed units digit fixes the gap between the two digits, and with it
+       the whole answer — no need to know either digit. */
+    const gap = [1, 2, 3, 4, 5, 6, 7, 8].find(k => (9 * k) % 10 === units);
+    if (gap === undefined) return null;
+    const answer = Math.floor((9 * gap) / 10);
+    if (answer < 1) return null;
+    const wrong = [gap, units, answer + 1, 9 - answer, answer + 2]
+      .filter(v => v !== answer && v >= 0 && v <= 9);
+    const q = mk("Logic",
+      `${high} and ${low} are digits, and ${low} is smaller than ${high}. The ` +
+      `two-digit number written ${high}${low} has the two-digit number written ` +
+      `${low}${high} taken away from it. The answer is the two-digit number ` +
+      `written ${result}${units}. What is the value of ${result}?`,
+      `${answer}`, wrong.slice(0, 3).map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `You are not meant to find ${low} and ${high} — you cannot, and you do ` +
+      `not need to.\n\n` +
+      `${high}${low} means ${high} tens and ${low} ones, and ${low}${high} ` +
+      `means ${low} tens and ${high} ones. Taking one from the other leaves ` +
+      `9 lots of (${high} − ${low}). So the answer is ALWAYS in the 9 times ` +
+      `table: 9, 18, 27, 36, 45, 54, 63, 72.\n\n` +
+      `Only one of those ends in ${units}, and that is ` +
+      `9 × ${gap} = ${9 * gap}. So ${result} is the tens digit of ` +
+      `${9 * gap}, which is ${answer}.`;
+    return q;
+  }
+
+  /* ── Lettered cards (Logical Maths, Day 11 homework) ─────────────── */
+
+  const CARD_WORDS = ["RACE", "STAR", "CAKE", "CHEST", "BRAIN", "CLOUD", "FROST",
+                      "GIANT", "PEARL", "TIGER", "WHALE", "HORSE", "PLANT",
+                      "SHORT", "MAPS"];
+  const CARD_SETS = [[1, 2, 3, 4, 5], [2, 4, 6, 8, 10], [3, 5, 7, 9, 11],
+                     [1, 3, 5, 7, 9], [5, 10, 15, 20, 25], [2, 3, 5, 7, 11]];
+
+  const cardSetup = i => {
+    const word = CARD_WORDS[i % CARD_WORDS.length];
+    const cards = CARD_SETS[(i * 5) % CARD_SETS.length].slice(0, word.length);
+    const letters = word.split("");
+    const repeated = letters[(i * 7) % letters.length];
+    const repeatedValue = cards[(i * 11) % cards.length];
+    const total = cards.reduce((a, b) => a + b, 0);
+    const list = cards.slice(0, -1).join(", ") + " and " + cards[cards.length - 1];
+    const spelt = letters.slice(0, -1).join(", ") + " and " + letters[letters.length - 1];
+    return { word, cards, letters, repeated, repeatedValue, total, list, spelt };
+  };
+
+  function logCardWordSum(i) {
+    const c = cardSetup(i);
+    /* Every letter of the word is a different card, so a repeated letter is
+       one card laid down twice - the reason the second total is the first
+       total plus that card. */
+    if (new Set(c.letters).size !== c.letters.length) return null;
+    const shownTotal = c.total + c.repeatedValue;
+    const wrong = [c.total, shownTotal, shownTotal - c.repeatedValue - 1,
+                   c.cards[0], c.cards[c.cards.length - 1]]
+      .filter(v => v !== c.repeatedValue && v > 0);
+    const q = mk("Logic",
+      `Cards marked ${c.spelt} have the numbers ${c.list} written on the back, ` +
+      `one number on each card. Laid out to spell ${c.word}, every card is ` +
+      `used exactly once. The ${c.repeated} card is then laid down a second ` +
+      `time, and now the cards add up to ${shownTotal}. What is the value of ` +
+      `the ${c.repeated} card?`,
+      `${c.repeatedValue}`, wrong.slice(0, 3).map(v => `${v}`), 3, i);
+    if (q) q.explain =
+      `The word uses every card once, so the first total is the whole set ` +
+      `added up: ${c.cards.join(" + ")} = ${c.total}.\n\n` +
+      `Laying one card down again adds that card's number and nothing else. ` +
+      `So the ${c.repeated} card is worth ${shownTotal} − ${c.total} = ` +
+      `${c.repeatedValue}.\n\n` +
+      `You never need to work out which number is on which card — only that ` +
+      `the word uses all of them.`;
+    return q;
+  }
+
+  function logCardWordRest(i) {
+    const c = cardSetup(i);
+    if (new Set(c.letters).size !== c.letters.length) return null;
+    const shownTotal = c.total + c.repeatedValue;
+    const rest = c.total - c.repeatedValue;
+    const others = c.letters.filter(l => l !== c.repeated);
+    const wrong = [c.total, c.repeatedValue, shownTotal - c.repeatedValue,
+                   rest + c.repeatedValue * 2, rest - 1]
+      .filter(v => v !== rest && v > 0);
+    const q = mk("Logic",
+      `Cards marked ${c.spelt} have the numbers ${c.list} written on the back, ` +
+      `one number on each card. Laid out to spell ${c.word}, every card is ` +
+      `used exactly once. The ${c.repeated} card is then laid down a second ` +
+      `time, and now the cards add up to ${shownTotal}. What do the other ` +
+      `${others.length} cards add up to?`,
+      `${rest}`, wrong.slice(0, 3).map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Three steps, and the middle one is the one people skip.\n\n` +
+      `Step 1. ${c.word} uses every card once, so those cards come to ` +
+      `${c.cards.join(" + ")} = ${c.total}.\n\n` +
+      `Step 2. Laying the ${c.repeated} card down again adds only that card, ` +
+      `so it is worth ${shownTotal} − ${c.total} = ${c.repeatedValue}.\n\n` +
+      `Step 3. The other cards are the whole set with that one taken out: ` +
+      `${c.total} − ${c.repeatedValue} = ${rest}.\n\n` +
+      `${shownTotal} and ${c.total} are both offered, and both are totals of ` +
+      `the wrong set of cards.`;
+    return q;
+  }
+
+  /* ── Factorials (Logical Maths, Day 8) ───────────────────────────── */
+
+  const factorialOf = n => {
+    let product = 1;
+    for (let k = 2; k <= n; k++) product *= k;
+    return product;
+  };
+
+  function countFactorialRatio(i) {
+    const n = 7 + (i % 8);                     // 7! to 14!
+    /* (i * 3) % 3 is always 0 - the first version of this line never moved off
+       two factors, and the template had six distinct questions in fifty. */
+    const drop = 2 + (Math.floor(i / 8) % 2);  // cancel down to (n-2)! or (n-3)!
+    const lower = n - drop;
+    if (lower < 4) return null;
+    const kept = Array.from({ length: drop }, (unused, k) => n - k);
+    const answer = kept.reduce((a, b) => a * b, 1);
+    const wrong = [drop, n - lower + 1, answer + n, factorialOf(drop),
+                   kept.reduce((a, b) => a + b, 0), answer * n]
+      .filter(v => v !== answer && v > 0);
+    const asDivision = (i % 2) === 0;
+    const q = mk("Counting Principle",
+      `${n}! means ${n} × ${n - 1} × ${n - 2} × … × 2 × 1. ` +
+      (asDivision ? `Work out ${n}! ÷ ${lower}!.`
+                  : `How many times bigger than ${lower}! is ${n}!?`),
+      comma(answer), wrong.slice(0, 3).map(v => comma(v)), 3, i);
+    if (q) q.explain =
+      `Do not work out either factorial — ${n}! runs to ` +
+      `${comma(factorialOf(n))}, and you would only be cancelling it away ` +
+      `again.\n\n` +
+      `${n}! is ${lower}! with ${kept.join(", ")} multiplied on the front. ` +
+      `Everything from ${lower} downwards appears in both, so it all cancels ` +
+      `and what is left is ${kept.join(" × ")} = ${comma(answer)}.\n\n` +
+      `${drop} is offered: that is how many numbers cancel down to, not how ` +
+      `many times bigger the answer is.`;
+    return q;
+  }
+
+  function countFactorialEquation(i) {
+    const n = 6 + (i % 9);                     // answer runs 6 to 14
+    const drop = 2 + ((i * 5) % 2);            // two or three factors left
+    const kept = Array.from({ length: drop }, (unused, k) => n - k);
+    const value = kept.reduce((a, b) => a * b, 1);
+    const wrong = [n + 1, n - 1, n + drop, value - n, drop + n]
+      .filter(v => v !== n && v > 1);
+    const q = mk("Counting Principle",
+      `n! ÷ (n − ${drop})! = ${comma(value)}. What is the value of n?`,
+      `${n}`, wrong.slice(0, 3).map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `Dividing n! by (n − ${drop})! leaves the top ${drop} factors only: ` +
+      `n × ${Array.from({ length: drop - 1 }, (unused, k) => `(n − ${k + 1})`).join(" × ")}.\n\n` +
+      `So you need ${drop} whole numbers, one after another going down, that ` +
+      `multiply to ${comma(value)}. Try numbers near the size of the answer: ` +
+      `${kept.join(" × ")} = ${comma(value)}.\n\n` +
+      `The largest of them is n, so n = ${n}.`;
+    return q;
+  }
+
+  /* ── Playing cards (Probability, Day 3) ──────────────────────────── */
+
+  /* Counts are out of a standard 52-card pack: 4 suits of 13, two red and two
+     black, with 3 picture cards in each suit. */
+  const CARD_EVENTS = [
+    ["a red king", 2],
+    ["a picture card (a Jack, a Queen or a King)", 12],
+    ["a heart", 13],
+    ["a heart or a Queen", 16],
+    ["a black picture card", 6],
+    ["an Ace or a spade", 16],
+    ["a card showing an even number (2, 4, 6, 8 or 10)", 20],
+    ["a red card that is not a picture card", 20],
+    ["a King or a Queen", 8],
+    ["a diamond that is not a picture card", 10],
+    ["a black Ace", 2],
+    ["a club or a diamond", 26],
+    ["a Queen or a red card", 28],
+    ["a spade that is not a picture card", 10],
+    ["a card that is neither a heart nor a King", 36],
+    ["a Jack, or any card in clubs", 16]
+  ];
+
+  function probPlayingCard(i) {
+    const [event, count] = CARD_EVENTS[i % CARD_EVENTS.length];
+    /* The classic slip on an "or" event is adding the two groups and counting
+       the overlap twice, so that is the distractor offered first. */
+    const overlapSlip = /\bor\b/.test(event) ? count + 1 : count + 2;
+    const wrong = [overlapSlip, count - 1, count + 4, Math.round(count / 2)]
+      .filter(v => v !== count && v > 0 && v < 52)
+      .map(v => simp(v, 52));
+    const q = mk("Probability",
+      `One card is taken at random from a standard pack of 52 playing cards. ` +
+      `What is the probability that it is ${event}?`,
+      simp(count, 52), wrong, 3, i);
+    if (q) q.explain =
+      `Probability is the number of cards that count, over 52.\n\n` +
+      `There are ${count} cards in a pack that are ${event}, so the ` +
+      `probability is ${count}/52.\n\n` +
+      `That has to be cancelled down: ${count} and 52 both divide by ` +
+      `${gcd(count, 52)}, which gives ${simp(count, 52)}.` +
+      (/\bor\b/.test(event)
+        ? `\n\nWatch the word "or": a card that is in BOTH groups is still ` +
+          `only one card. Adding the two groups up and forgetting that is how ` +
+          `you end up one too many.`
+        : ``);
+    return q;
+  }
+
+  function probTwoCardsNoReplacement(i) {
+    const GROUPS = [["hearts", 13], ["red cards", 26], ["Kings", 4],
+                    ["picture cards", 12], ["Aces", 4], ["spades", 13],
+                    ["black cards", 26], ["cards showing an even number (2, 4, 6, 8 or 10)", 20],
+                    ["clubs", 13], ["Queens", 4], ["diamonds", 13],
+                    ["cards below 5, counting an Ace as 1 (an Ace, 2, 3 or 4)", 16]];
+    const [group, count] = GROUPS[i % GROUPS.length];
+    const topNumerator = count * (count - 1);
+    const answer = simp(topNumerator, 52 * 51);
+    /* With replacement is the wrong answer the question is guarding against;
+       the others come from adding instead of multiplying. */
+    const wrong = [simp(count * count, 52 * 52),
+                   simp(count * (count - 1), 52 * 52),
+                   simp(count * 2, 52 + 51),
+                   simp(topNumerator + 52, 52 * 51)]
+      .filter(text => text !== answer);
+    const q = mk("Probability",
+      `Two cards are taken from a standard pack of 52 playing cards, one ` +
+      `after the other and without the first being put back. What is the ` +
+      `probability that both are ${group}?`,
+      answer, wrong, 4, i);
+    if (q) q.explain =
+      `Two picks, so two fractions multiplied — and the pack changes between ` +
+      `them.\n\n` +
+      `First card: ${count} of the 52 cards are ${group}, so ${count}/52.\n\n` +
+      `Second card: one has gone and it was one of them, so now ` +
+      `${count - 1} of the 51 left, giving ${count - 1}/51.\n\n` +
+      `Multiply: ${count} × ${count - 1} = ${topNumerator} on the top and ` +
+      `52 × 51 = ${52 * 51} underneath, which cancels to ${answer}.\n\n` +
+      `Using 52 twice is the mistake to avoid — that would be putting the ` +
+      `first card back.`;
+    return q;
+  }
+
+
+  /* ── Tally charts (Statistics, Day 1) ────────────────────────────── */
+
+  /* Marks in fives, the way a tally is actually kept. The groups are what
+     make it a tally question rather than a frequency-table one: the child has
+     to count the marks before anything else can happen. */
+  const tallyMarks = count => {
+    const groups = [];
+    for (let left = count; left > 0; left -= 5) groups.push("|".repeat(Math.min(5, left)));
+    return groups.join(" ") || "none";
+  };
+
+  /* Walk candidate charts until one meets the condition the question needs -
+     an odd class for a median, a whole-number mean for a mean. Testing a
+     single chart and giving up left the mean template producing nothing at
+     all, and the median template throwing away three seeds in five. */
+  const tallySearch = (i, accept) => {
+    for (let tries = 0; tries < 90; tries++) {
+      const seed = i + tries * 11;
+      const first = 1 + (seed % 3);                  // the chart starts at 1, 2 or 3
+      const step = 1 + (Math.floor(seed / 3) % 2);
+      const values = Array.from({ length: 5 }, (unused, k) => first + k * step);
+      /* Counts and values must not both turn on the same number, or the chart
+         comes back unchanged with its labels moved along. */
+      const shift = (seed * 7) % 5;
+      const stretch = Math.floor(seed / 5) % 5;
+      const bump = Math.floor(seed / 25) % 5;
+      const counts = [4, 7, 3, 6, 2]
+        .map((c, k) => c + ((shift + k * 3) % 4) + (k === stretch ? 2 : 0)
+                         + (k === bump ? 3 : 0));
+      const top = Math.max(...counts);
+      if (counts.filter(c => c === top).length !== 1) continue;   // one clear mode
+      const total = counts.reduce((a, b) => a + b, 0);
+      const sum = values.reduce((t, v, k) => t + v * counts[k], 0);
+      const setup = { values, counts, total, sum, top, mode: values[counts.indexOf(top)] };
+      if (accept(setup)) return setup;
+    }
+    return null;
+  };
+
+  const tallyChartText = (values, counts, unit) =>
+    values.map((v, k) => `${v} ${v === 1 ? unit : unit + "s"}: ${tallyMarks(counts[k])}`)
+      .join("   ");
+
+  function statTallyMedian(i) {
+    const setup = tallySearch(i, s => s.total % 2 === 1);   // one middle child
+    if (!setup) return null;
+    const { values, counts, total, top, mode } = setup;
+    const middle = (total + 1) / 2;
+    let running = 0, median = null;
+    for (let k = 0; k < values.length; k++) {
+      running += counts[k];
+      if (median === null && running >= middle) median = values[k];
+    }
+    /* The wrong answers worth offering are the other averages and the middle
+       ROW - which is what taking the middle of the value column gives. The
+       position of the middle child is NOT offered: a class reading 15 books
+       when the chart stops at 7 gives itself away. */
+    const wrong = [mode, values[Math.floor(values.length / 2)],
+                   values[0], values[values.length - 1], median + 1, median - 1]
+      .filter(v => v !== median && v > 0);
+    const q = mk("Statistics",
+      `The tally chart shows how many books each child in a class read last ` +
+      `week. The marks are kept in groups of five.   ` +
+      `${tallyChartText(values, counts, "book")}   ` +
+      `What is the median number of books read?`,
+      `${median}`, wrong.slice(0, 3).map(v => `${v}`), 3, i);
+    if (q) q.explain =
+      `Count the marks first: ${counts.join(", ")} children, ` +
+      `${counts.join(" + ")} = ${total} in the class.\n\n` +
+      `The median is the middle CHILD, not the middle row. With ${total} ` +
+      `children the middle one is child number ${middle}, counting from the ` +
+      `start.\n\n` +
+      `Add the counts up until you reach child ${middle}: that lands in the ` +
+      `row for ${median} ${median === 1 ? "book" : "books"}, so the median is ` +
+      `${median}.\n\n` +
+      `${mode} is offered and is the mode — the row with the most marks. ` +
+      `${values[Math.floor(values.length / 2)]} is offered too: that is the ` +
+      `middle row of the chart, which is not the same as the middle child.`;
+    return q;
+  }
+
+  function statTallyMean(i) {
+    /* A whole-number mean is not just rare here, it never happens: the counts
+       give totals in the thirties and the goal numbers are small, so the
+       division always leaves something. One decimal place is what the papers
+       ask for, and this keeps the printed answer exact rather than rounded. */
+    const setup = tallySearch(i, s => (s.sum * 10) % s.total === 0);
+    if (!setup) return null;
+    const { values, counts, total, sum, top } = setup;
+    const mean = Number((sum / total).toFixed(1));
+    const wrong = [Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)),
+                   values[counts.indexOf(top)],
+                   Number((mean + 1).toFixed(1)), Number((mean - 1).toFixed(1)),
+                   Number((sum / values.length).toFixed(1))]
+      .filter(v => v !== mean && v > 0);
+    const q = mk("Statistics",
+      `The tally chart shows how many goals each player scored in a season. ` +
+      `The marks are kept in groups of five.   ` +
+      `${tallyChartText(values, counts, "goal")}   ` +
+      `What is the mean number of goals scored?`,
+      `${mean}`, wrong.slice(0, 3).map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `The mean needs the TOTAL number of goals, and each row stands for ` +
+      `several players.\n\n` +
+      `Step 1. Count the marks in each row: ${counts.join(", ")}. That is ` +
+      `${counts.join(" + ")} = ${total} players.\n\n` +
+      `Step 2. Multiply each row's goals by how many players scored them and ` +
+      `add: ${values.map((v, k) => `${v} × ${counts[k]}`).join(" + ")} = ` +
+      `${sum} goals.\n\n` +
+      `Step 3. Divide: ${sum} ÷ ${total} = ${mean}.\n\n` +
+      `Adding the goal numbers up and dividing by ${values.length} is the ` +
+      `trap: that treats one player and ${top} players as if they counted the ` +
+      `same.`;
+    return q;
+  }
+
+  /* ── Mileage charts (Statistics, Day 5) ──────────────────────────── */
+
+  const MILEAGE_TOWNS = [["Ashby", "Barton", "Crewe", "Denby"],
+                         ["Alton", "Bridport", "Cranleigh", "Datchet"],
+                         ["Appleby", "Bakewell", "Corbridge", "Dunster"]];
+
+  /* Four towns placed on a grid, so the six distances are guaranteed to hang
+     together: any set of six numbers written down freely can break the
+     triangle rule and give a "detour" that is shorter than going direct. */
+  const mileageSetup = i => {
+    const names = MILEAGE_TOWNS[i % MILEAGE_TOWNS.length];
+    for (let tries = 0; tries < 60; tries++) {
+      const seed = i + tries * 7;
+      const points = [
+        [0, 0],
+        [6 + (seed % 5), 0],
+        [2 + ((seed * 3) % 6), 5 + ((seed * 2) % 4)],
+        [9 + ((seed * 5) % 5), 4 + ((seed * 7) % 5)]
+      ];
+      const scale = 5 + (seed % 4);
+      const dist = (a, b) => Math.round(
+        Math.hypot(points[a][0] - points[b][0], points[a][1] - points[b][1]) * scale);
+      const legs = {};
+      let ok = true;
+      for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) {
+        legs[`${a}${b}`] = dist(a, b);
+        if (dist(a, b) < 10) ok = false;
+      }
+      /* Rounding can pull a triangle flat, so check every one of them. */
+      for (let a = 0; a < 4 && ok; a++) for (let b = a + 1; b < 4 && ok; b++)
+        for (let c = 0; c < 4 && ok; c++) {
+          if (c === a || c === b) continue;
+          const ab = legs[`${Math.min(a, b)}${Math.max(a, b)}`];
+          const ac = legs[`${Math.min(a, c)}${Math.max(a, c)}`];
+          const bc = legs[`${Math.min(b, c)}${Math.max(b, c)}`];
+          if (ac + bc <= ab + 4) ok = false;          // a detour worth asking about
+        }
+      if (!ok) continue;
+      const chart = [];
+      for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) {
+        chart.push(`${names[a]} to ${names[b]} ${legs[`${a}${b}`]}`);
+      }
+      return { names, legs, chart: chart.join("; ") };
+    }
+    return null;
+  };
+
+  function statMileageChart(i) {
+    const setup = mileageSetup(i);
+    if (!setup) return null;
+    const { names, legs, chart } = setup;
+    const via = 1 + (i % 3);
+    const start = 0, end = via === 3 ? 2 : 3;
+    if (via === end) return null;
+    const first = legs[`${Math.min(start, via)}${Math.max(start, via)}`];
+    const second = legs[`${Math.min(via, end)}${Math.max(via, end)}`];
+    const direct = legs[`${Math.min(start, end)}${Math.max(start, end)}`];
+    const answer = first + second;
+    const wrong = [direct, answer - direct, first, second, answer - 10]
+      .filter(v => v !== answer && v > 0);
+    const q = mk("Statistics",
+      `The mileage chart gives the distance in kilometres between four towns: ` +
+      `${chart}. A delivery van drives from ${names[start]} to ${names[via]}, ` +
+      `and then on from ${names[via]} to ${names[end]}. How far does it drive ` +
+      `altogether?`,
+      `${comma(answer)} km`, wrong.map(v => `${comma(v)} km`), 3, i);
+    if (q) q.explain =
+      `A mileage chart gives the distance between each PAIR of towns, so a ` +
+      `journey with a stop in the middle is two readings added together.\n\n` +
+      `${names[start]} to ${names[via]} is ${first} km, and ${names[via]} to ` +
+      `${names[end]} is ${second} km.\n\n` +
+      `${first} + ${second} = ${answer} km.\n\n` +
+      `${direct} km is offered: that is ${names[start]} straight to ` +
+      `${names[end]}, which is not the journey described.`;
+    return q;
+  }
+
+  function statMileageDetour(i) {
+    const setup = mileageSetup(i);
+    if (!setup) return null;
+    const { names, legs, chart } = setup;
+    const via = 1 + (i % 2);
+    const start = 0, end = 3;
+    const first = legs[`${Math.min(start, via)}${Math.max(start, via)}`];
+    const second = legs[`${Math.min(via, end)}${Math.max(via, end)}`];
+    const direct = legs[`${Math.min(start, end)}${Math.max(start, end)}`];
+    const answer = first + second - direct;
+    if (answer <= 0) return null;
+    const wrong = [first + second, direct, first + second + direct,
+                   Math.abs(first - second), direct - first]
+      .filter(v => v !== answer && v > 0);
+    const q = mk("Statistics",
+      `The mileage chart gives the distance in kilometres between four towns: ` +
+      `${chart}. A driver going from ${names[start]} to ${names[end]} calls at ` +
+      `${names[via]} on the way. How much further does that make the journey ` +
+      `than driving from ${names[start]} straight to ${names[end]}?`,
+      `${comma(answer)} km`, wrong.map(v => `${comma(v)} km`), 4, i);
+    if (q) q.explain =
+      `Two journeys, then the difference between them — the question asks how ` +
+      `much FURTHER, not how far.\n\n` +
+      `Calling at ${names[via]}: ${first} + ${second} = ${first + second} km.\n\n` +
+      `Straight there: ${direct} km.\n\n` +
+      `${first + second} − ${direct} = ${answer} km further.\n\n` +
+      `${first + second} km is offered and is the commonest slip: that is the ` +
+      `whole journey, not the extra bit.`;
+    return q;
+  }
+
+  /* ── Diagonals of a polygon (Geometry, Day 3) ────────────────────── */
+
+  const POLYGON_NAMES = { 4: "quadrilateral", 5: "pentagon", 6: "hexagon",
+                          7: "heptagon", 8: "octagon", 9: "nonagon",
+                          10: "decagon", 11: "hendecagon", 12: "dodecagon" };
+  const polygonDiagonals = n => (n * (n - 3)) / 2;
+
+  function geoPolygonDiagonals(i) {
+    const SIDES = [5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 24, 25, 30];
+    const n = SIDES[i % SIDES.length];
+    const answer = polygonDiagonals(n);
+    const named = POLYGON_NAMES[n];
+    /* Every wrong answer here is a real method gone wrong: counting the sides
+       in, forgetting to halve, or subtracting 2 instead of 3. */
+    const wrong = [(n * (n - 1)) / 2, n * (n - 3), n, (n * (n - 2)) / 2, n - 3]
+      .filter(v => v !== answer && v > 0 && Number.isInteger(v));
+    const q = mk("Geometry",
+      `A diagonal joins two corners of a shape that are not next to each ` +
+      `other. How many diagonals does ${named ? `a ${named}` : `a regular ${n}-sided polygon`} ` +
+      `have?`,
+      `${answer}`, wrong.slice(0, 3).map(v => `${v}`), 3, i);
+    if (q) q.explain =
+      `Take one corner. It can be joined to every other corner except itself ` +
+      `and the two beside it, so it has ${n} − 3 = ${n - 3} diagonals ` +
+      `leaving it.\n\n` +
+      `There are ${n} corners, which gives ${n} × ${n - 3} = ${n * (n - 3)}. ` +
+      `But every diagonal has been counted from BOTH of its ends, so halve ` +
+      `it: ${n * (n - 3)} ÷ 2 = ${answer}.\n\n` +
+      `${n * (n - 3)} is offered — that is the answer with the halving ` +
+      `forgotten, which is the usual slip.`;
+    return q;
+  }
+
+  function geoShapeFromDiagonals(i) {
+    const SIDES = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22];
+    const n = SIDES[i % SIDES.length];
+    const diagonals = polygonDiagonals(n);
+    const named = POLYGON_NAMES[n];
+    const wrong = [n + 1, n - 1, n + 2, diagonals - n, n + 3]
+      .filter(v => v !== n && v > 2);
+    const q = mk("Geometry",
+      `A polygon has ${diagonals} diagonals altogether. How many sides does ` +
+      `it have?`,
+      `${n}`, wrong.slice(0, 3).map(v => `${v}`), 4, i);
+    if (q) q.explain =
+      `This is the diagonals rule worked backwards. A shape with s sides has ` +
+      `s × (s − 3) ÷ 2 diagonals.\n\n` +
+      `So s × (s − 3) has to be double ${diagonals}, which is ` +
+      `${diagonals * 2}. Look for two numbers three apart that multiply to ` +
+      `${diagonals * 2}: ${n} × ${n - 3} = ${n * (n - 3)}.\n\n` +
+      `The larger one is the number of sides, so the shape has ${n} sides` +
+      `${named ? ` — a ${named}` : ``}.\n\n` +
+      `Checking is quick: ${n} × ${n - 3} ÷ 2 = ${diagonals}.`;
+    return q;
+  }
+
+  /* Quadrilaterals given as actual corners, so a claim about their diagonals
+     can be worked out rather than remembered. */
+  /* Drawn lopsided on purpose. A trapezium sketched symmetrically is an
+     ISOSCELES trapezium, and those do have diagonals of equal length - so the
+     symmetric one was being offered as a wrong answer to a question it
+     actually answers correctly. */
+  const QUAD_SHAPES = {
+    square: [[0, 0], [4, 0], [4, 4], [0, 4]],
+    rectangle: [[0, 0], [6, 0], [6, 3], [0, 3]],
+    rhombus: [[0, 0], [4, 3], [8, 0], [4, -3]],
+    parallelogram: [[0, 0], [5, 0], [7, 3], [2, 3]],
+    kite: [[0, 0], [3, 4], [0, 10], [-3, 4]],
+    trapezium: [[0, 0], [9, 0], [6, 3], [2, 3]],
+    "isosceles trapezium": [[0, 0], [8, 0], [6, 3], [2, 3]]
+  };
+  const DIAGONAL_CLAIMS = [
+    ["cross at right angles", ["square", "rhombus", "kite"]],
+    ["are the same length as each other", ["square", "rectangle", "isosceles trapezium"]],
+    ["cut each other exactly in half", ["square", "rectangle", "rhombus", "parallelogram"]],
+    ["cut the corner angles they meet exactly in half", ["square", "rhombus"]]
+  ];
+
+  function geoDiagonalProperty(i) {
+    const [claim, holds] = DIAGONAL_CLAIMS[i % DIAGONAL_CLAIMS.length];
+    const fails = Object.keys(QUAD_SHAPES).filter(name => !holds.includes(name));
+    if (fails.length < 3) return null;
+    /* Every subset of the true shapes, in a fixed order, so the correct group
+       is a different one from seed to seed. The first version took the same
+       three shapes every time and the template had one question in fifty. */
+    const groups = [];
+    for (let mask = 1; mask < (1 << holds.length); mask++) {
+      const group = holds.filter((unused, k) => mask & (1 << k));
+      if (group.length >= 2) groups.push(group);
+    }
+    const right = groups[Math.floor(i / DIAGONAL_CLAIMS.length) % groups.length];
+    const asText = names => names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+    /* Each wrong group is the right one with its last shape swapped for one
+       the claim is false about, so the groups cannot be told apart by their
+       size or by how familiar the shapes are. */
+    const wrong = [];
+    for (let k = 0; k < fails.length && wrong.length < 3; k++) {
+      const swapped = [...right.slice(0, -1), fails[(i + k) % fails.length]];
+      const text = asText(swapped);
+      if (text !== asText(right) && !wrong.includes(text)) wrong.push(text);
+    }
+    if (wrong.length < 3) return null;
+    const q = mk("Geometry",
+      `Which of these groups of shapes ALL have diagonals that ${claim}?`,
+      asText(right), wrong, 3, i);
+    if (q) q.explain =
+      `Draw both diagonals on each shape in turn and the odd one out shows ` +
+      `up.\n\n` +
+      `Diagonals that ${claim}: you get that in ${asText(holds)}.\n\n` +
+      `Every other group offered contains a shape where it is not true — ` +
+      `${asText(fails)} ${fails.length === 1 ? "is" : "are"} the shapes to ` +
+      `watch for in this one.`;
+    return q;
+  }
+
+  /* ── Surface area of an L-shaped prism (Geometry, Day 15) ────────── */
+
+  function meaCompoundSurfaceArea(i) {
+    const W = 8 + (i % 7), H = 6 + ((i * 3) % 6);
+    const w = 2 + (i % 3), h = 2 + ((i * 2) % 3);
+    if (w >= W || h >= H) return null;
+    const len = 4 + (i % 8);
+    const face = W * H - w * h;
+    /* Cutting a notch out of a CORNER leaves the perimeter unchanged: the two
+       new edges are exactly as long as the two they replaced. That is the
+       whole question. */
+    const perimeter = 2 * (W + H);
+    const answer = 2 * face + perimeter * len;
+    const wrong = [2 * W * H + perimeter * len,
+                   2 * face + (perimeter + 2 * w + 2 * h) * len,
+                   2 * face + (perimeter - 2 * w - 2 * h) * len,
+                   face + perimeter * len,
+                   2 * face + perimeter * (len - 1)]
+      .filter(v => v !== answer && v > 0);
+    const q = mk("Measurement",
+      `A prism is ${len} cm long. Its cross-section is an L-shape made by ` +
+      `cutting ${article(w)} ${w} cm by ${h} cm rectangle out of the corner ` +
+      `of ${article(W)} ${W} cm by ${H} cm rectangle. What is the total ` +
+      `surface area of the prism?`,
+      `${comma(answer)} cm²`, wrong.slice(0, 3).map(v => `${comma(v)} cm²`), 4, i);
+    if (q) q.explain =
+      `The surface is the two L-shaped ends plus the strip that wraps all the ` +
+      `way round.\n\n` +
+      `Step 1. One end: ${W} × ${H} = ${W * H}, minus the piece cut out, ` +
+      `${w} × ${h} = ${w * h}. That leaves ${W * H} − ${w * h} = ${face} cm². ` +
+      `Two ends come to ${face} × 2 = ${2 * face} cm².\n\n` +
+      `Step 2. The way round. Cutting the notch out of a CORNER does not ` +
+      `change the distance round the outside at all — the two new edges are ` +
+      `exactly as long as the two bits they replaced. So it is still ` +
+      `2 × (${W} + ${H}) = ${perimeter} cm.\n\n` +
+      `Step 3. The wrap-around strip is ${perimeter} × ${len} = ` +
+      `${perimeter * len} cm².\n\n` +
+      `Total: ${2 * face} + ${perimeter * len} = ${answer} cm². Adding the ` +
+      `notch edges on top is the trap, and it is offered.`;
+    return q;
+  }
+
   /* ═══════════════════ DRIVER ═══════════════════ */
 
   /* Each entry is [template, easiest level, hardest level].
@@ -10531,7 +11371,10 @@ const QUESTIONS = [];
       [meaSquareAreaToPerimeter, 4, 4],   // square root first, and the units change
       [meaMinimumBlocks, 4, 4],           // smallest means every side as low as it goes
       [meaReadScale, 4, 4],               // what one division is worth
-      [meaTriangleSplit, 4, 4]            // halving the base does not halve the area
+      [meaTriangleSplit, 4, 4],           // halving the base does not halve the area
+      /* question-bank/56-Milan, Day 15: the volume of this solid was covered,
+         the surface area was not. */
+      [meaCompoundSurfaceArea, 4, 4]      // a corner notch leaves the perimeter alone
     ],
     Geometry: [
       [geoMissingEndpoint, 2, 3],         // one end and the midpoint, find the far end
@@ -10582,7 +11425,11 @@ const QUESTIONS = [];
       [geoBackElevation, 4, 4],           // the outline mirrors, the inside lines do not
       [geoRotatePolygon, 3, 3],           // a share of 360, counted in segments
       [geoDecisionTreeQuestion, 4, 4],    // the question has to split the two shapes
-      [geoLineAt45, 4, 4]                 // 45 degrees to a diagonal is horizontal or vertical
+      [geoLineAt45, 4, 4],                // 45 degrees to a diagonal is horizontal or vertical
+      /* question-bank/56-Milan, Day 3 - and two QE papers ask it directly. */
+      [geoPolygonDiagonals, 3, 3],        // halve it: each one counted twice
+      [geoShapeFromDiagonals, 4, 4],      // the same rule, backwards
+      [geoDiagonalProperty, 3, 3]         // which shapes the claim is true of
     ],
     Statistics: [
       /* question-bank/NewText, single-occurrence shapes */
@@ -10611,7 +11458,13 @@ const QUESTIONS = [];
       [statScatterCorrelation, 3, 3],     // read the trend, left to right
       [statSetFromSummary, 4, 4],         // mean AND range, both at once
       [statModeFromTable, 3, 3],          // the value, not how often it occurs
-      [statTwoSeriesGap, 4, 4]            // the axis is percentages, the question is marks
+      [statTwoSeriesGap, 4, 4],           // the axis is percentages, the question is marks
+      /* question-bank/56-Milan, Days 1 and 5: two chart types the course
+         teaches that the bank had no question for. */
+      [statTallyMedian, 3, 3],            // the middle child, not the middle row
+      [statTallyMean, 4, 4],              // each row stands for several players
+      [statMileageChart, 3, 3],           // two readings, added
+      [statMileageDetour, 4, 4]           // two routes, then the difference
     ],
     "Counting Principle": [
       [countDigitProduct, 4, 4],          // digit sets, then their arrangements
@@ -10629,7 +11482,11 @@ const QUESTIONS = [];
       [countGridPaths, 3, 3],                 // choose which moves go sideways
       [countCircularReflect, 3, 3],           // a bracelet can be turned over
       [countChooseFromTwoGroups, 3, 3],       // two selections multiplied
-      [countTwoRestrictions, 4, 4]            // even AND above a bound
+      [countTwoRestrictions, 4, 4],           // even AND above a bound
+      /* question-bank/56-Milan, Day 8: factorials were used by the counting
+         templates but never asked about directly. */
+      [countFactorialRatio, 3, 3],            // cancel, then multiply what is left
+      [countFactorialEquation, 4, 4]          // the same cancelling, backwards
     ],
     Probability: [
       [probBagPick, 1, 1], [probDie, 2, 2], [probCoin, 1, 1], [probComplement, 1, 2],
@@ -10653,7 +11510,11 @@ const QUESTIONS = [];
       [probSumToOneUnknown, 4, 4],        // the leftover is shared, not read off
       [probExpectedReverse, 3, 3],        // how many goes, not how many hits
       [probCompareChances, 3, 3],         // unlike denominators, compared across
-      [probThreeIndependent, 4, 4]        // multiplied, never added
+      [probThreeIndependent, 4, 4],       // multiplied, never added
+      /* question-bank/56-Milan, Day 3: a whole strand of the course - the pack
+         of 52 - had no question in the bank. */
+      [probPlayingCard, 3, 3],            // count the cards, then cancel down
+      [probTwoCardsNoReplacement, 4, 4]   // the pack is smaller the second time
     ],
     Logic: [
       [logConsecutiveIntSum, 2, 2], [logConsecutiveEvenSum, 2, 3],
@@ -10672,7 +11533,16 @@ const QUESTIONS = [];
       [logTimeZoneChain, 3, 3],           // two offsets, one of them implied
       [logClocksCoincide, 4, 4],          // one gains, one loses
       [logClockDigits, 4, 4],             // the next time with the same digits
-      [logMazeBounce, 4, 4]               // turn clockwise at every wall
+      [logMazeBounce, 4, 4],              // turn clockwise at every wall
+      /* question-bank/56-Milan: topics the course teaches that the bank had
+         no question for at all. */
+      [logRomanToNumber, 3, 3],           // the pairs are taken away, not added
+      [logRomanArithmetic, 4, 4],         // out of Roman, add, back into Roman
+      [logDivisibleMissingDigit, 3, 3],   // one rule, not ten divisions
+      [logDivisibleMissingDigitHard, 4, 4], // the 7 and 11 rules, over 5 digits
+      [logCryptarithmSubtract, 4, 4],     // the digits never have to be found
+      [logCardWordSum, 3, 3],             // the word uses every card once
+      [logCardWordRest, 4, 4]             // and then take that card back out
     ]
   };
 
