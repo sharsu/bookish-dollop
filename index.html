@@ -21,6 +21,7 @@
         <button class="btn btn-secondary btn-large" data-test-type="nvrt">🧩 NVRT Test</button>
         <button class="btn btn-secondary btn-large" data-test-type="english">📖 English Test</button>
         <button id="revise-entry-btn" class="btn btn-learn btn-large">📚 Learn &amp; Practise</button>
+        <button id="practice-entry-btn" class="btn btn-practice btn-large">🎯 Practice Paper</button>
       </div>
     </div>
   </div>
@@ -223,6 +224,57 @@
 
       <div class="results-actions" id="revise-practice-actions">
         <button id="revise-practice-quit-btn" class="btn btn-secondary">Stop practising</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PRACTICE PAPER BUILDER ══════════════ -->
+  <div id="practice-build-screen" class="screen" hidden>
+    <div class="results-card study-card practice-build-card">
+      <div class="results-header">
+        <div class="trophy">🎯</div>
+        <h1>Build a Practice Paper</h1>
+        <p class="results-name">Pick the topics to work on. Everything else runs like a normal test.</p>
+      </div>
+
+      <div class="form-group practice-name-row">
+        <label for="practice-name">Who is sitting it</label>
+        <input type="text" id="practice-name" placeholder="Name" maxlength="40" autocomplete="off">
+      </div>
+
+      <div class="practice-build-section">
+        <div class="practice-build-head">
+          <h2>Topics</h2>
+          <div class="practice-build-quick">
+            <button type="button" id="practice-pick-weak-btn" class="btn btn-secondary btn-small">Pick the weakest 3</button>
+            <button type="button" id="practice-clear-btn" class="btn btn-secondary btn-small">Clear</button>
+          </div>
+        </div>
+        <p id="practice-topic-hint" class="study-section-copy"></p>
+        <div id="practice-topic-grid" class="practice-topic-grid"></div>
+      </div>
+
+      <div class="practice-build-section">
+        <h2>How hard</h2>
+        <div id="practice-preset-list" class="practice-preset-list"></div>
+      </div>
+
+      <div class="practice-build-section">
+        <h2>Length</h2>
+        <div class="practice-length-row">
+          <label for="practice-questions">Questions</label>
+          <input type="number" id="practice-questions" min="1" max="100" step="1">
+          <label for="practice-time">Minutes</label>
+          <input type="number" id="practice-time" min="1" max="180" step="1">
+        </div>
+      </div>
+
+      <p id="practice-build-summary" class="practice-build-summary"></p>
+      <p id="practice-build-error" class="error-msg" hidden></p>
+
+      <div class="results-actions">
+        <button id="practice-start-btn" class="btn btn-primary btn-large">🚀 Start Practice Paper</button>
+        <button id="practice-build-back-btn" class="btn btn-secondary btn-large">← Back</button>
       </div>
     </div>
   </div>

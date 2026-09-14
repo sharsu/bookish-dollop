@@ -133,6 +133,57 @@ const CONFIG = {
     }
   },
 
+  /* ── Practice ────────────────────────────────────────────────────────
+     Two separate things live here.
+
+     `questionsAfterRevision` is how many practice questions follow a revision
+     card. Eight was built into the code with no way to change it; this is that
+     number. Raise it if the run is too short to tell whether the idea has
+     stuck. Those questions already climb from the easiest level the skill has
+     to the hardest, so there is nothing to set for difficulty.
+
+     `paper` is what the Practice Paper builder opens with. A parent picks the
+     topics on the screen and can change these before starting, so these are
+     starting points rather than limits. A timeLimit of 0 means no clock. */
+  practice: {
+    questionsAfterRevision: 8,
+    paper: {
+      questions: 20,
+      timeLimit: 15,           // minutes; 0 for no clock
+      preset: "ladder"         // which of the presets below starts selected
+    },
+
+    /* How a practice paper is pitched. `difficulties` is which levels it may
+       draw on and `mix` their shares - written exactly like allowedDifficulties
+       and difficultyMix above, and read by the same code. Both null means "use
+       whatever a real Maths paper uses", so that preset follows the settings
+       above rather than repeating them.
+
+       `order: "easiest-first"` sorts the finished paper into a ladder, the way
+       the revision practice does. Any other value leaves it shuffled, which is
+       what a real paper does. */
+    presets: [
+      { id: "ladder",
+        label: "Everything, easiest first",
+        detail: "Easy through to Super Hard, gentlest question first",
+        difficulties: [1, 2, 3, 4],
+        mix: { 1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25 },
+        order: "easiest-first" },
+      { id: "exam",
+        label: "Match the real paper",
+        detail: "The same spread of difficulty as a Maths test",
+        difficulties: null,
+        mix: null,
+        order: "mixed" },
+      { id: "stretch",
+        label: "Hard and Super Hard only",
+        detail: "For a topic that is nearly there",
+        difficulties: [3, 4],
+        mix: { 3: 0.5, 4: 0.5 },
+        order: "mixed" }
+    ]
+  },
+
   /* Grade boundaries (%) */
   grades: [
     { min: 90, label: "Outstanding! 🌟", trophy: "🏆" },
