@@ -820,7 +820,7 @@ function chooseQuestionGroups(pool, count, shuffleArray) {
 /* Take the next question from a bucket, preferring the chosen passage that has
    contributed fewest questions so far, so the comprehension quota is spread
    evenly across the passages instead of exhausting one before starting another. */
-function takeQuestionFromBucket(bucket, groupCounts, templateCounts) {
+function takeQuestionFromBucket(bucket, groupCounts, templateCounts, templateRoom) {
   let bestIndex = -1;
   let fewestUsed = Infinity;
   for (let i = bucket.length - 1; i >= 0; i -= 1) {
@@ -838,18 +838,28 @@ function takeQuestionFromBucket(bucket, groupCounts, templateCounts) {
      only the numbers changed.
 
      The bucket was shuffled before any of this, so stepping from the end and
-     stopping at the first template not yet used takes a random one of the
-     unused - it is not a preference for whatever sorts last. */
+     keeping the first of the best takes a random one of them - it is not a
+     preference for whatever sorts last.
+
+     Between two equally used templates, take the one whose tightest bucket
+     has the most room. The counts are paper-wide but a template can sit at
+     several levels, and Easy often has only three: spend fracMultiply on a
+     level-2 question, where there are ten others, and the Easy questions are
+     left to repeat one. Sharing a level with ten templates costs nothing;
+     sharing one with three does. */
   if (templateCounts) {
+    const roomOf = template => (templateRoom && templateRoom[template]) || Infinity;
     let pick = -1;
     let fewest = Infinity;
+    let roomiest = -1;
     for (let i = bucket.length - 1; i >= 0; i -= 1) {
       const template = bucket[i] && bucket[i].template;
       const used = template ? (templateCounts[template] || 0) : 0;
-      if (used < fewest) {
+      const room = template ? roomOf(template) : Infinity;
+      if (used < fewest || (used === fewest && room > roomiest)) {
         fewest = used;
+        roomiest = room;
         pick = i;
-        if (used === 0) break;              // cannot do better than unused
       }
     }
     if (pick !== -1) return bucket.splice(pick, 1)[0];
@@ -999,6 +1009,16 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
     }
   });
 
+  /* For each template, how many templates the scarcest bucket holding it has -
+     see takeQuestionFromBucket. */
+  const templateRoom = {};
+  Object.values(buckets).forEach(byTopic => Object.values(byTopic).forEach(bucket => {
+    const templates = new Set(bucket.map(q => q.template).filter(Boolean));
+    templates.forEach(template => {
+      templateRoom[template] = Math.min(templateRoom[template] || Infinity, templates.size);
+    });
+  }));
+
   while (selected.length < totalQuestions) {
     const candidateTopics = topics
       .filter(topic => topicCounts[topic] < topicTargets[topic] && hasAvailableQuestionsForTopic(buckets, topic, difficultyOrder));
@@ -1047,7 +1067,7 @@ function selectQuizQuestions(pool, totalQuestions, shuffleArray, options = {}) {
 
     const chosenDifficulty = difficultyPool[0];
     const nextQuestion = takeQuestionFromBucket(buckets[chosenDifficulty][chosenTopic],
-      groupCounts, templateCounts);
+      groupCounts, templateCounts, templateRoom);
     if (!nextQuestion) break;
 
     selected.push(nextQuestion);
