@@ -15,6 +15,7 @@ const SUITES = [
   ["answers", "answers re-derived from each question's own wording"],
   ["hints", "arithmetic written out inside hints"],
   ["figures", "drawn figures readable, and answerable without sight"],
+  ["nvrt-figures", "newer NVRT families re-solved from what each picture shows"],
   ["passages", "comprehension texts, and the questions hanging off them"],
   ["variety", "templates still produce genuinely different questions"],
   ["papers", "what a generated paper looks like"]

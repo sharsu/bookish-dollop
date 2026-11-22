@@ -21,6 +21,7 @@ const FILES = [
   "js/questions.js",
   "js/questions-counting-principle.js",
   "js/questions-nvrt.js",
+  "js/questions-nvrt-2.js",
   "js/passages-english.js",
   "js/questions-english.js",
   "js/config.js",
