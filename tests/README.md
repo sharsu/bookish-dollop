@@ -20,7 +20,7 @@ is the usual reason a new check reports `undefined`.
 | `answers` | answers re-derived from each question's own wording, by a route the generator does not use |
 | `hints` | every sum written out inside a hint balances |
 | `figures` | drawn figures carry their data in alt text, no label off-canvas or on top of another |
-| `nvrt-figures` | the NVRT families in `js/questions-nvrt-2.js` re-solved from each picture: turns searched, heights projected, pieces fitted by trial, squares counted from the drawn lines |
+| `nvrt-figures` | the NVRT families in `js/questions-nvrt-2.js` re-solved from each picture: turns searched, heights projected, pieces fitted by trial, squares counted from the drawn lines, odd-one-out rules read off the SVG, series gaps predicted from the frames shown, hole-punch sheets folded back up, hidden targets searched at every turn |
 | `passages` | comprehension texts: quoted fragments really are in the passage, line references exist |
 | `variety` | templates still produce genuinely different questions |
 | `papers` | length, the difficulty mix `config.js` asks for, topic spread, no repeated question or template, passages intact |
@@ -81,6 +81,7 @@ Rebuilt after the originals were lost, so it is not a restoration. Known gaps:
   cannot take part in the template-spread check at all: their questions carry
   no `template` field, and their images carry no data to answer from. The
   newer families in `js/questions-nvrt-2.js` (Rotation, Plan View, Shape
-  Arithmetic, Count the Squares) do both - each keeps the model its picture was
+  Arithmetic, Count the Squares, and the newer Odd One Out, Series, Hole Punch
+  and Hidden Shape templates) do both - each keeps the model its picture was
   drawn from in `figureData`, and `nvrt-figures.js` answers every one of them
   again.

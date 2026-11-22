@@ -23,14 +23,22 @@ const report = createReport("NVRT FIGURES");
 
 const decode = uri => decodeURIComponent(String(uri).replace(/^data:image\/svg\+xml;charset=UTF-8,/, ""));
 const LETTERS = ["A", "B", "C", "D", "E"];
+/* Each family's templates and how many questions it should hold. The three
+   Series strips share one count: which kind a seed makes depends on its level. */
 const FAMILIES = {
-  nvrtRotation: 150,
-  nvrtPlanView: 120,
-  nvrtShapeArithmetic: 150,
-  nvrtCountSquares: 100
+  nvrtRotation: [["nvrtRotation"], 150],
+  nvrtPlanView: [["nvrtPlanView"], 120],
+  nvrtShapeArithmetic: [["nvrtShapeArithmetic"], 150],
+  nvrtCountSquares: [["nvrtCountSquares"], 100],
+  nvrtOddOneOutRule: [["nvrtOddOneOutRule"], 150],
+  seriesStrips: [["nvrtSeriesCounts", "nvrtSeriesTurns", "nvrtSeriesTriangles"], 150],
+  nvrtHolePunchFolds: [["nvrtHolePunchFolds"], 120],
+  nvrtHiddenShapeTurned: [["nvrtHiddenShapeTurned"], 120]
 };
 const ofTemplate = name => app.nvrt.filter(q => q.template === name);
-const fresh = app.nvrt.filter(q => q.template in FAMILIES);
+const ofFamily = family => app.nvrt.filter(q => FAMILIES[family][0].includes(q.template));
+const TEMPLATES = Object.values(FAMILIES).flatMap(([templates]) => templates);
+const fresh = app.nvrt.filter(q => TEMPLATES.includes(q.template));
 
 /* The markup inside <g data-fig="X">...</g>. The groups hold no nested <g>. */
 function group(svg, name) {
@@ -55,15 +63,15 @@ function solveAll(name, solve) {
 
 report.check("every family is present at its full count", () => {
   const short = Object.entries(FAMILIES)
-    .filter(([name, count]) => ofTemplate(name).length !== count)
-    .map(([name, count]) => `${name} ${ofTemplate(name).length}/${count}`);
+    .filter(([name, [, count]]) => ofFamily(name).length !== count)
+    .map(([name, [, count]]) => `${name} ${ofFamily(name).length}/${count}`);
   return short.length === 0 || `generators gave up on some seeds: ${short.join(", ")}`;
 });
 
 report.check("every family reaches a paper: at least a fifth Hard and a fifth Super Hard", () => {
   /* An NVRT paper draws only on levels 3 and 4 (config.js). */
   const thin = Object.keys(FAMILIES).filter(name => {
-    const qs = ofTemplate(name);
+    const qs = ofFamily(name);
     return [3, 4].some(level => qs.filter(q => q.difficulty === level).length < qs.length / 5);
   });
   return thin.length === 0 || `too few Hard or Super Hard in ${thin.join(", ")}`;
@@ -78,7 +86,7 @@ report.check("every question has five options, an explanation and its figure dat
 
 report.check("no family draws the same picture twice", () => {
   const dup = Object.keys(FAMILIES).filter(name => {
-    const images = ofTemplate(name).map(q => q.questionImage);
+    const images = ofFamily(name).map(q => q.questionImage);
     return new Set(images).size !== images.length;
   });
   return dup.length === 0 || `repeated pictures in ${dup.join(", ")}`;
@@ -87,8 +95,8 @@ report.check("no family draws the same picture twice", () => {
 report.check("the answer is spread across the five letters", () => {
   const lopsided = Object.keys(FAMILIES).filter(name => {
     const counts = [0, 0, 0, 0, 0];
-    ofTemplate(name).forEach(q => { counts[q.answer] += 1; });
-    return Math.max(...counts) > ofTemplate(name).length * 0.35;
+    ofFamily(name).forEach(q => { counts[q.answer] += 1; });
+    return Math.max(...counts) > ofFamily(name).length * 0.35;
   });
   return lopsided.length === 0 || `one letter is the answer too often in ${lopsided.join(", ")}`;
 });
@@ -300,6 +308,298 @@ report.check("Count the Squares: counting squares by the drawn lines gives the a
     const values = LETTERS.map(letter => Number((/>(\d+)<\/text>/.exec(group(svg, letter)) || [])[1]));
     if (values[q.answer] !== count) return `answer shows ${values[q.answer]} but ${count} squares are drawn`;
     return values.filter(value => value === count).length === 1 || `${count} is offered twice`;
+  }));
+
+/* ── Odd One Out: rules ── */
+
+/* The one position whose value differs from four that agree, or -1. */
+function loner(values) {
+  const keys = values.map(v => JSON.stringify(v));
+  const lone = keys.map((k, i) => (keys.filter(x => x === k).length === 1 ? i : -1)).filter(i => i >= 0);
+  const rest = keys.filter((_, i) => i !== lone[0]);
+  return lone.length === 1 && new Set(rest).size === 1 ? lone[0] : -1;
+}
+const pointsOf = attr => attr.trim().split(/\s+/).map(p => p.split(",").map(Number));
+function insidePolygon([x, y], pts) {
+  /* Winding by angle sum, not the ray casting the generator uses. */
+  let total = 0;
+  pts.forEach((a, i) => {
+    const b = pts[(i + 1) % pts.length];
+    const t1 = Math.atan2(a[1] - y, a[0] - x), t2 = Math.atan2(b[1] - y, b[0] - x);
+    let d = t2 - t1;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    total += d;
+  });
+  return Math.abs(total) > Math.PI;
+}
+const ODD_READERS = {
+  /* The slope of each figure's shading lines, read from its pattern. */
+  hatch: markup => Number(/patternTransform="rotate\(([\d.]+)\)"/.exec(markup)[1]) % 180,
+  /* Straight pieces in the open line, merging any that run straight on. */
+  segments: markup => {
+    const pts = pointsOf(/<polyline points="([^"]+)"/.exec(markup)[1]);
+    let pieces = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const prev = i >= 2 ? pts[i - 2] : null, a = pts[i - 1], b = pts[i];
+      const straightOn = prev && Math.abs((a[0] - prev[0]) * (b[1] - a[1]) - (a[1] - prev[1]) * (b[0] - a[0])) < 1e-6;
+      if (!straightOn) pieces += 1;
+    }
+    return pieces;
+  },
+  /* How many black and how many white circles lie inside the outline. */
+  inside: markup => {
+    const outline = pointsOf(/<polygon points="([^"]+)"[^>]*data-part="outline"/.exec(markup)[1]);
+    const count = { black: 0, white: 0 };
+    for (const m of markup.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="5" fill="([^"]+)"/g)) {
+      if (insidePolygon([Number(m[1]), Number(m[2])], outline)) count[m[3] === "#ffffff" ? "white" : "black"] += 1;
+    }
+    return count;
+  },
+  /* A rounded outline is drawn with many points, a straight-ended one with four. */
+  ends: markup => pointsOf(/<polygon points="([^"]+)"[^>]*data-part="outline"/.exec(markup)[1]).length > 8
+};
+
+report.check("Odd One Out rules: exactly one figure breaks the rule, read off the drawing, and it is the answer", () =>
+  solveAll("nvrtOddOneOutRule", q => {
+    const rule = q.figureData.rule;
+    let odd;
+    if (rule === "flipped") {
+      /* Four are turns of each other; the fifth is a turn of none of them. */
+      const figs = q.figureData.figures;
+      const turnsOfOthers = figs.map((f, i) => figs.filter((g, j) => j !== i && isTurn(g, f)).length);
+      odd = loner(turnsOfOthers.map(n => n > 0));
+    } else {
+      const svg = decode(q.questionImage);
+      odd = loner(LETTERS.map(letter => ODD_READERS[rule](group(svg, letter))));
+    }
+    if (odd < 0) return `${rule}: no single figure stands apart`;
+    return odd === q.answer || `${rule}: answer is ${LETTERS[q.answer]} but ${LETTERS[odd]} stands apart`;
+  }));
+
+report.check("Odd One Out rules: every rule is used", () => {
+  const used = new Set(ofTemplate("nvrtOddOneOutRule").map(q => q.figureData.rule));
+  const missing = ["hatch", "segments", "inside", "ends", "flipped"].filter(r => !used.has(r));
+  return missing.length === 0 || `never used: ${missing.join(", ")}`;
+});
+
+/* ── Series strips ── */
+
+/* Predict a value at the gap from the frames either side, given how a value
+   moves from one frame to the next. Every visible step must agree. */
+function predict(values, gap, step, next) {
+  let seen = null;
+  for (let i = 0; i + 1 < values.length; i += 1) {
+    if (values[i] === null || values[i + 1] === null) continue;
+    const s = step(values[i], values[i + 1]);
+    if (seen !== null && JSON.stringify(s) !== JSON.stringify(seen)) return { error: "the visible frames change by different amounts" };
+    seen = s;
+  }
+  if (seen === null) return { error: "no two neighbouring frames are visible" };
+  const forward = gap > 0 && values[gap - 1] !== null ? next(values[gap - 1], seen) : null;
+  const back = gap + 1 < values.length && values[gap + 1] !== null ? next(values[gap + 1], seen, true) : null;
+  if (forward !== null && back !== null && JSON.stringify(forward) !== JSON.stringify(back)) return { error: "the frames either side disagree" };
+  return { value: forward !== null ? forward : back };
+}
+const angleStep = (a, b) => (((b - a) % 360) + 360) % 360;
+const angleNext = (v, s, backwards) => (((v + (backwards ? -s : s)) % 360) + 360) % 360;
+const countStep = (a, b) => b - a;
+const countNext = (v, s, backwards) => v + (backwards ? -s : s);
+const flipStep = (a, b) => a === b;
+const flipNext = (v, same) => (same ? v : !v);
+
+function seriesVerdict(q, predicted, keys) {
+  const match = q.figureData.options.map((o, i) => (keys.every(k => o[k] === predicted[k]) ? i : -1)).filter(i => i >= 0);
+  if (match.length !== 1) return `${match.length} options fit the pattern`;
+  return match[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[match[0]]} fits`;
+}
+
+report.check("Series turns: the step seen between frames predicts exactly one option, the answer", () =>
+  solveAll("nvrtSeriesTurns", q => {
+    const { frames, gap } = q.figureData;
+    const predicted = {};
+    for (const key of ["a", "b"]) {
+      if (frames.find(f => f) && frames.find(f => f)[key] === undefined) continue;
+      const p = predict(frames.map(f => (f ? f[key] : null)), gap, angleStep, angleNext);
+      if (p.error) return `${key}: ${p.error}`;
+      predicted[key] = p.value;
+    }
+    return seriesVerdict(q, predicted, Object.keys(predicted));
+  }));
+
+report.check("Series turns: each marker is drawn at the angle its frame records", () =>
+  solveAll("nvrtSeriesTurns", q => {
+    const svg = decode(q.questionImage);
+    for (const [i, f] of q.figureData.frames.entries()) {
+      if (!f) continue;
+      const markup = group(svg, `frame-${i}`);
+      const centre = /<circle cx="([\d.]+)" cy="([\d.]+)"/.exec(markup).slice(1).map(Number);
+      const tip = pointsOf(/<polygon points="([^"]+)"/.exec(markup)[1])[0];
+      const angle = ((Math.atan2(tip[0] - centre[0], centre[1] - tip[1]) * 180) / Math.PI + 360) % 360;
+      if (Math.abs(((angle - f.a + 540) % 360) - 180) > 1) return `frame ${i + 1} draws ${angle.toFixed(0)} but records ${f.a}`;
+    }
+    return true;
+  }));
+
+report.check("Series counts: the counts and shading seen between frames predict exactly one option, the answer", () =>
+  solveAll("nvrtSeriesCounts", q => {
+    const { frames, gap } = q.figureData;
+    const predicted = {};
+    for (const [key, step, next] of [["tri", countStep, countNext], ["circ", countStep, countNext], ["blackFirst", flipStep, flipNext]]) {
+      const p = predict(frames.map(f => (f ? f[key] : null)), gap, step, next);
+      if (p.error) return `${key}: ${p.error}`;
+      predicted[key] = p.value;
+    }
+    return seriesVerdict(q, predicted, ["tri", "circ", "blackFirst"]);
+  }));
+
+report.check("Series counts: each frame draws the numbers it records", () =>
+  solveAll("nvrtSeriesCounts", q => {
+    const svg = decode(q.questionImage);
+    for (const [i, f] of q.figureData.frames.entries()) {
+      if (!f) continue;
+      const markup = group(svg, `frame-${i}`);
+      const tris = [...markup.matchAll(/data-tri="([01])"/g)].map(m => m[1]);
+      const circles = (markup.match(/<circle/g) || []).length;
+      if (tris.length !== f.tri || circles !== f.circ) return `frame ${i + 1} draws ${tris.length} triangles and ${circles} circles`;
+      if ((tris[0] === "1") !== f.blackFirst) return `frame ${i + 1} starts with the wrong colour`;
+    }
+    return true;
+  }));
+
+report.check("Series triangles: the three rules seen along the band predict exactly one option, the answer", () =>
+  solveAll("nvrtSeriesTriangles", q => {
+    const { cells, gap } = q.figureData;
+    const want = { up: gap % 2 === 0 };
+    /* The quarter: follow the triangles pointing the same way as the gap. */
+    const sameWay = cells.map((c, i) => (i % 2 === gap % 2 ? (c ? c.q : null) : undefined)).filter(v => v !== undefined);
+    const p = predict(sameWay, Math.floor(gap / 2), (a, b) => (((b - a) % 4) + 4) % 4, (v, s, back) => (((v + (back ? -s : s)) % 4) + 4) % 4);
+    if (p.error) return `quarter: ${p.error}`;
+    want.q = p.value;
+    /* The arrowhead: positions three apart always match. */
+    const heads = cells.map((c, i) => (c && i % 3 === gap % 3 ? c.head : null)).filter(Boolean);
+    if (!heads.length || new Set(heads).size !== 1) return "the arrowheads do not repeat every three";
+    want.head = heads[0];
+    if (q.figureData.options.some(o => o.up !== want.up)) return "an option points the wrong way for the gap";
+    return seriesVerdict(q, want, ["q", "head"]);
+  }));
+
+report.check("Series triangles: each triangle draws the quarter and arrowhead it records", () =>
+  solveAll("nvrtSeriesTriangles", q => {
+    const svg = decode(q.questionImage);
+    for (const [i, c] of q.figureData.cells.entries()) {
+      if (!c) continue;
+      const markup = group(svg, `frame-${i}`);
+      const quarter = Number(/data-quarter="(\d)"/.exec(markup)[1]);
+      const head = /data-head="(\w+)"/.exec(markup)[1];
+      if (quarter !== c.q || head !== c.head) return `triangle ${i + 1} draws quarter ${quarter} and a ${head} head`;
+    }
+    return true;
+  }));
+
+/* ── Hole Punch: folds ── */
+
+const mirrorAcross = ([x, y], fold) => {
+  /* Reflection through the foot of the perpendicular. */
+  const [px, py] = fold.p, [dx, dy] = fold.d;
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len, uy = dy / len;
+  const t = (x - px) * ux + (y - py) * uy;
+  const foot = [px + t * ux, py + t * uy];
+  return [2 * foot[0] - x, 2 * foot[1] - y];
+};
+const holeCentreOf = h => (h.c ? h.c : [h.pts.reduce((s, p) => s + p[0], 0) / h.pts.length, h.pts.reduce((s, p) => s + p[1], 0) / h.pts.length]);
+const holesAlike = (a, b) => a.kind === b.kind && (a.c
+  ? Math.hypot(a.c[0] - b.c[0], a.c[1] - b.c[1]) < 0.01
+  : a.pts.every(p => b.pts.some(r => Math.hypot(p[0] - r[0], p[1] - r[1]) < 0.01)));
+
+report.check("Hole Punch folds: folding each option back up stacks every hole on a punch, for one option only", () =>
+  /* The generator unfolds; this folds up. Each hole on the right sheet must
+     land exactly on a punched hole, the same shape the same way round, and
+     every punch must be reached by one hole from every layer. */
+  solveAll("nvrtHolePunchFolds", q => {
+    const { folds, punches, options } = q.figureData;
+    const layers = 2 ** folds.length;
+    const fits = options.map(holes => {
+      if (holes.length !== punches.length * layers) return false;
+      const hits = punches.map(() => 0);
+      for (const hole of holes) {
+        let h = hole;
+        for (const fold of folds) {
+          const c = holeCentreOf(h);
+          const cross = fold.d[0] * (c[1] - fold.p[1]) - fold.d[1] * (c[0] - fold.p[0]);
+          if (Math.sign(cross) === -fold.keep) h = h.c ? { ...h, c: mirrorAcross(h.c, fold) } : { ...h, pts: h.pts.map(p => mirrorAcross(p, fold)) };
+        }
+        const k = punches.findIndex(p => holesAlike(p, h));
+        if (k < 0) return false;
+        hits[k] += 1;
+      }
+      return hits.every(n => n === layers);
+    });
+    const matching = fits.map((ok, i) => (ok ? i : -1)).filter(i => i >= 0);
+    if (matching.length !== 1) return `${matching.length} options fold back onto the punches`;
+    return matching[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[matching[0]]} folds back`;
+  }));
+
+report.check("Hole Punch folds: each sheet draws as many holes as it records, and no two options look alike", () =>
+  solveAll("nvrtHolePunchFolds", q => {
+    const svg = decode(q.questionImage);
+    for (const [i, holes] of q.figureData.options.entries()) {
+      const drawn = (group(svg, LETTERS[i]).match(/fill="#ffffff" stroke="#0f172a" stroke-width="1"/g) || []).length;
+      if (drawn !== holes.length) return `${LETTERS[i]} draws ${drawn} holes for ${holes.length}`;
+      for (let j = 0; j < i; j += 1) {
+        const other = q.figureData.options[j];
+        if (other.length === holes.length && holes.every(h => other.some(o => holesAlike(h, o)))) return `${LETTERS[j]} and ${LETTERS[i]} look the same`;
+      }
+    }
+    return true;
+  }));
+
+/* ── Hidden Shape: turned ── */
+
+/* Unit lengths of line, as pairs of lattice points, read off the drawing. */
+function unitPieces(markup, ox, oy, unit) {
+  const pieces = new Set();
+  for (const m of markup.matchAll(/<line x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"/g)) {
+    const [x1, y1, x2, y2] = m.slice(1, 5).map(Number);
+    const a = [Math.round((x1 - ox) / unit), Math.round((y1 - oy) / unit)];
+    const b = [Math.round((x2 - ox) / unit), Math.round((y2 - oy) / unit)];
+    const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
+    const sx = Math.sign(b[0] - a[0]), sy = Math.sign(b[1] - a[1]);
+    for (let i = 0; i < n; i += 1) {
+      const p = [a[0] + sx * i, a[1] + sy * i], r = [a[0] + sx * (i + 1), a[1] + sy * (i + 1)];
+      pieces.add([p, r].sort((u, v) => u[0] - v[0] || u[1] - v[1]).map(z => z.join(",")).join("|"));
+    }
+  }
+  return pieces;
+}
+function shiftPieces(pieces, dx, dy, turnTimes) {
+  return [...pieces].map(piece => piece.split("|").map(z => {
+    let [x, y] = z.split(",").map(Number);
+    for (let t = 0; t < turnTimes; t += 1) [x, y] = [-y, x];
+    return [x + dx, y + dy];
+  }).sort((u, v) => u[0] - v[0] || u[1] - v[1]).map(z => z.join(",")).join("|"));
+}
+
+report.check("Hidden Shape turned: exactly one drawing contains a turn of the target, and it is the answer", () =>
+  solveAll("nvrtHiddenShapeTurned", q => {
+    const { unit, target, options } = q.figureData;
+    const svg = decode(q.questionImage);
+    const goal = unitPieces(group(svg, "target"), target.ox, target.oy, unit);
+    const holds = LETTERS.map((letter, i) => {
+      const drawing = unitPieces(group(svg, letter), options[i].ox, options[i].oy, unit);
+      for (let t = 0; t < 4; t += 1) {
+        for (let dx = -8; dx <= 8; dx += 1) {
+          for (let dy = -8; dy <= 8; dy += 1) {
+            if (shiftPieces(goal, dx, dy, t).every(p => drawing.has(p))) return true;
+          }
+        }
+      }
+      return false;
+    });
+    const matching = holds.map((h, i) => (h ? i : -1)).filter(i => i >= 0);
+    if (matching.length !== 1) return `${matching.length} drawings contain the target`;
+    return matching[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[matching[0]]} contains it`;
   }));
 
 report.note(`${fresh.length} questions across ${Object.keys(FAMILIES).length} families`);
