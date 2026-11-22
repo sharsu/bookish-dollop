@@ -20,6 +20,7 @@ is the usual reason a new check reports `undefined`.
 | `answers` | answers re-derived from each question's own wording, by a route the generator does not use |
 | `hints` | every sum written out inside a hint balances |
 | `figures` | drawn figures carry their data in alt text, no label off-canvas or on top of another |
+| `nvrt-figures` | the NVRT families in `js/questions-nvrt-2.js` re-solved from each picture: turns searched, heights projected, pieces fitted by trial, squares counted from the drawn lines |
 | `passages` | comprehension texts: quoted fragments really are in the passage, line references exist |
 | `variety` | templates still produce genuinely different questions |
 | `papers` | length, the difficulty mix `config.js` asks for, topic spread, no repeated question or template, passages intact |
@@ -76,6 +77,10 @@ Rebuilt after the originals were lost, so it is not a restoration. Known gaps:
   test would only be the same opinion twice — so those checks confirm the
   questions are well formed and that no single answer dominates the set.
   Comprehension passages *are* covered, by `passages.js`.
-- NVRT is checked for shape only, and cannot take part in the template-spread
-  check at all: its questions carry no `template` field, and its images carry no
-  alt text.
+- The NVRT families in `js/questions-nvrt.js` are checked for shape only, and
+  cannot take part in the template-spread check at all: their questions carry
+  no `template` field, and their images carry no data to answer from. The
+  newer families in `js/questions-nvrt-2.js` (Rotation, Plan View, Shape
+  Arithmetic, Count the Squares) do both - each keeps the model its picture was
+  drawn from in `figureData`, and `nvrt-figures.js` answers every one of them
+  again.
