@@ -33,7 +33,9 @@ const FAMILIES = {
   nvrtOddOneOutRule: [["nvrtOddOneOutRule"], 150],
   seriesStrips: [["nvrtSeriesCounts", "nvrtSeriesTurns", "nvrtSeriesTriangles"], 150],
   nvrtHolePunchFolds: [["nvrtHolePunchFolds"], 120],
-  nvrtHiddenShapeTurned: [["nvrtHiddenShapeTurned"], 120]
+  nvrtHiddenShapeTurned: [["nvrtHiddenShapeTurned"], 120],
+  nvrtTriangleMatrix: [["nvrtTriangleMatrix"], 120],
+  nvrtStarMatrix: [["nvrtStarMatrix"], 120]
 };
 const ofTemplate = name => app.nvrt.filter(q => q.template === name);
 const ofFamily = family => app.nvrt.filter(q => FAMILIES[family][0].includes(q.template));
@@ -600,6 +602,109 @@ report.check("Hidden Shape turned: exactly one drawing contains a turn of the ta
     const matching = holds.map((h, i) => (h ? i : -1)).filter(i => i >= 0);
     if (matching.length !== 1) return `${matching.length} drawings contain the target`;
     return matching[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[matching[0]]} contains it`;
+  }));
+
+/* ── Triangle Matrix and Star Matrix ── */
+
+/* Every way the right triangle could follow from the left: the corner
+   figures and their line styles each turn 0, 1 or 2 places clockwise, and
+   the shading swaps or not. Written from the picture's point of view, not
+   copied from the generator: a cell is described by what is drawn in it. */
+const same = (a, b) => a.shape === b.shape && a.fill === b.fill && (a.style || "solid") === (b.style || "solid");
+const otherShade = fill => (fill === "grey" ? "white" : "grey");
+function triangleCandidates(left) {
+  const ring = ["T", "BR", "BL"];
+  const out = [];
+  for (let move = 0; move < 3; move += 1) {
+    for (let styleMove = 0; styleMove < 3; styleMove += 1) {
+      for (const swap of [false, true]) {
+        const cells = {};
+        ring.forEach((pos, i) => {
+          const fromShape = left[ring[(i - move + 3) % 3]];
+          const fromStyle = left[ring[(i - styleMove + 3) % 3]];
+          cells[pos] = { shape: fromShape.shape, fill: swap ? otherShade(fromShape.fill) : fromShape.fill, style: fromStyle.style };
+        });
+        cells.C = { shape: left.C.shape, style: left.C.style, fill: swap ? otherShade(left.C.fill) : left.C.fill };
+        out.push(cells);
+      }
+    }
+  }
+  return out;
+}
+
+report.check("Triangle Matrix: every rule that fits the cells shown gives the same missing cell, offered once, as the answer", () =>
+  solveAll("nvrtTriangleMatrix", q => {
+    const { left, right, gap, options } = q.figureData;
+    const fits = triangleCandidates(left).filter(c => Object.keys(right).every(pos => pos === gap || same(c[pos], right[pos])));
+    if (!fits.length) return "no rule explains the right-hand triangle";
+    const predicted = fits.map(c => c[gap]);
+    if (predicted.some(p => !same(p, predicted[0]))) return "two rules that fit predict different cells";
+    const matching = options.map((o, i) => (same(o, predicted[0]) ? i : -1)).filter(i => i >= 0);
+    if (matching.length !== 1) return `${matching.length} options match the predicted cell`;
+    return matching[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[matching[0]]} matches`;
+  }));
+
+/* What each figure in a group is drawn as, from its data attributes. */
+const drawnFigures = markup => [...markup.matchAll(/data-style="(\w+)" data-shape="(\w+)" data-fill="(\w+)"/g)]
+  .map(m => ({ style: m[1], shape: m[2], fill: m[3] }));
+
+report.check("Triangle Matrix: every cell draws the figure, shading and line style it records", () =>
+  solveAll("nvrtTriangleMatrix", q => {
+    const svg = decode(q.questionImage);
+    const { left, right, options } = q.figureData;
+    const expect = [
+      ...Object.entries(left).map(([pos, cell]) => [`left-${pos}`, cell]),
+      ...Object.entries(right).filter(([, cell]) => cell).map(([pos, cell]) => [`right-${pos}`, cell]),
+      ...options.map((cell, i) => [LETTERS[i], cell])
+    ];
+    for (const [name, cell] of expect) {
+      const drawn = drawnFigures(group(svg, name));
+      if (drawn.length !== 1 || !same(drawn[0], cell)) return `${name} draws ${JSON.stringify(drawn)}`;
+    }
+    return true;
+  }));
+
+/* Every link a point could have to the inner triangles: any of the six
+   offsets, shading kept or swapped. A ring keeps the other shade inside. */
+report.check("Star Matrix: every link that fits the five points shown gives the same sixth, offered once, as the answer", () =>
+  solveAll("nvrtStarMatrix", q => {
+    const { inner, points, gap, options } = q.figureData;
+    const ring = points.some(p => p && p.inner);
+    const pointFor = (k, offset, swap) => {
+      const src = inner[(k + offset) % 6];
+      const fill = swap ? otherShade(src.fill) : src.fill;
+      return { shape: src.shape, fill, inner: ring ? otherShade(fill) : undefined };
+    };
+    const alike = (a, b) => a.shape === b.shape && a.fill === b.fill && (a.inner || null) === (b.inner || null);
+    const predicted = [];
+    for (let offset = 0; offset < 6; offset += 1) {
+      for (const swap of [false, true]) {
+        if (points.every((p, k) => k === gap || alike(pointFor(k, offset, swap), p))) predicted.push(pointFor(gap, offset, swap));
+      }
+    }
+    if (!predicted.length) return "no link explains the points";
+    if (predicted.some(p => !alike(p, predicted[0]))) return "two links that fit predict different points";
+    const matching = options.map((o, i) => (alike(o, predicted[0]) ? i : -1)).filter(i => i >= 0);
+    if (matching.length !== 1) return `${matching.length} options match the predicted point`;
+    return matching[0] === q.answer || `answer is ${LETTERS[q.answer]} but ${LETTERS[matching[0]]} matches`;
+  }));
+
+report.check("Star Matrix: every triangle draws the figure and shading it records", () =>
+  solveAll("nvrtStarMatrix", q => {
+    const svg = decode(q.questionImage);
+    const { inner, points, options } = q.figureData;
+    const check = (name, p) => {
+      const drawn = drawnFigures(group(svg, name));
+      const outer = drawn[0];
+      if (!outer || outer.shape !== p.shape || outer.fill !== p.fill) return `${name} draws ${JSON.stringify(drawn)}`;
+      if (p.inner && (drawn.length !== 2 || drawn[1].fill !== p.inner || drawn[1].shape !== p.shape)) return `${name} has the wrong inner copy`;
+      if (!p.inner && drawn.length !== 1) return `${name} draws an inner copy it does not record`;
+      return null;
+    };
+    for (const [k, p] of inner.entries()) { const bad = check(`inner-${k}`, p); if (bad) return bad; }
+    for (const [k, p] of points.entries()) { if (p) { const bad = check(`point-${k}`, p); if (bad) return bad; } }
+    for (const [i, p] of options.entries()) { const bad = check(LETTERS[i], p); if (bad) return bad; }
+    return true;
   }));
 
 report.note(`${fresh.length} questions across ${Object.keys(FAMILIES).length} families`);
