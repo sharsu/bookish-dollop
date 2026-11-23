@@ -1214,7 +1214,8 @@
     lshape: [[-0.9, -0.95], [-0.15, -0.95], [-0.15, 0.2], [0.9, 0.2], [0.9, 0.95], [-0.9, 0.95]],
     trapezium: [[-1, 0.65], [1, 0.65], [0.55, -0.65], [-0.55, -0.65]],
     parallelogram: [[-1, 0.6], [0.35, 0.6], [1, -0.6], [-0.35, -0.6]],
-    kite: [[0, -1], [0.65, -0.2], [0, 1], [-0.65, -0.2]]
+    kite: [[0, -1], [0.65, -0.2], [0, 1], [-0.65, -0.2]],
+    diamond: regularPolygon(4, -90)
   };
 
   const placePoints = (pts, scale, degrees = 0, dx = 0, dy = 0) =>
@@ -2297,6 +2298,296 @@
     });
   }
 
+  /* ───────────────────────── line styles ───────────────────────── */
+
+  /* An outline drawn in one of six line styles. Every outline carries its
+     style, shape and fill as data attributes so the tests can check that the
+     picture shows what figureData records. */
+  const LINE_STYLES = ["solid", "dashed", "dotted", "thick", "double", "wavy"];
+
+  function wavyPath(pts) {
+    let d = "";
+    pts.forEach((a, i) => {
+      const b = pts[(i + 1) % pts.length];
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const waves = Math.max(2, Math.round(len / 7));
+      const nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+      const steps = waves * 8;
+      for (let s = 0; s < steps; s += 1) {
+        /* The wave is zero at both ends of each edge, so corners stay sharp. */
+        const t = s / steps, off = Math.sin(t * waves * 2 * Math.PI) * 1.8;
+        d += `${d ? "L" : "M"}${num(a[0] + (b[0] - a[0]) * t + nx * off)} ${num(a[1] + (b[1] - a[1]) * t + ny * off)}`;
+      }
+    });
+    return `${d}Z`;
+  }
+
+  function styledOutline(pts, style, fill, extra = "") {
+    const P = pointsAttr(pts);
+    const colour = FILLS[fill];
+    const tag = `data-style="${style}"${extra}`;
+    if (style === "wavy") return `<path d="${wavyPath(pts)}" fill="${colour}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round" ${tag}/>`;
+    if (style === "double") {
+      return `<polygon points="${P}" fill="${colour}" stroke="${INK}" stroke-width="5.5" stroke-linejoin="round" ${tag}/>` +
+        `<polygon points="${P}" fill="none" stroke="${colour}" stroke-width="2" stroke-linejoin="round"/>`;
+    }
+    const look = {
+      solid: `stroke-width="2"`,
+      thick: `stroke-width="4"`,
+      dashed: `stroke-width="2" stroke-dasharray="5 3"`,
+      dotted: `stroke-width="2.6" stroke-dasharray="0.1 3.8" stroke-linecap="round"`
+    }[style];
+    return `<polygon points="${P}" fill="${colour}" stroke="${INK}" ${look} stroke-linejoin="round" ${tag}/>`;
+  }
+
+  /* Figures for the matrix families: upright shapes, each different enough
+     to tell apart at a small size. */
+  const MATRIX_FIGURES = ["circle", "square", "pentagon", "hexagon", "house", "trapezium", "kite", "octagon", "diamond", "triangle"];
+  const flipFill = fill => (fill === "white" ? "grey" : "white");
+
+  function figureAt(cell, cx, cy, size) {
+    return styledOutline(placePoints(OUTLINES[cell.shape], size, 0, cx, cy), cell.style || "solid", cell.fill,
+      ` data-shape="${cell.shape}" data-fill="${cell.fill}"`);
+  }
+
+  /* ═════════════════════════ TRIANGLE MATRIX ═════════════════════════
+     Two large triangles, each cut into four: a top, a bottom-left and a
+     bottom-right corner, and an upside-down centre. The right one is made
+     from the left by rules - the corner figures move one place round, the
+     shading swaps, and at Super Hard the line styles move round on their
+     own - and one of its cells is missing.
+
+     The generator lists every rule that fits the cells it shows and keeps
+     the draw only if they all agree on the missing cell, so no question can
+     have two right answers. */
+
+  const CORNERS = ["T", "BR", "BL"];   // clockwise
+  const cellKeyOf = cell => `${cell.shape}|${cell.fill}|${cell.style || "solid"}`;
+
+  function bigTriangleCells(ax, ay, side) {
+    const h = (side * Math.sqrt(3)) / 2;
+    const A = [ax, ay], L = [ax - side / 2, ay + h], R = [ax + side / 2, ay + h];
+    const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    const mL = mid(A, L), mR = mid(A, R), mB = mid(L, R);
+    return { T: [A, mR, mL], BR: [mR, R, mB], BL: [mL, mB, L], C: [mL, mR, mB] };
+  }
+
+  /* The right triangle from the left: `shapes` and `styles` say how far the
+     corner figures and their line styles move clockwise; `swap` flips every
+     cell's shading. The centre keeps its figure and style. */
+  function applyTriangleRule(left, rule) {
+    const from = (pos, by) => CORNERS[(CORNERS.indexOf(pos) - by + 3) % 3];
+    const right = {};
+    CORNERS.forEach(pos => {
+      const carried = left[from(pos, rule.shapes)];
+      right[pos] = {
+        shape: carried.shape,
+        fill: rule.swap ? flipFill(carried.fill) : carried.fill,
+        style: left[from(pos, rule.styles)].style
+      };
+    });
+    right.C = { ...left.C, fill: rule.swap ? flipFill(left.C.fill) : left.C.fill };
+    return right;
+  }
+
+  const TRIANGLE_RULES = [];
+  [-1, 0, 1].forEach(shapes => [-1, 0, 1].forEach(styles => [false, true].forEach(swap => TRIANGLE_RULES.push({ shapes, styles, swap }))));
+
+  function buildTriangleMatrix(seed, rng) {
+    const level = Math.max(3, levelFor(seed));
+    const shapes = rng.shuffle(MATRIX_FIGURES).slice(0, 4);
+    const styles = level === 4 ? rng.shuffle(LINE_STYLES).slice(0, 4) : ["solid", "solid", "solid", "solid"];
+    const fills = rng.shuffle(["white", "grey", rng.pick(["white", "grey"]), rng.pick(["white", "grey"])]);
+    const left = {};
+    ["T", "BR", "BL", "C"].forEach((pos, i) => { left[pos] = { shape: shapes[i], fill: fills[i], style: styles[i] }; });
+    const rule = {
+      shapes: rng.pick([-1, 1]),
+      styles: level === 4 ? rng.pick([-1, 1]) : 0,
+      swap: level === 3 ? true : rng.next() < 0.6
+    };
+    const right = applyTriangleRule(left, rule);
+    const gap = rng.pick(level === 4 ? ["T", "BR", "BL", "C"] : ["T", "BR", "BL", "BR", "C"]);
+    const correct = right[gap];
+
+    /* Every rule consistent with what is shown must predict the same cell. */
+    const visible = Object.keys(right).filter(pos => pos !== gap);
+    const fitting = TRIANGLE_RULES.filter(r => {
+      const trial = applyTriangleRule(left, r);
+      return visible.every(pos => cellKeyOf(trial[pos]) === cellKeyOf(right[pos]));
+    });
+    const predictions = new Set(fitting.map(r => cellKeyOf(applyTriangleRule(left, r)[gap])));
+    if (predictions.size !== 1) return null;
+
+    /* Wrong answers: what the other rules would put there, then near misses. */
+    const others = Object.values(left);
+    const candidates = [
+      ...TRIANGLE_RULES.map(r => applyTriangleRule(left, r)[gap]),
+      left[gap],
+      { ...correct, fill: flipFill(correct.fill) },
+      ...others.map(o => ({ ...correct, shape: o.shape })),
+      ...(level === 4 ? others.map(o => ({ ...correct, style: o.style })) : [])
+    ];
+    const wrong = distinctWrong(rng, correct, candidates, cellKeyOf);
+    if (!wrong) return null;
+    const { answer, options } = placeAnswer(rng, correct, wrong);
+
+    const side = 176, size = 15;
+    const centroid = tri => [(tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3];
+    const drawTriangle = (cells, apexX, missing, prefix) => {
+      const geo = bigTriangleCells(apexX, 18, side);
+      let svg = "";
+      Object.keys(geo).forEach(pos => {
+        const [cx, cy] = centroid(geo[pos]);
+        if (pos === missing) {
+          svg += `<polygon points="${pointsAttr(geo[pos])}" fill="#ffffff" stroke="${ACCENT}" stroke-width="2" stroke-dasharray="6 4"/>`;
+          svg += `<text x="${num(cx)}" y="${num(cy + 9)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="${ACCENT}">?</text>`;
+        } else {
+          svg += `<g data-fig="${prefix}-${pos}"><polygon points="${pointsAttr(geo[pos])}" fill="#ffffff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>${figureAt(cells[pos], cx, cy, size)}</g>`;
+        }
+      });
+      return svg;
+    };
+    let body = drawTriangle(left, 170, null, "left") + drawTriangle(right, 470, gap, "right");
+    const gapUp = gap !== "C";
+    options.forEach((cell, i) => {
+      const x = 20 + i * 124, y = 196, w = 100;
+      const h = (88 * Math.sqrt(3)) / 2, cx = x + w / 2, top = y + (w - h) / 2;
+      const tri = gapUp ? [[cx, top], [cx + 44, top + h], [cx - 44, top + h]] : [[cx - 44, top], [cx + 44, top], [cx, top + h]];
+      const [fx, fy] = centroid(tri);
+      body += `<g data-fig="${LABELS[i]}">${panelRect(x, y, w, w)}<polygon points="${pointsAttr(tri)}" fill="#ffffff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>${figureAt(cell, fx, fy, size)}</g>`;
+      body += text(cx, y + w + 20, LABELS[i]);
+    });
+
+    const posName = { T: "top", BR: "bottom right", BL: "bottom left", C: "centre" };
+    const way = by => (by === 1 ? "clockwise" : "anticlockwise");
+    const describe = c => `${c.fill} ${c.shape}${level === 4 ? `, ${c.style} line` : ""}`;
+    const rules = [`the figures in the three corners move one place ${way(rule.shapes)}`];
+    if (rule.styles) rules.push(`the line styles move one place ${way(rule.styles)} on their own`);
+    rules.push(rule.swap ? "every cell's shading swaps between white and grey" : "the shading stays the same");
+    return makeQuestion({
+      topic: "NVRT Triangle Matrix",
+      template: "nvrtTriangleMatrix",
+      question: "Which figure is missing from the large triangle?",
+      answer,
+      difficulty: level,
+      image: baseSvg(640, 330, body),
+      alt: `Two large triangles, each cut into a top, bottom left, bottom right and upside-down centre cell. Left: ${["T", "BR", "BL", "C"].map(p => `${posName[p]} ${describe(left[p])}`).join("; ")}. Right: ${["T", "BR", "BL", "C"].map(p => `${posName[p]} ${p === gap ? "missing" : describe(right[p])}`).join("; ")}. Options A to E: ${options.map(describe).join("; ")}.`,
+      explain: `Compare the two large triangles cell by cell. Track the figures first: where has the top figure gone? Then the shading, then the line style, each on its own - they need not move together. Here ${listWords(rules)}, and the centre keeps its figure. Work out what belongs in the empty ${posName[gap]} cell from each rule before looking at the options.`,
+      data: { left, right: { ...right, [gap]: null }, gap, options }
+    });
+  }
+
+  /* ═════════════════════════ STAR MATRIX ═════════════════════════
+     A six-pointed star: six inner triangles round a hexagon and six points.
+     Each point holds a copy of the figure in a related inner triangle - the
+     next one clockwise, the next anticlockwise, or at Super Hard the one
+     opposite. At Hard the copy keeps or swaps the shading; at Super Hard it
+     is drawn as a ring, an outer copy with a small copy inside in the other
+     shade. One point is empty.
+
+     As with the Triangle Matrix, every rule that fits the five points shown
+     must predict the same sixth, or the draw is thrown away. */
+
+  function starGeometry(cx, cy, R) {
+    const at = (r, deg) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
+    const hr = R / Math.sqrt(3);
+    const points = [], inner = [];
+    for (let k = 0; k < 6; k += 1) {
+      /* Point 0 is at the top; the count runs clockwise. Inner triangle k
+         sits directly beneath point k. */
+      const tip = -90 + 60 * k;
+      const a = at(hr, tip - 30), b = at(hr, tip + 30);
+      points.push([at(R, tip), b, a]);
+      inner.push([[cx, cy], a, b]);
+    }
+    return { points, inner };
+  }
+
+  /* What point k holds under a rule: the figure `offset` places clockwise
+     round from inner triangle k, shaded the same or the other way. */
+  function starPoint(inner, k, rule, ring) {
+    const src = inner[(k + rule.offset) % 6];
+    const fill = rule.flip ? flipFill(src.fill) : src.fill;
+    return ring ? { shape: src.shape, fill, inner: flipFill(fill) } : { shape: src.shape, fill };
+  }
+  const starKey = p => `${p.shape}|${p.fill}|${p.inner || "-"}`;
+  const STAR_RULES = [];
+  for (let offset = 0; offset < 6; offset += 1) [false, true].forEach(flip => STAR_RULES.push({ offset, flip }));
+
+  function starFigure(p, cx, cy) {
+    let svg = figureAt(p, cx, cy, p.inner ? 13 : 11);
+    if (p.inner) svg += figureAt({ shape: p.shape, fill: p.inner }, cx, cy, 6).replace("<polygon", `<polygon data-ring="inner"`);
+    return svg;
+  }
+
+  function buildStarMatrix(seed, rng) {
+    const level = Math.max(3, levelFor(seed));
+    const ring = level === 4;
+    const shapes = rng.shuffle(MATRIX_FIGURES).slice(0, 6);
+    const fills = rng.shuffle(["white", "white", "grey", "grey", rng.pick(["white", "grey"]), rng.pick(["white", "grey"])]);
+    const inner = shapes.map((shape, k) => ({ shape, fill: fills[k] }));
+    const rule = { offset: rng.pick(level === 4 ? [1, 5, 3] : [1, 5]), flip: rng.next() < 0.5 };
+    const points = inner.map((_, k) => starPoint(inner, k, rule, ring));
+    const gap = rng.int(6);
+    const correct = points[gap];
+
+    const fitting = STAR_RULES.filter(r => points.every((p, k) => k === gap || starKey(starPoint(inner, k, r, ring)) === starKey(p)));
+    if (new Set(fitting.map(r => starKey(starPoint(inner, gap, r, ring)))).size !== 1) return null;
+
+    const candidates = [
+      ...STAR_RULES.map(r => starPoint(inner, gap, r, ring)),
+      { ...correct, fill: flipFill(correct.fill) },
+      ...(ring ? [{ shape: correct.shape, fill: correct.fill }, { ...correct, inner: correct.fill }] : []),
+      ...inner.map(src => ({ ...correct, shape: src.shape }))
+    ];
+    const wrong = distinctWrong(rng, correct, candidates, starKey);
+    if (!wrong) return null;
+    const { answer, options } = placeAnswer(rng, correct, wrong);
+
+    const geo = starGeometry(150, 150, 118);
+    const centroid = tri => [(tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3];
+    let body = "";
+    geo.inner.forEach((tri, k) => {
+      const [cx, cy] = centroid(tri);
+      body += `<g data-fig="inner-${k}"><polygon points="${pointsAttr(tri)}" fill="#ffffff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>${figureAt(inner[k], cx, cy, 10)}</g>`;
+    });
+    geo.points.forEach((tri, k) => {
+      const [cx, cy] = centroid(tri);
+      if (k === gap) {
+        body += `<polygon points="${pointsAttr(tri)}" fill="#ffffff" stroke="${ACCENT}" stroke-width="2" stroke-dasharray="6 4"/>`;
+        body += `<text x="${num(cx)}" y="${num(cy + 8)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="${ACCENT}">?</text>`;
+      } else {
+        body += `<g data-fig="point-${k}"><polygon points="${pointsAttr(tri)}" fill="#ffffff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>${starFigure(points[k], cx, cy)}</g>`;
+      }
+    });
+    /* Options: the empty point's triangle, the same way round, at full size. */
+    const [gx, gy] = centroid(geo.points[gap]);
+    options.forEach((p, i) => {
+      const x = 300 + (i % 3) * 112, y = 30 + Math.floor(i / 3) * 132;
+      const cx = x + 48, cy = y + 48;
+      const tri = geo.points[gap].map(([px, py]) => [px - gx + cx, py - gy + cy]);
+      body += `<g data-fig="${LABELS[i]}">${panelRect(x, y, 96, 96)}<polygon points="${pointsAttr(tri)}" fill="#ffffff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>${starFigure(p, cx, cy)}</g>`;
+      body += text(cx, y + 96 + 20, LABELS[i]);
+    });
+
+    const where = { 1: "the next inner triangle clockwise", 5: "the next inner triangle anticlockwise", 3: "the inner triangle on the opposite side of the star" }[rule.offset];
+    const shading = ring
+      ? `drawn as a ring - an outer copy ${rule.flip ? "in the opposite shade to" : "in the same shade as"} the inner figure, with a small copy inside in the other shade`
+      : `${rule.flip ? "with its shading swapped" : "with the same shading"}`;
+    const describe = p => `${p.fill} ${p.shape}${p.inner ? ` with a small ${p.inner} ${p.shape} inside` : ""}`;
+    return makeQuestion({
+      topic: "NVRT Star Matrix",
+      template: "nvrtStarMatrix",
+      question: "Which figure is missing from the star?",
+      answer,
+      difficulty: level,
+      image: baseSvg(640, 300, body),
+      alt: `A six-pointed star. Inner triangles clockwise from the top: ${inner.map(describe).join("; ")}. Points clockwise from the top: ${points.map((p, k) => (k === gap ? "missing" : describe(p))).join("; ")}. Options A to E: ${options.map(describe).join("; ")}.`,
+      explain: `Each point of the star is linked to one of the inner triangles. Find the link from a point you can see: is its figure from the triangle just beneath it, the next one round, or the one opposite? Check the same link works for every other point, then use it for the empty one. Here each point holds the figure from ${where}, ${shading}.`,
+      data: { inner, points: points.map((p, k) => (k === gap ? null : p)), gap, options }
+    });
+  }
+
   /* ═══════════════ DRIVER ═══════════════ */
   /* Seeds start well clear of questions-nvrt.js (0 to about 19,000). */
   const FAMILIES = [
@@ -2307,7 +2598,9 @@
     [buildOddOneOutRule, 150, 34000],
     [buildSeriesStrip, 150, 35000],
     [buildHolePunchFolds, 120, 36000],
-    [buildHiddenShapeTurned, 120, 37000]
+    [buildHiddenShapeTurned, 120, 37000],
+    [buildTriangleMatrix, 120, 38000],
+    [buildStarMatrix, 120, 39000]
   ];
   const made = [];
   FAMILIES.forEach(([build, count, firstSeed]) => {
